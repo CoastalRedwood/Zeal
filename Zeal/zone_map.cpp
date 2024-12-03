@@ -136,6 +136,14 @@ void ZoneMap::render_update_viewport(IDirect3DDevice8& device) {
         .Width = rect_right - rect_left, .Height = rect_bottom - rect_top,
         .MinZ = 0.0f, .MaxZ = 1.0f };
 
+
+    if (viewport.Width < 10 || viewport.Height < 10) {
+        Zeal::EqGame::print_chat("DEBUG render_update_viewport: Disabling");
+        dump();
+        set_enabled(false);  // Disable and release resources.
+        return;
+    }
+
     ui_synchronize_window();
 }
 
@@ -1468,18 +1476,32 @@ void ZoneMap::callback_render() {
     Zeal::EqStructures::Entity* self = Zeal::EqGame::get_self();
     IDirect3DDevice8* device = external_enabled ?
         external_d3ddev : ZealService::get_instance()->dx->GetDevice();
-    if (!self || !device)
+    if (!self || !device) {
+        Zeal::EqGame::print_chat("DEBUG: callback_render1");
+        dump();
+        set_enabled(false);  // Disable and release resources.
         return;
+    }
 
     int target_zone_id = (show_zone_id != kInvalidZoneId) ? show_zone_id : self->ZoneId;
     const ZoneMapData* zone_map_data = get_zone_map(target_zone_id);
     if (!zone_map_data) {
+        Zeal::EqGame::print_chat("DEBUG: get_zone_map");
+        dump();
+        set_enabled(false);  // Disable and release resources.
         return;
     }
 
     if (zone_id != target_zone_id || is_zlevel_change()) {
         zone_id = target_zone_id;
         render_load_map(*device, *zone_map_data);
+    }
+
+    if (!enabled) {
+        Zeal::EqGame::print_chat("DEBUG: render_load_map");
+        dump();
+        set_enabled(false);  // Disable and release resources.
+        return;
     }
 
     render_update_viewport(*device);  // Updates size and position of output viewport.
@@ -1499,6 +1521,14 @@ void ZoneMap::callback_render() {
         device->EndScene();    // ends the 3D scene
         device->Present(NULL, NULL, NULL, NULL);   // displays the created frame on the screen
     }
+
+    if (viewport.Width < 10 || viewport.Height < 10) {
+        Zeal::EqGame::print_chat("DEBUG: end of render_callback");
+        dump();
+        set_enabled(false);  // Disable and release resources.
+        return;
+    }
+
 }
 
 
@@ -2756,6 +2786,9 @@ bool ZoneMap::parse_command(const std::vector<std::string>& args) {
     else if (args[1] == "save_ini") {
         Zeal::EqGame::print_chat("Saving current map settings");
         save_ini();
+    }
+    else if (args[1] == "crash") {
+        map_rect_right = map_rect_left;  // TODO TODO: Force a bad viewport size.
     }
     else if (args[1] == "grid") {
         parse_grid(args);
