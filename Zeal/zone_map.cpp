@@ -139,6 +139,11 @@ void ZoneMap::render_update_viewport(IDirect3DDevice8& device) {
 
     if (viewport.Width < 10 || viewport.Height < 10) {
         Zeal::EqGame::print_chat("DEBUG render_update_viewport: Disabling");
+        Zeal::EqGame::print_chat("d3dwidth: %i, d3dheight: %i", description.Width, description.Height);
+        Zeal::EqGame::print_chat("max_viewport_width: %i, max_viewport_height: %i", max_viewport_width, max_viewport_height);
+        Zeal::EqGame::print_chat("map_rect_left: %f, map_rect_right: %f", map_rect_left, map_rect_right);
+        Zeal::EqGame::print_chat("rect_left: %i, rect_right: %i", rect_left, rect_right);
+        Zeal::EqGame::print_chat("dbg1: %f, dbg2: %f", map_rect_left * description.Width, std::floor(map_rect_left * description.Width));
         dump();
         set_enabled(false);  // Disable and release resources.
         return;
