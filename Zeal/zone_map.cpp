@@ -127,10 +127,10 @@ void ZoneMap::render_update_viewport(IDirect3DDevice8& device) {
     max_viewport_width = description.Width;  // Used for constant scaling of markers.
     max_viewport_height = description.Height;
 
-    const DWORD rect_left = static_cast<DWORD>(std::floor(map_rect_left * description.Width));
-    const DWORD rect_right = static_cast<DWORD>(std::ceil(map_rect_right * description.Width));
-    const DWORD rect_top = static_cast<DWORD>(std::floor(map_rect_top * description.Height));
-    const DWORD rect_bottom = static_cast<DWORD>(std::ceil(map_rect_bottom * description.Height));
+    const DWORD rect_left = static_cast<DWORD>(map_rect_left * description.Width);
+    const DWORD rect_right = static_cast<DWORD>(map_rect_right * description.Width + 0.99f);
+    const DWORD rect_top = static_cast<DWORD>(map_rect_top * description.Height);
+    const DWORD rect_bottom = static_cast<DWORD>(map_rect_bottom * description.Height + 0.99f);
 
     viewport = D3DVIEWPORT8{ .X = rect_left, .Y = rect_top,
         .Width = rect_right - rect_left, .Height = rect_bottom - rect_top,
@@ -2809,6 +2809,17 @@ bool ZoneMap::parse_command(const std::vector<std::string>& args) {
     }
     else if (args[1] == "dump") {
         dump();
+    }
+    else if (args[1] == "calcs") {
+        Zeal::EqGame::print_chat("Test calcs");
+        UINT integer = 1920;
+        float factor = 0.06f;
+        float product = integer * factor;
+        Zeal::EqGame::print_chat("integer: %i, factor: %f, product: %f, %f", integer, factor, product, integer * factor);
+        Zeal::EqGame::print_chat("floor1: %f, floorf1: %f", std::floor(integer * factor), std::floorf(integer * factor));
+        Zeal::EqGame::print_chat("floor2: %f, floorf2: %f", std::floor(product), std::floorf(product));
+        Zeal::EqGame::print_chat("cast1: %i, castf1: %i", static_cast<DWORD>(std::floor(integer * factor)), static_cast<DWORD>(std::floorf(integer * factor)));
+        Zeal::EqGame::print_chat("trunc1: %i", static_cast<DWORD>(integer * factor));
     }
     else if (!parse_shortcuts(args)) {
         Zeal::EqGame::print_chat("Usage: /map [on|off|size|alignment|marker|background|zoom|poi|labels|level|]");
