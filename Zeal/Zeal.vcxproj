@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{4df89e39-7dab-4481-aee0-48151eafd3be}</ProjectGuid>
+    <RootNamespace>Zeal</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(SolutionDir)$(ProjectName)\imgui-docking;$(SolutionDir)$(ProjectName);$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <TargetExt>.asi</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level2</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;WIN32_LEAN_AND_MEAN;NDEBUG;ZEAL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(zeal_build_version)'!=''">ZEAL_BUILD_VERSION="$(zeal_build_version)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Optimization>MaxSpeed</Optimization>
+      <DisableSpecificWarnings>26495;6387</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>winmm.lib;Dbghelp.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="alarm.h" />
+    <ClInclude Include="assist.h" />
+    <ClInclude Include="autofire.h" />
+    <ClInclude Include="bitmap_font.h" />
+    <ClInclude Include="operator_overloads.h" />
+    <ClInclude Include="character_select.h" />
+    <ClInclude Include="chatfilter.h" />
+    <ClInclude Include="crash_handler.h" />
+    <ClInclude Include="default_spritefont.h" />
+    <ClInclude Include="directx.h" />
+    <ClInclude Include="entity_manager.h" />
+    <ClInclude Include="equip_item.h" />
+    <ClInclude Include="floating_damage.h" />
+    <ClInclude Include="items.h" />
+    <ClInclude Include="json.hpp" />
+    <ClInclude Include="helm_manager.h" />
+    <ClInclude Include="music.h" />
+    <ClInclude Include="survey.h" />
+    <ClInclude Include="tick.h" />
+    <ClInclude Include="ui_buff.h" />
+    <ClInclude Include="ui_group.h" />
+    <ClInclude Include="ui_inputdialog.h" />
+    <ClInclude Include="ui_inspect.h" />
+    <ClInclude Include="ui_zoneselect.h" />
+    <ClInclude Include="zeal_settings.h" />
+    <ClInclude Include="zone_map.h" />
+    <ClInclude Include="miniz.h" />
+    <ClInclude Include="named_pipe.h" />
+    <ClInclude Include="nameplate.h" />
+    <ClInclude Include="npc_give.h" />
+    <ClInclude Include="patches.h" />
+    <ClInclude Include="physics.h" />
+    <ClInclude Include="target_ring.h" />
+    <ClInclude Include="tellwindows.h" />
+    <ClInclude Include="tooltip.h" />
+    <ClInclude Include="ui_bank.h" />
+    <ClInclude Include="item_display.h" />
+    <ClInclude Include="melody.h" />
+    <ClInclude Include="player_movement.h" />
+    <ClInclude Include="binds.h" />
+    <ClInclude Include="buff_timers.h" />
+    <ClInclude Include="camera_math.h" />
+    <ClInclude Include="chat.h" />
+    <ClInclude Include="commands.h" />
+    <ClInclude Include="cycle_target.h" />
+    <ClInclude Include="game_addresses.h" />
+    <ClInclude Include="game_functions.h" />
+    <ClInclude Include="game_packets.h" />
+    <ClInclude Include="game_str.h" />
+    <ClInclude Include="game_structures.h" />
+    <ClInclude Include="game_ui.h" />
+    <ClInclude Include="experience.h" />
+    <ClInclude Include="find_pattern.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="hook_wrapper.h" />
+    <ClInclude Include="io_ini.h" />
+    <ClInclude Include="labels.h" />
+    <ClInclude Include="looting.h" />
+    <ClInclude Include="callbacks.h" />
+    <ClInclude Include="memory.h" />
+    <ClInclude Include="camera_mods.h" />
+    <ClInclude Include="instruction_length.h" />
+    <ClInclude Include="netstat.h" />
+    <ClInclude Include="outputfile.h" />
+    <ClInclude Include="raid.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="spell_categories.h" />
+    <ClInclude Include="spellsets.h" />
+    <ClInclude Include="string_util.h" />
+    <ClInclude Include="ui_guild.h" />
+    <ClInclude Include="ui_hotbutton.h" />
+    <ClInclude Include="ui_loot.h" />
+    <ClInclude Include="ui_manager.h" />
+    <ClInclude Include="ui_options.h" />
+    <ClInclude Include="ui_raid.h" />
+    <ClInclude Include="vectors.h" />
+    <ClInclude Include="zeal.h" />
+    <ClInclude Include="zone_map_data.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="alarm.cpp" />
+    <ClCompile Include="assist.cpp" />
+    <ClCompile Include="autofire.cpp" />
+    <ClCompile Include="bitmap_font.cpp" />
+    <ClCompile Include="character_select.cpp" />
+    <ClCompile Include="chatfilter.cpp" />
+    <ClCompile Include="crash_handler.cpp" />
+    <ClCompile Include="default_spritefont.cpp" />
+    <ClCompile Include="directx.cpp" />
+    <ClCompile Include="entity_manager.cpp" />
+    <ClCompile Include="equip_item.cpp" />
+    <ClCompile Include="floating_damage.cpp" />
+    <ClCompile Include="helm_manager.cpp" />
+    <ClCompile Include="items.cpp" />
+    <ClCompile Include="music.cpp" />
+    <ClCompile Include="survey.cpp" />
+    <ClCompile Include="tick.cpp" />
+    <ClCompile Include="ui_buff.cpp" />
+    <ClCompile Include="ui_group.cpp" />
+    <ClCompile Include="ui_inputdialog.cpp" />
+    <ClCompile Include="ui_inspect.cpp" />
+    <ClCompile Include="ui_zoneselect.cpp" />
+    <ClCompile Include="zone_map.cpp" />
+    <ClCompile Include="miniz.c" />
+    <ClCompile Include="named_pipe.cpp" />
+    <ClCompile Include="nameplate.cpp" />
+    <ClCompile Include="npc_give.cpp" />
+    <ClCompile Include="patches.cpp" />
+    <ClCompile Include="physics.cpp" />
+    <ClCompile Include="target_ring.cpp" />
+    <ClCompile Include="tellwindows.cpp" />
+    <ClCompile Include="tooltip.cpp" />
+    <ClCompile Include="ui_bank.cpp" />
+    <ClCompile Include="item_display.cpp" />
+    <ClCompile Include="melody.cpp" />
+    <ClCompile Include="player_movement.cpp" />
+    <ClCompile Include="binds.cpp" />
+    <ClCompile Include="buff_timers.cpp" />
+    <ClCompile Include="camera_math.cpp" />
+    <ClCompile Include="chat.cpp" />
+    <ClCompile Include="commands.cpp" />
+    <ClCompile Include="cycle_target.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="game_functions.cpp" />
+    <ClCompile Include="game_str.cpp" />
+    <ClCompile Include="experience.cpp" />
+    <ClCompile Include="find_pattern.cpp" />
+    <ClCompile Include="hook_wrapper.cpp" />
+    <ClCompile Include="labels.cpp" />
+    <ClCompile Include="looting.cpp" />
+    <ClCompile Include="callbacks.cpp" />
+    <ClCompile Include="memory.cpp" />
+    <ClCompile Include="camera_mods.cpp" />
+    <ClCompile Include="netstat.cpp" />
+    <ClCompile Include="outputfile.cpp" />
+    <ClCompile Include="raid.cpp" />
+    <ClCompile Include="spellsets.cpp" />
+    <ClCompile Include="string_util.cpp" />
+    <ClCompile Include="ui_guild.cpp" />
+    <ClCompile Include="ui_hotbutton.cpp" />
+    <ClCompile Include="ui_loot.cpp" />
+    <ClCompile Include="ui_manager.cpp" />
+    <ClCompile Include="ui_options.cpp" />
+    <ClCompile Include="ui_raid.cpp" />
+    <ClCompile Include="vectors.cpp" />
+    <ClCompile Include="zeal.cpp" />
+    <ClCompile Include="zone_map_data.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Zeal.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CHANGELOG.md" />
+    <None Include="..\README.md" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

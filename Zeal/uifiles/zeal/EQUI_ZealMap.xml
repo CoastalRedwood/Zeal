@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<XML ID="EQInterfaceDefinitionLanguage">
+  <Schema xmlns="EverQuestData" xmlns:dt="EverQuestDataTypes" />
+  <Screen item="ZealMap">
+    <RelativePosition>false</RelativePosition>
+    <Location>
+      <X>5</X>
+      <Y>5</Y>
+    </Location>
+    <Size>
+      <CX>500</CX>
+      <CY>400</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <DrawTemplate>WDT_Rounded</DrawTemplate>
+    <Style_Titlebar>true</Style_Titlebar>
+    <Style_Closebox>true</Style_Closebox>
+    <Style_Minimizebox>true</Style_Minimizebox>
+    <Style_Border>true</Style_Border>
+    <Style_Sizable>true</Style_Sizable>
+    <Text>Zeal Map</Text>
+    <TooltipReference>This is the zeal map.</TooltipReference>
+  </Screen>
+</XML>
