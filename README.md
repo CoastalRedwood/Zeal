@@ -8,7 +8,7 @@ from the repo source, providing full transparency on the release contents.
 
 ### Installation
 - Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest)
-- Unzip contents to root game directory.
+- Unzip contents to root game directory (not the uifiles/ subfolder).
 - Test Zeal installation in game by typing "/zeal version" and "/help zeal".
 - Configure Zeal by assigning new key binds and using the new Zeal options window.
 
@@ -594,7 +594,7 @@ The map data was sourced from Brewall's maps: https://www.eqmaps.info/eq-map-fil
 modifications (see README.md in zone_map_src). As a result there are some out of era points of interest.
 
 #### Setup and configuration
-Zeal 4.0 and later includes an integrated in-game map that contains the map data for
+Zeal includes an integrated in-game map that contains the Brewall map data for
 all zones through Planes of Power. The map is drawn into the game's DirectX viewport
 as part of the rendering sequence and is by default not 'clickable' (see interactive mode below).
 
