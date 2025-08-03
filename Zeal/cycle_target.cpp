@@ -34,6 +34,7 @@ Zeal::GameStructures::Entity *CycleTarget::get_next_ent(float dist, byte type) {
   for (auto &ent : visible_ents) {
     if (ent->StructType != 0x03) continue;
     if (ent->Type == type && ent->Level > 0) {
+      if (Zeal::Game::is_a_mount(ent)) continue;  // Skip mounts like horses.
       if (ent->PetOwnerSpawnId) {
         Zeal::GameStructures::Entity *owner = Zeal::Game::get_entity_by_id(ent->PetOwnerSpawnId);
         if ((owner && (owner->Type == Zeal::GameEnums::EntityTypes::NPC ||
@@ -70,6 +71,7 @@ Zeal::GameStructures::Entity *CycleTarget::get_nearest_ent(float dist, byte type
   for (auto &ent : visible_ents) {
     if (ent->StructType != 0x03) continue;
     if (ent->Type == type && ent->Level > 0) {
+      if (Zeal::Game::is_a_mount(ent)) continue;  // Skip mounts like horses.
       if (ent->PetOwnerSpawnId) {
         Zeal::GameStructures::Entity *owner = Zeal::Game::get_entity_by_id(ent->PetOwnerSpawnId);
         if ((owner && (owner->Type == Zeal::GameEnums::EntityTypes::NPC ||

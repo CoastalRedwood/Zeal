@@ -381,7 +381,7 @@ void ui_options::InitGeneral() {
     ZealService::get_instance()->looting_hook->set_hide_looted(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_Cam", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->camera_mods->set_smoothing(wnd->Checked);
+    ZealService::get_instance()->camera_mods->enabled.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_BlueCon", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->chat_hook->UseBlueCon.set(wnd->Checked);
@@ -451,6 +451,9 @@ void ui_options::InitGeneral() {
   });
   ui->AddCheckboxCallback(wnd, "Zeal_EnhancedSpellInfo", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->item_displays->setting_enhanced_spell_info.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_EnhancedAutoRun", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->movement->EnhancedAutoRun.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_SlashNotPoke",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_slash_not_poke.set(wnd->Checked); });
@@ -929,6 +932,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_SingleClickGiveEnable", ZealService::get_instance()->give->setting_enable_give.get());
   ui->SetChecked("Zeal_EnhancedSpellInfo",
                  ZealService::get_instance()->item_displays->setting_enhanced_spell_info.get());
+  ui->SetChecked("Zeal_EnhancedAutoRun", ZealService::get_instance()->movement->EnhancedAutoRun.get());
   ui->SetChecked("Zeal_SlashNotPoke", setting_slash_not_poke.get());
   ui->SetChecked("Zeal_InviteDialog", setting_invite_dialog.get());
   ui->SetChecked("Zeal_AutoFollowEnable", ZealService::get_instance()->game_patches->AutoFollowEnable.get());

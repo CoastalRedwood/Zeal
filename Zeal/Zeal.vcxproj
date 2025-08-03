@@ -217,6 +217,29 @@
   <ItemGroup>
     <None Include="..\CHANGELOG.md" />
     <None Include="..\README.md" />
+    <None Include="uifiles\zeal\optional\README.md" />
+    <None Include="uifiles\zeal\spell_info\fetch_spell_info.py" />
+    <None Include="uifiles\zeal\spell_info\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="uifiles\zeal\EQUI_GuildManagementWnd.xml" />
+    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_Cam.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_Colors.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_FloatingDamage.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_General.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_Map.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_Nameplate.xml" />
+    <Xml Include="uifiles\zeal\EQUI_Tab_TargetRing.xml" />
+    <Xml Include="uifiles\zeal\EQUI_ZealButtonWnd.xml" />
+    <Xml Include="uifiles\zeal\EQUI_ZealInputDialog.xml" />
+    <Xml Include="uifiles\zeal\EQUI_ZealMap.xml" />
+    <Xml Include="uifiles\zeal\EQUI_ZealOptions.xml" />
+    <Xml Include="uifiles\zeal\EQUI_ZoneSelect.xml" />
+    <Xml Include="uifiles\zeal\optional\EQUI_CharacterSelect.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="uifiles\zeal\spell_info\spell_info.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -38,7 +38,7 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
     }
     case 81: {
       if (!zeal->experience) return true;
-      Zeal::Game::CXStr_PrintString(str, "%.f", zeal->experience->exp_per_hour_pct_tot);
+      Zeal::Game::CXStr_PrintString(str, "%.f", zeal->experience->get_exp_per_hour_pct());
       *override_color = false;
       return true;
     }
@@ -76,6 +76,12 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
       *color = (num_empty <= 0) ? 0xffff0000 : ((num_empty == 1) ? 0xffffff00 : 0xffc0c0c0);
       return true;
     }
+    case 86: {
+      if (!zeal->experience) return true;
+      Zeal::Game::CXStr_PrintString(str, "%.f", zeal->experience->get_aa_exp_per_hour_pct());
+      *override_color = false;
+      return true;
+    }
     case 124: {
       if (Zeal::Game::get_char_info()) Zeal::Game::CXStr_PrintString(str, "%d", Zeal::Game::get_char_info()->mana());
       *override_color = false;
@@ -88,14 +94,16 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
       return true;
     }
     case 134: {
-      if (Zeal::Game::get_controlled() && Zeal::Game::get_controlled()->ActorInfo) {
-        if (Zeal::Game::get_controlled()->ActorInfo->CastingSpellId) {
-          int spell_id = Zeal::Game::get_controlled()->ActorInfo->CastingSpellId;
-          if (spell_id == kInvalidSpellId) spell_id = 0;  // avoid crash while player is not casting a spell
-          Zeal::GameStructures::SPELL *casting_spell = Zeal::Game::get_spell_mgr()->Spells[spell_id];
-          Zeal::Game::CXStr_PrintString(str, "%s", casting_spell->Name);
-          *override_color = false;
-        }
+      auto controlled = Zeal::Game::get_controlled();
+      auto actor = controlled ? controlled->ActorInfo : nullptr;
+      if (actor && actor->Rider && controlled->Race == 0xd8)  // Horse with a rider.
+        actor = actor->Rider->ActorInfo;
+      if (actor && actor->CastingSpellId) {
+        int spell_id = actor->CastingSpellId;
+        if (spell_id == kInvalidSpellId) spell_id = 0;  // avoid crash while player is not casting a spell
+        Zeal::GameStructures::SPELL *casting_spell = Zeal::Game::get_spell_mgr()->Spells[spell_id];
+        Zeal::Game::CXStr_PrintString(str, "%s", casting_spell->Name);
+        *override_color = false;
       }
       return true;
     }
@@ -235,8 +243,8 @@ int GetGaugeFromEq(int type, Zeal::GameUI::CXSTR *str) {
     case 23: {
       if (!zeal->experience)  // possible nullptr crash (race condition)
         return 0;
-      float fpct = zeal->experience->exp_per_hour_pct_tot / 100.f;
-      return (int)(1000.f * fpct);
+      float fpct = zeal->experience->get_exp_per_hour_pct() / 100.f;
+      return (int)(std::clamp(1000.f * fpct, 0.f, 1000.f));
     }
     case 24:  // Server Tick
     {
@@ -262,6 +270,12 @@ int GetGaugeFromEq(int type, Zeal::GameUI::CXSTR *str) {
       return get_recast_time_gauge(type - 26, str);
     case 34:  // Attack recovery timer.
       return get_attack_timer_gauge(str);
+    case 35: {
+      if (!zeal->experience)  // possible nullptr crash (race condition)
+        return 0;
+      float fpct = zeal->experience->get_aa_exp_per_hour_pct() / 100.f;
+      return (int)(std::clamp(1000.f * fpct, 0.f, 1000.f));
+    }
     default:
       break;
   }

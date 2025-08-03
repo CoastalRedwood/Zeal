@@ -46,6 +46,9 @@
     <Filter Include="Header Files\helpers">
       <UniqueIdentifier>{527e20ee-c27c-458f-94eb-b5dffd5cee70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UI Files">
+      <UniqueIdentifier>{5ac2a0c8-3a18-4026-bc6e-1cf0e43c27cf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -494,5 +497,66 @@
   <ItemGroup>
     <None Include="..\README.md" />
     <None Include="..\CHANGELOG.md" />
+    <None Include="uifiles\zeal\spell_info\fetch_spell_info.py">
+      <Filter>UI Files</Filter>
+    </None>
+    <None Include="uifiles\zeal\spell_info\README.md">
+      <Filter>UI Files</Filter>
+    </None>
+    <None Include="uifiles\zeal\optional\README.md">
+      <Filter>UI Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="uifiles\zeal\optional\EQUI_CharacterSelect.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_GuildManagementWnd.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_Cam.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_Colors.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_FloatingDamage.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_General.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_Map.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_Nameplate.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_Tab_TargetRing.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_ZealButtonWnd.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_ZealInputDialog.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_ZealMap.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_ZealOptions.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_ZoneSelect.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="uifiles\zeal\spell_info\spell_info.txt">
+      <Filter>UI Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

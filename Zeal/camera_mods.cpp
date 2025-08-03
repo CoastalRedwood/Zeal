@@ -14,242 +14,205 @@
 
 // #define debug_cam
 
-int get_camera_view() { return *Zeal::Game::camera_view; }
+// ExecuteCmd keeps an array (at least through [0xcd]) of key states.
+static int *const kKeyDownStates = reinterpret_cast<int *>(0x007ce04c);
+const int CMD_RIGHT = 5;
+const int CMD_LEFT = 6;
+const int CMD_PITCH_UP = 15;
+const int CMD_PITCH_DOWN = 16;
+const int CMD_CENTER_VIEW = 17;
+const int CMD_ZOOM_IN = 18;
+const int CMD_ZOOM_OUT = 19;
+const int CMD_TOGGLE_CAM = 20;
 
-void set_camera_view(int view) { *Zeal::Game::camera_view = view; }
+// Workaround for mouse hovering state check.
+static bool is_explore_mode() {
+  if (Zeal::Game::get_gamestate() == GAMESTATE_CHARSELECT) {
+    DWORD character_select = *(DWORD *)0x63D5D8;
+    if (character_select) return *(BYTE *)(character_select + 0x171) != 0;
+  }
+  return false;
+}
 
-bool CameraMods::update_cam() {
-  if (!enabled.get()) return false;
+static int get_camera_view() { return *Zeal::Game::camera_view; }
 
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_view_actor_entity();
-  if (!self) return false;
+static void set_camera_view(int view) { *Zeal::Game::camera_view = view; }
 
-  Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
-  Vec3 head_pos = Zeal::Game::get_view_actor_head_pos();
-  Vec3 wanted_pos =
-      camera_math::get_cam_pos_behind(head_pos, current_zoom, zeal_cam_yaw /*self->Heading*/, -zeal_cam_pitch);
+// Pitch control depends on whether character is mounted. Logic copied from procMouse.
+static Zeal::GameStructures::Entity *get_pitch_control_entity() {
+  auto self = Zeal::Game::get_self();
+  if (self && self->ActorInfo && self->ActorInfo->Mount && self->ActorInfo->Mount == Zeal::Game::get_controlled())
+    return self;
+  return Zeal::Game::get_controlled();
+}
+
+// Returns true if the Zeal replacement camera is active and should update the final display.
+bool CameraMods::is_zeal_cam_active() const {
+  return (ui_active && enabled.get() && get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
+}
+
+// Calculates the head and wanted camera positions. Returns true if no collisions.
+bool CameraMods::calc_camera_positions(Vec3 &head_pos, Vec3 &wanted_pos) const {
+  head_pos = Zeal::Game::get_view_actor_head_pos();
+  wanted_pos = camera_math::get_cam_pos_behind(head_pos, zeal_cam_zoom, zeal_cam_yaw, -zeal_cam_pitch);
 
 #ifdef debug_cam
-  ZealService::get_instance()->labels_hook->print_debug_info(
-      "View actor: %i\nHead: %s\nWanted: %s", self, head_pos.toString().c_str(), wanted_pos.toString().c_str());
+  auto self = Zeal::Game::get_view_actor_entity();
+  ZealService::get_instance()->labels_hook->print_debug_info("View actor: 0x%08x\nHead: %s\nWanted: %s", (uint32_t)self,
+                                                             head_pos.toString().c_str(),
+                                                             wanted_pos.toString().c_str());
 #endif
-  bool rval = Zeal::Game::collide_with_world(head_pos, wanted_pos, wanted_pos);
+
+  return !Zeal::Game::collide_with_world(head_pos, wanted_pos, wanted_pos);
+}
+
+// Calculates the camera positions and overrides the display's CameraInfo structure used in rendering.
+void CameraMods::handle_do_cam_ai() {
+  if (!is_zeal_cam_active()) return;
+
+  Vec3 head_pos;
+  Vec3 wanted_pos;
+  calc_camera_positions(head_pos, wanted_pos);
+  auto *cam = Zeal::Game::get_camera();
   cam->Position = wanted_pos;
-  cam->Heading = zeal_cam_yaw;  // self->Heading;
+  cam->Heading = zeal_cam_yaw;
   cam->Pitch = camera_math::get_pitch(cam->Position, head_pos);
   cam->RegionNumber = Zeal::Game::get_region_from_pos(&cam->Position);
-  return rval;
 }
 
-void CameraMods::mouse_wheel(int delta) {
-  Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
+// Intercepts the mouse wheel to handle zooming and camera transitions when active.
+bool CameraMods::handle_mouse_wheel(int delta) {
+  if (!ui_active || !enabled.get()) return false;
+
   DWORD camera_view = get_camera_view();
-  if (delta > 0) {
-    if (camera_view == Zeal::GameEnums::CameraView::ZealCam) update_zoom(-zoom_speed);
-  } else if (delta < 0) {
-    if (camera_view == Zeal::GameEnums::CameraView::FirstPerson) {
-      toggle_zeal_cam(true);
-      update_zoom(zoom_speed);
-    } else if (camera_view == Zeal::GameEnums::CameraView::ZealCam)
-      update_zoom(zoom_speed);
-  }
+  if (camera_view != Zeal::GameEnums::CameraView::FirstPerson && camera_view != Zeal::GameEnums::CameraView::ZealCam)
+    return false;
+
+  if (Zeal::Game::is_mouse_hovering_window() && !is_explore_mode()) return false;
+
+  // Handles proper activation of zeal_cam when zoomed out of first and updates zeal cam zoom.
+  if (delta < 0 && get_camera_view() == Zeal::GameEnums::CameraView::FirstPerson)
+    set_zeal_cam_active(true);                                                  // Flips mode to ZealCam if enabled.
+  else if (delta && get_camera_view() == Zeal::GameEnums::CameraView::ZealCam)  // Ignore in other modes.
+    update_desired_zoom(delta > 0 ? -zoom_speed : zoom_speed);
+
+  return true;
 }
 
-void CameraMods::toggle_zeal_cam(bool enabled, bool reset_pitch) {
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
-  if (enabled) {
+// Handles the transition into Zeal camera mode (sets state).
+void CameraMods::set_zeal_cam_active(bool activate) {
+  if (activate && enabled.get()) {
     set_camera_view(Zeal::GameEnums::CameraView::ZealCam);
-    if (self) {
-      if (reset_pitch) zeal_cam_pitch = camera_math::pitch_to_normal(self->Pitch);
-      zeal_cam_yaw = self->Heading;
+    if (Zeal::Game::get_controlled()) {
+      zeal_cam_yaw = Zeal::Game::get_controlled()->Heading;
+      zeal_cam_pitch = camera_math::pitch_to_normal(get_pitch_control_entity()->Pitch);
     }
-    desired_zoom += zoom_speed;
-    //    mem::set(0x4db8ce, 0x90, 6, original_cam[0] == 0x0 ? original_cam : 0);
-    mem::write<BYTE>(0x4db8d9, 0xEB);  // fix the camera bad location print
-  } else if (original_cam[0] != 0x0) {
-    if (self) self->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
-    current_zoom = 0;
-    if (get_camera_view() == Zeal::GameEnums::CameraView::ZealCam && Zeal::Game::is_in_game())
-      set_camera_view(Zeal::GameEnums::CameraView::FirstPerson);
-    // mem::copy(0x4db8ce, original_cam, 6);
-    mem::write<BYTE>(0x4db8d9, 0x74);  // fix the camera bad location print
+    desired_zoom = std::clamp(desired_zoom, min_zoom_in, max_zoom_out);
+    zeal_cam_zoom = desired_zoom;
   }
 }
 
-void CameraMods::update_zoom(float zoom) {
+// Updates the Zeal cam's desired final zoom distance that is used as the interpolation target.
+// Also handles the transition to first person when zoomed in.
+void CameraMods::update_desired_zoom(float zoom) {
   desired_zoom += zoom;
-  if (desired_zoom > max_zoom_out) desired_zoom = max_zoom_out;
-  if (desired_zoom < 0) desired_zoom = 0;
+  if (desired_zoom > max_zoom_out)
+    desired_zoom = max_zoom_out;
+  else if (desired_zoom < min_zoom_in && zoom < 0)
+    desired_zoom = 0;
 
-  if (desired_zoom == 0) {
+  if (desired_zoom == 0 && is_zeal_cam_active()) {
     Zeal::Game::get_self()->Pitch = zeal_cam_pitch;
     set_camera_view(Zeal::GameEnums::CameraView::FirstPerson);
   }
 
-  if (update_cam())  // there was a collision
-  {
-    if (zoom > 0) {
-      desired_zoom -= zoom;
-      update_cam();
-    }
+  // Perform a collision detect and reduce zoom distance if necessary.
+  if (zoom > 0 && is_zeal_cam_active()) {
+    Vec3 head_pos;
+    Vec3 wanted_pos;
+    if (!calc_camera_positions(head_pos, wanted_pos)) desired_zoom -= zoom;
   }
 }
 
-int handle_mouse_wheel(int delta) {
-  CameraMods *c = ZealService::get_instance()->camera_mods.get();
+// Fox delta x, the native procMouse either sets the controlled MovementSpeedHeading (low cameras) or disables strafing
+// and sets the campera specific yaw for the others.
+// For delta y, it skips pitch processing on a horse. Otherwise it sets some camera specific pitch or directly sets
+// the entity pitch.
+bool CameraMods::handle_proc_mouse() {
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
+  if (!self || !ui_active || !enabled.get()) return false;
+
   DWORD camera_view = get_camera_view();
-  BYTE explore_mode = 0;
-  if (Zeal::Game::get_gamestate() == GAMESTATE_CHARSELECT) {
-    DWORD character_select = *(DWORD *)0x63D5D8;
-    if (character_select) explore_mode = *(BYTE *)(character_select + 0x171);
-  }
+  if (camera_view != Zeal::GameEnums::CameraView::ZealCam && camera_view != Zeal::GameEnums::CameraView::FirstPerson)
+    return false;
 
-  if ((explore_mode || !Zeal::Game::is_mouse_hovering_window()) && c->enabled.get() &&
-      (camera_view == Zeal::GameEnums::CameraView::FirstPerson ||
-       camera_view == Zeal::GameEnums::CameraView::ZealCam)) {
-    c->mouse_wheel(delta);
-    return 0;
-  } else
-    return ZealService::get_instance()->hooks->hook_map["HandleMouseWheel"]->original(handle_mouse_wheel)(delta);
-}
-
-void CameraMods::proc_mouse() {
-  if (!enabled.get()) return;
-  if (get_camera_view() == Zeal::GameEnums::CameraView::ZealCam ||
-      get_camera_view() == Zeal::GameEnums::CameraView::FirstPerson) {
-    static float smoothMouseDeltaX = 0;
-    static float smoothMouseDeltaY = 0;
-    Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
-    DWORD camera_view = get_camera_view();
-    Zeal::GameStructures::MouseDelta *delta = (Zeal::GameStructures::MouseDelta *)0x798586;
-    Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
-    bool lbutton = *Zeal::Game::is_left_mouse_down;
-    bool rbutton = *Zeal::Game::is_right_mouse_down;
-    if (!self) return;
-
-    if (rbutton || (camera_view == Zeal::GameEnums::CameraView::ZealCam && lbutton)) {
-      float delta_y = delta->y;
-      float delta_x = delta->x;
-      float t = 1.0f / 1.5f;
-      /*if (fps < 50)
-      {
-          delta_y *= fps/2;
-          delta_x *= fps/2;
-      }*/
-      smoothMouseDeltaX = camera_math::lerp(delta_x * sensitivity_x, smoothMouseDeltaX, t);
-      smoothMouseDeltaY = camera_math::lerp(delta_y * sensitivity_y, smoothMouseDeltaY, t);
-      if (fabs(smoothMouseDeltaX) > 5) smoothMouseDeltaY /= 2;
-
-      delta->y = 0;
-      delta->x = 0;
-
-      if (*(byte *)0x7985E8)  // invert
-        smoothMouseDeltaY = -smoothMouseDeltaY;
-
-      if (Zeal::Game::can_move()) {
-        if (rbutton) {
-          if (fabs(smoothMouseDeltaX) > 0.1)
-            self->MovementSpeedHeading = -smoothMouseDeltaX / 1000;
-          else
-            self->MovementSpeedHeading = 0;
-
-          if (camera_view == Zeal::GameEnums::CameraView::ZealCam) {
-            zeal_cam_yaw -= smoothMouseDeltaX;
-            zeal_cam_yaw = fmodf(zeal_cam_yaw + 512.f, 512.f);  // Wrap within 0 to 512.
-            self->Heading = zeal_cam_yaw;                       // Should only set between 0 to 512.
-          } else
-            self->Heading += -smoothMouseDeltaX;
-        }
-      }
-      if (lbutton || (rbutton && !Zeal::Game::can_move())) {
-        zeal_cam_yaw -= smoothMouseDeltaX;
-      }
-
-      if (fabs(smoothMouseDeltaY) > 0) {
-        if (get_camera_view() == Zeal::GameEnums::CameraView::ZealCam) {
-          zeal_cam_pitch -= smoothMouseDeltaY;
-          zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
-          if (Zeal::Game::KeyMods->Shift) self->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
-        } else {
-          if (Zeal::Game::is_view_actor_me()) {
-            self->Pitch -= smoothMouseDeltaY;
-            self->Pitch = std::clamp(self->Pitch, -128.f, 128.f);
-          }
-        }
-      }
-    }
-    if (camera_view == Zeal::GameEnums::CameraView::ZealCam) update_cam();
-  }
-}
-
-void __fastcall procMouse(int game, int unused, int a1) {
+  static float smoothMouseDeltaX = 0;
+  static float smoothMouseDeltaY = 0;
   Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
-  ZealService *zeal = ZealService::get_instance();
-  if (game) zeal->camera_mods->game_ptr = game;
-  zeal->camera_mods->proc_mouse();
-  if (game == 0)
-    return;
-  else
-    zeal->hooks->hook_map["procMouse"]->original(procMouse)(game, unused, a1);
-}
+  Zeal::GameStructures::MouseDelta *delta = (Zeal::GameStructures::MouseDelta *)0x798586;
+  bool lbutton = *Zeal::Game::is_left_mouse_down;
+  bool rbutton = *Zeal::Game::is_right_mouse_down;
 
-void CameraMods::set_smoothing(bool val) {
-  int camera_view = get_camera_view();
-  enabled.set(val);
-  if (val &&
-      (camera_view == Zeal::GameEnums::CameraView::ZealCam ||
-       camera_view == Zeal::GameEnums::CameraView::ThirdPerson2))  // thirdperson2 is the mouse wheel out normally
-    toggle_zeal_cam(true);
-  else
-    toggle_zeal_cam(false);
-  ZealService::get_instance()->ui->options->UpdateOptions();
-}
+  if (rbutton || (lbutton && camera_view == Zeal::GameEnums::CameraView::ZealCam)) {
+    float delta_y = delta->y;
+    float delta_x = delta->x;
+    float t = 1.0f / 1.5f;
+    smoothMouseDeltaX = camera_math::lerp(delta_x * sensitivity_x, smoothMouseDeltaX, t);
+    smoothMouseDeltaY = camera_math::lerp(delta_y * sensitivity_y, smoothMouseDeltaY, t);
+    if (fabs(smoothMouseDeltaX) > 5) smoothMouseDeltaY /= 2;
 
-void CameraMods::interpolate_zoom() {
-  if (!enabled.get()) return;
-  if (get_camera_view() == Zeal::GameEnums::CameraView::ZealCam) {
-    current_zoom = current_zoom + (desired_zoom - current_zoom) * .3f;  // linear interpolation
-    if (current_zoom < .5) toggle_zeal_cam(false);
-  }
-}
+    delta->y = 0;  // May not be necessary but just in case reset to avoid downstream usage.
+    delta->x = 0;
 
-void CameraMods::handle_camera_motion_binds(int cmd, bool is_down) {
-  DWORD camera_view = get_camera_view();
-  if (!enabled.get()) {
-    cmd_key_map.clear();
-    return;
-  }
+    if (*(byte *)0x7985E8)  // invert
+      smoothMouseDeltaY = -smoothMouseDeltaY;
 
-  // if ((camera_view == Zeal::GameEnums::CameraView::ZealCam) || (cmd == 19)) //allow zoom out
-  //   {
-  if (is_down)
-    cmd_key_map[cmd] = true;
-  else
-    cmd_key_map[cmd] = false;
-  //     return;
-  //  }
-  //   cmd_key_map[cmd] = false;
-}
+    if (Zeal::Game::can_move()) {
+      if (rbutton) {
+        if (fabs(smoothMouseDeltaX) > 0.1)
+          self->MovementSpeedHeading = -smoothMouseDeltaX / 1000;
+        else
+          self->MovementSpeedHeading = 0;
 
-// didn't want to clutter handle_binds() with specific logic to this situation.
-// feel free to change this if you would prefer to have it elsewhere.
-void CameraMods::handle_cycle_camera_views(int cmd, bool is_down) {
-  DWORD camera_view = get_camera_view();
-  if (cmd == 20)  // removed enabled
-  {
-    int strafe_camera_count = Zeal::GameEnums::CameraView::TotalCameras;
-    if (camera_view == Zeal::GameEnums::CameraView::ThirdPerson3 && !camera3_strafe_enabled.get()) {
-      strafe_camera_count = Zeal::GameEnums::CameraView::ThirdPerson2;
-    } else if (camera_view == Zeal::GameEnums::CameraView::ThirdPerson4 && !camera4_strafe_enabled.get()) {
-      strafe_camera_count = Zeal::GameEnums::CameraView::ThirdPerson2;
+        if (camera_view == Zeal::GameEnums::CameraView::ZealCam) {
+          zeal_cam_yaw -= smoothMouseDeltaX;
+          zeal_cam_yaw = fmodf(zeal_cam_yaw + 512.f, 512.f);  // Wrap within 0 to 512.
+          self->Heading = zeal_cam_yaw;                       // Should only set between 0 to 512.
+        } else
+          self->Heading += -smoothMouseDeltaX;
+      }
+    }
+    if (lbutton || (rbutton && !Zeal::Game::can_move())) {
+      zeal_cam_yaw -= smoothMouseDeltaX;
     }
 
-    mem::write<byte>(0x53fa50, strafe_camera_count);
-    mem::write<byte>(0x53f648, strafe_camera_count);
-  } else {
-    cmd_key_map.clear();
+    if (fabs(smoothMouseDeltaY) > 0) {
+      auto self_pitch = get_pitch_control_entity();  // Control entity varies based on mounted state.
+      if (camera_view == Zeal::GameEnums::CameraView::ZealCam) {
+        zeal_cam_pitch -= smoothMouseDeltaY;
+        zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
+        if (Zeal::Game::KeyMods->Shift) self_pitch->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
+      } else {
+        if (self_pitch == Zeal::Game::get_view_actor_entity()) {
+          self_pitch->Pitch -= smoothMouseDeltaY;
+          self_pitch->Pitch = std::clamp(self_pitch->Pitch, -128.f, 128.f);
+        }
+      }
+    }
   }
+
+  return true;  // Skip hooked procMouse.
 }
+
+// This callback is invoked when the enabled setting is changed. It synchronizes the state.
+void CameraMods::synchronize_set_enable() {
+  set_zeal_cam_active(get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
+  ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
+}
+
+// Interpolate zoom is called repeatedly in main_callback(). The alpha coefficient below acts as a
+// first order IIR low pass filter for smoothing out the transitions.
+void CameraMods::interpolate_zoom() { zeal_cam_zoom = zeal_cam_zoom + (desired_zoom - zeal_cam_zoom) * 0.3f; }
 
 // check to help fix left mouse panning from preventing repositioning the game in windowed mode.
 static bool is_over_title_bar(void) {
@@ -259,20 +222,8 @@ static bool is_over_title_bar(void) {
   return (mouse_y >= 0xE6FF && mouse_y <= 0xFFFF);
 }
 
-void CameraMods::tick_key_move() {
-  if (!enabled.get()) {
-    if (cmd_key_map.size()) cmd_key_map.clear();
-    return;
-  }
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-  DWORD camera_view = get_camera_view();
-  // if (camera_view != Zeal::GameEnums::CameraView::ZealCam && current_key_cmd != 19)
-  //     current_key_cmd = 0;
-
-  if (camera_view == Zeal::GameEnums::CameraView::FirstPerson && cmd_key_map[19]) {
-    mouse_wheel(-120);
-  }
-
+// Periodic call to handle left button panning in ZealCam.
+void CameraMods::update_left_pan(DWORD camera_view) {
   if (!*Zeal::Game::is_right_mouse_down && *Zeal::Game::is_left_mouse_down &&
       camera_view == Zeal::GameEnums::CameraView::ZealCam && !is_over_title_bar() &&
       !Zeal::Game::is_game_ui_window_hovered()) {
@@ -288,63 +239,63 @@ void CameraMods::tick_key_move() {
       GetCursorPos(&cursor_pos_for_window);
       if (gwnd == WindowFromPoint(cursor_pos_for_window)) {
         if (hide_cursor && GetTickCount64() - lmouse_time > pan_delay.get()) {
-          mem::write<byte>(0x53edef, 0xEB);
+          mem::write<byte>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
           hide_cursor = false;
         }
-        proc_mouse();
+        handle_proc_mouse();
         SetCursorPos(lmouse_cursor_pos.x, lmouse_cursor_pos.y);
       }
     }
   } else {
-    if (lmouse_time) mem::write<byte>(0x53edef, 0x75);
+    if (lmouse_time) mem::write<byte>(0x53edef, 0x75);  // Restore showcursor check.
     lmouse_time = 0;
   }
-  for (auto &[current_key_cmd, down] : cmd_key_map) {
-    if (down) {
-      switch (current_key_cmd) {
-        case 5:
-        case 6: {
-          if (Zeal::Game::can_move()) {
-            // if (camera_view == Zeal::GameEnums::CameraView::ZealCam && (self->StandingState == Stance::Stand ||
-            // self->StandingState == Stance::Duck))
-            //{
-            //     //if your camera is panned more than 5 degrees different than your players heading then shift the
-            //     player to match the camera if (fabs(camera_math::angle_difference(zeal_cam_yaw, self->Heading)) > 20
-            //     && fps > 40)
-            //        self->Heading = zeal_cam_yaw;
-            //     else
-            if (cam_lock.get()) zeal_cam_yaw = self->Heading;
-            // }
-          }
-          break;
-        }
-        case 15:  // up
-          // zeal_cam_pitch -= 0.3f;
-          // if (zeal_cam_pitch <= -89.99f)
-          //     zeal_cam_pitch = -89.99f;
-          break;
-        case 16:  // down
-          // zeal_cam_pitch += 0.3f;
-          // if (zeal_cam_pitch >= 89.99f)
-          //     zeal_cam_pitch = 89.99f;
-          break;
-        case 18:  // zoom in
-          if (desired_zoom > 0) desired_zoom -= .3f;
-          break;
-        case 19:  // zoom out
-          desired_zoom += .3f;
-          if (desired_zoom > max_zoom_out) desired_zoom = max_zoom_out;
-          break;
-      }
-    }
+}
+
+// Called repeatedly by main_callback() to handle periodic calls and process held down keys.
+void CameraMods::process_time_tick() {
+  DWORD camera_view = get_camera_view();
+  bool zoom_out = kKeyDownStates[CMD_ZOOM_OUT];
+  if (zoom_out && camera_view == Zeal::GameEnums::CameraView::FirstPerson) {
+    set_zeal_cam_active(true);  // Activates if enabled.
+    zoom_out = false;           // Reset zoom key press so not double-counted below.
+  }
+
+  if (!is_zeal_cam_active()) return;
+
+  if (kKeyDownStates[CMD_ZOOM_IN])
+    update_desired_zoom(-0.3f);
+  else if (zoom_out)
+    update_desired_zoom((min_zoom_in > desired_zoom) ? (min_zoom_in - desired_zoom) : 0.3f);
+  interpolate_zoom();
+
+  update_left_pan(camera_view);
+
+  // Cam lock mode yaws camera to match heading when enabled.
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
+  if ((kKeyDownStates[CMD_RIGHT] || kKeyDownStates[CMD_LEFT]) && cam_lock.get()) {
+    zeal_cam_yaw = self->Heading;
+  }
+
+  // Allow keyboard control of zeal camera and self pitch.
+  auto pitch_self = get_pitch_control_entity();
+  if (kKeyDownStates[CMD_CENTER_VIEW]) {
+    zeal_cam_pitch = 0;
+    if (pitch_self) pitch_self->Pitch = 0;  // Center first-person pitch.
+  } else if (kKeyDownStates[CMD_PITCH_UP] || kKeyDownStates[CMD_PITCH_DOWN]) {
+    zeal_cam_pitch += (kKeyDownStates[CMD_PITCH_UP] ? -0.3f : +0.3f);
+    zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
+    if (pitch_self) pitch_self->Pitch = 0;  // Center first-person pitch for now.
   }
 }
 
 void CameraMods::update_fps_sensitivity() {
   auto currentTime = std::chrono::steady_clock::now();
   auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
-  if (elapsedTime > 0) {
-    fps = 1000.0f / elapsedTime;
+  // Restrict fps updates to reasonable range (500 to 10 Hz).
+  if ((elapsedTime > 2) && (elapsedTime < 100)) {
+    float new_fps = 1000.0f / elapsedTime;
+    fps += (new_fps - fps) * 0.5;  // Light low-pass IIR filtering of fps changes.
   }
 
   if (use_old_sens.get()) {
@@ -372,74 +323,56 @@ void CameraMods::update_fps_sensitivity() {
   lastTime = currentTime;
 }
 
-void CameraMods::callback_render() {
-  if (enabled.get()) {
-    // if (get_camera_view() == Zeal::GameEnums::CameraView::FirstPerson)
-    //{
-    //     set_camera_view(Zeal::GameEnums::CameraView::ZealCam);
-    //     current_zoom = 0;
-    // }
-    if (Zeal::Game::is_in_game() && Zeal::Game::get_self() &&
-        Zeal::Game::get_char_info() /*&& !*Zeal::Game::is_right_mouse_down*/ &&
-        get_camera_view() == Zeal::GameEnums::CameraView::ZealCam) {
-      if (Zeal::Game::get_self()->Position.Dist(Zeal::Game::get_char_info()->ZoneEnter) != 0) update_cam();
-    }
-  }
-}
-
+// Called periodically to keep the camera synced and compensate for fps rates.
 void CameraMods::callback_main() {
   static int prev_view = get_camera_view();
-  DWORD camera_view = get_camera_view();
-  if (Zeal::Game::is_in_game()) update_fps_sensitivity();
-  if (enabled.get() && Zeal::Game::is_in_game() && !main_loop_ended) {
-    interpolate_zoom();
-    tick_key_move();
+  if (!ui_active || !enabled.get()) return;
+  update_fps_sensitivity();
+  process_time_tick();
 
-    if (prev_view != get_camera_view() && Zeal::Game::get_self() &&
-        Zeal::Game::is_in_game())  // this simply checks if your camera view has changed
-    {
-      if (get_camera_view() != Zeal::GameEnums::CameraView::ZealCam) {
-        toggle_zeal_cam(false);
-      } else {
-        if (get_camera_view() != Zeal::GameEnums::CameraView::ZealCam) {
-          toggle_zeal_cam(true);
-          desired_zoom = zoom_speed;
-        }
-      }
-    }
+  // Monitor for a change in camera view to stay in sync (such as F9).
+  DWORD camera_view = get_camera_view();
+  if (prev_view != camera_view && ui_active)  // this simply checks if your camera view has changed
+  {
+    bool is_zeal_index = (camera_view == Zeal::GameEnums::CameraView::ZealCam);
+    set_zeal_cam_active(is_zeal_index);  // Activates only if enabled.
   }
-  if (main_loop_ended && prev_view == Zeal::GameEnums::CameraView::ZealCam) {
-    toggle_zeal_cam(true, false);
-  }
-  main_loop_ended = false;
   prev_view = get_camera_view();
 }
 
-void CameraMods::callback_characterselect() {
-  ZealService *zeal = ZealService::get_instance();
-  zeal->camera_mods->toggle_zeal_cam(false);
-}
+void CameraMods::handle_proc_rmousedown(int x, int y) {
+  if (!is_zeal_cam_active() || !Zeal::Game::can_move()) return;
 
-void CameraMods::proc_rmousedown(int x, int y) {
-  DWORD camera_view = get_camera_view();
-  if (camera_view == Zeal::GameEnums::CameraView::ZealCam && Zeal::Game::can_move()) {
-    // if your camera is panned more than 5 degrees different than your players heading then shift the player to match
-    // the camera
-    if (fabs(camera_math::angle_difference(zeal_cam_yaw, Zeal::Game::get_self()->Heading)) > 5)
-      Zeal::Game::get_self()->Heading = zeal_cam_yaw;
+  // Support chase control mode: Shift the player to track the camera yaw if more than a 5 degree difference.
+  if (fabs(camera_math::angle_difference(zeal_cam_yaw, Zeal::Game::get_controlled()->Heading)) > 5) {
+    Zeal::Game::get_controlled()->Heading = zeal_cam_yaw;
   }
 }
 
-// Client ::RMouseDown()
-void __fastcall procRightMouse(void *game_this, int unused_edx, int x, int y) {
-  ZealService *zeal = ZealService::get_instance();
-  zeal->camera_mods->proc_rmousedown(x, y);
-  zeal->hooks->hook_map["procRightMouse"]->original(procRightMouse)(game_this, unused_edx, x, y);
+// Consumes relevant mouse scroll wheel messages otherwise passes it on.
+static int HandleMouseWheel(int delta) {
+  if (!ZealService::get_instance()->camera_mods->handle_mouse_wheel(delta))
+    return ZealService::get_instance()->hooks->hook_map["HandleMouseWheel"]->original(HandleMouseWheel)(delta);
+  return 0;
 }
 
-void CameraMods::callback_endmainloop() { main_loop_ended = true; }
+// Consumes relevant right held mouse movement messages otherwise passes it on.
+static void __fastcall procMouse(int game, int unused, int a1) {
+  Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
+  ZealService *zeal = ZealService::get_instance();
+  if (!zeal->camera_mods->handle_proc_mouse())
+    zeal->hooks->hook_map["procMouse"]->original(procMouse)(game, unused, a1);
+}
 
-int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
+// Monitors for mouse right button down messages.
+static void __fastcall RMouseDown(void *game_this, int unused_edx, int x, int y) {
+  ZealService *zeal = ZealService::get_instance();
+  zeal->camera_mods->handle_proc_rmousedown(x, y);
+  zeal->hooks->hook_map["RMouseDown"]->original(RMouseDown)(game_this, unused_edx, x, y);
+}
+
+// Overrides the default FOV when enabled.
+static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
   fov = zeal->camera_mods->fov.get();
   int rval = zeal->hooks->hook_map["SetCameraLens"]->original(SetCameraLens)(a1, fov, aspect_ratio, a4, a5);
@@ -450,13 +383,17 @@ int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   return rval;
 }
 
-void __fastcall DoCamAI(int display, int u, float p1) {
+// The DoCamAI process uses the currently active get_camera_view() value as an index into an array of
+// per camera values (yaw, pitches) that were updated earlier in calls like procMouse. Those values are then
+// transformed and written into the display's CameraInfo structure.
+// Note: The camera info array starts at 0x00799688 with [6] entries of 0x1C each.
+static void __fastcall DoCamAI(int display, int u, Zeal::GameStructures::Entity *player) {
   ZealService *zeal = ZealService::get_instance();
-  zeal->hooks->hook_map["DoCamAI"]->original(DoCamAI)(display, u, p1);
-  if (Zeal::Game::is_in_game() && get_camera_view() == Zeal::GameEnums::CameraView::ZealCam)
-    zeal->camera_mods->update_cam();
+  zeal->hooks->hook_map["DoCamAI"]->original(DoCamAI)(display, u, player);
+  zeal->camera_mods->handle_do_cam_ai();  // Overrides CameraInfo if enabled.
 }
 
+// Supports temporarily reducing the bounding radius or player and mount during the GetClickedActor call.
 static int __fastcall GetClickedActor(int this_display, int unused_edx, int mouse_x, int mouse_y, int get_on_actor) {
   auto self = Zeal::Game::get_self();
   bool clickthru = !get_on_actor && ZealService::get_instance()->camera_mods->setting_selfclickthru.get();
@@ -465,40 +402,47 @@ static int __fastcall GetClickedActor(int this_display, int unused_edx, int mous
                                : nullptr;
   float original_radius = bounding_radius ? *bounding_radius : 0;
   if (bounding_radius) *bounding_radius = 0.001f;  // Small, hard to click value.
+
+  // Just copy the logic for mounts as well.
+  auto mount = (clickthru && self && self->ActorInfo) ? self->ActorInfo->Mount : nullptr;
+  float *mount_bounding_radius = (clickthru && mount && mount->ActorInfo && mount->ActorInfo->ViewActor_)
+                                     ? &mount->ActorInfo->ViewActor_->BoundingRadius
+                                     : nullptr;
+  float mount_original_radius = mount_bounding_radius ? *mount_bounding_radius : 0;
+  if (mount_bounding_radius) *mount_bounding_radius = 0.001f;  // Small, hard to click value.
+
   ZealService *zeal = ZealService::get_instance();
   int rval = zeal->hooks->hook_map["GetClickedActor"]->original(GetClickedActor)(this_display, unused_edx, mouse_x,
                                                                                  mouse_y, get_on_actor);
   if (bounding_radius) *bounding_radius = original_radius;
+  if (mount_bounding_radius) *mount_bounding_radius = mount_original_radius;
   return rval;
 }
 
 CameraMods::CameraMods(ZealService *zeal) {
-  mem::write<byte>(0x53fa50, Zeal::GameEnums::CameraView::TotalCameras);  // allow for strafing whenever in zeal cam
-  mem::write<byte>(0x53f648, Zeal::GameEnums::CameraView::TotalCameras);  // allow for strafing whenever in zeal cam
-
-  if (enabled.get() && cycle_to_zeal_cam_enabled.get())
-    mem::write<byte>(0x4adcd9, Zeal::GameEnums::CameraView::TotalCameras);  // allow for the camera toggle hotkey to
-                                                                            // cycle through the new camera
-  else
-    mem::write<byte>(0x4adcd9, Zeal::GameEnums::CameraView::ZealCam);
+  mem::write<BYTE>(0x4db8d9, 0xEB);  // Unconditional jump to skip an optional bad camera position debug message.
 
   lastTime = std::chrono::steady_clock::now();
-  fps = 0;
-  height = 0;
-  zeal->callbacks->AddGeneric([this]() { callback_main(); });
+  zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::MainLoop);
   zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::CharacterSelectLoop);
-  zeal->callbacks->AddGeneric([this]() { callback_render(); }, callback_type::Render);
-  zeal->callbacks->AddGeneric([this]() { callback_endmainloop(); }, callback_type::EndMainLoop);
+  zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitUI);
+  zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
+  zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);  // Also covers char select.
 
-  // zeal->main_loop_hook->add_callback([this]() { callback_characterselect();  }, callback_fn::CharacterSelect);
-  zeal->callbacks->AddGeneric([this]() { callback_characterselect(); }, callback_type::EndMainLoop);
-  zeal->hooks->Add("HandleMouseWheel", 0x55B2E0, handle_mouse_wheel, hook_type_detour);
+  zeal->binds_hook->replace_cmd(CMD_CENTER_VIEW, [](int state) {
+    if (!state) kKeyDownStates[CMD_CENTER_VIEW] = state;  // Client is not clearing this state.
+    return false;
+  });
+
+  zeal->hooks->Add("HandleMouseWheel", 0x55B2E0, HandleMouseWheel, hook_type_detour);
   zeal->hooks->Add("procMouse", 0x537707, procMouse, hook_type_detour);
-  zeal->hooks->Add("procRightMouse", 0x54699d, procRightMouse, hook_type_detour);
+  zeal->hooks->Add("RMouseDown", 0x54699d, RMouseDown, hook_type_detour);
   zeal->hooks->Add("DoCamAI", 0x4db384, DoCamAI, hook_type_detour);
   zeal->hooks->Add("GetClickedActor", 0x004b008a, GetClickedActor, hook_type_detour);
+
   FARPROC gfx_dx8 = GetProcAddress(GetModuleHandleA("eqgfx_dx8.dll"), "t3dSetCameraLens");
   if (gfx_dx8 != NULL) zeal->hooks->Add("SetCameraLens", (int)gfx_dx8, SetCameraLens, hook_type_detour);
+
   zeal->commands_hook->Add("/fov", {}, "Set your field of view requires a value between 45 and 90.",
                            [this](std::vector<std::string> &args) {
                              Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
@@ -564,7 +508,7 @@ CameraMods::CameraMods(ZealService *zeal) {
           user_sensitivity_y = y_sens;
           user_sensitivity_x_3rd = x_sens;
           user_sensitivity_y_3rd = y_sens;
-          set_smoothing(true);
+          enabled.set(true);
           Zeal::Game::print_chat("New camera sensitivity [%f] [%f]", user_sensitivity_x, user_sensitivity_y);
         } else if (args.size() == 5) {
           float x_sens = 0;
@@ -581,64 +525,23 @@ CameraMods::CameraMods(ZealService *zeal) {
           user_sensitivity_y = y_sens;
           user_sensitivity_x_3rd = x_sens_3rd;
           user_sensitivity_y_3rd = y_sens_3rd;
-          set_smoothing(true);
+          enabled.set(true);
           Zeal::Game::print_chat("New camera sensitivity FirstPerson: [%f] [%f] ThirdPerson: [%f] [%f]",
                                  user_sensitivity_x, user_sensitivity_y, user_sensitivity_x_3rd,
                                  user_sensitivity_y_3rd);
         } else {
-          set_smoothing(!ZealService::get_instance()->camera_mods->enabled.get());
+          enabled.toggle();
           if (ZealService::get_instance()->camera_mods->enabled.get()) {
             Zeal::Game::print_chat("Zealcam enabled");
             Zeal::Game::print_chat("camera sensitivity FirstPerson : [% f] [% f] ThirdPerson : [% f] [% f] ",
                                    user_sensitivity_x, user_sensitivity_y, user_sensitivity_x_3rd,
                                    user_sensitivity_y_3rd);
-            if (cycle_to_zeal_cam_enabled.get()) mem::write<byte>(0x4adcd9, Zeal::GameEnums::CameraView::TotalCameras);
           } else {
             Zeal::Game::print_chat("Zealcam disabled");
-            mem::write<byte>(0x4adcd9, Zeal::GameEnums::CameraView::ZealCam);
           }
         }
         return true;
       });
-  zeal->binds_hook->replace_cmd(15, [this](int state) {
-    handle_camera_motion_binds(15, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(115, [this](int state) {
-    handle_camera_motion_binds(15, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(111, [this](int state) {
-    handle_camera_motion_binds(15, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(16, [this](int state) {
-    handle_camera_motion_binds(16, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(116, [this](int state) {
-    handle_camera_motion_binds(16, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(112, [this](int state) {
-    handle_camera_motion_binds(16, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(18, [this](int state) {
-    handle_camera_motion_binds(18, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(19, [this](int state) {
-    handle_camera_motion_binds(19, state);
-    return false;
-  });
-  zeal->binds_hook->replace_cmd(20, [this](int state) {
-    handle_cycle_camera_views(20, state);
-    return false;
-  });
 }
 
-CameraMods::~CameraMods() {
-  shutting_down = true;
-  toggle_zeal_cam(false);
-}
+CameraMods::~CameraMods() {}

@@ -137,13 +137,11 @@ void ZealService::basic_binds() {
   });  // back
 
   binds_hook->replace_cmd(5, [this](int state) {
-    camera_mods->handle_camera_motion_binds(5, state);
     movement->handle_movement_binds(5, state);
     return false;
   });  // turn right
 
   binds_hook->replace_cmd(6, [this](int state) {
-    camera_mods->handle_camera_motion_binds(6, state);
     movement->handle_movement_binds(6, state);
     return false;
   });  // turn left

@@ -2,6 +2,28 @@
 
 Summarizes notable changes to Zeal
 
+## [1.0.0] - 2025/08/02
+
+### New Features:
+
+* Luclin era enabled for /mystats
+* Focus effects should now show up in item info windows
+* Using /rt will now also target the player in the raid window (if active)
+  - **Description:** targets the last tell or active tell window player, also selects the player in your raid window
+* New crash dialog with additional information for screen capturing the summary info
+  - The send crash reporter exe has been removed.
+
+## Fixes and infrastructure
+
+* Spellsets were refactored to eliminate a rare right click context menu issue
+* Fixed return signature of GetClickedActor() (used by self click thru)
+* Source code house keeping (formatting, renaming)
+
+## Known issues
+
+* Mounts (horses) have multiple issues with ZealCam, spellsets, targeting, and more.
+
+
 ## [0.6.8] - 2025/06/02
 
 ### New Features:

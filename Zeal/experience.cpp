@@ -1,90 +1,125 @@
 #include "experience.h"
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 #include "zeal.h"
 
-std::string format_duration(std::chrono::milliseconds ms) {
-  using namespace std::chrono;
-  auto secs = duration_cast<seconds>(ms);
-  ms -= duration_cast<milliseconds>(secs);
-  auto mins = duration_cast<minutes>(secs);
-  secs -= duration_cast<seconds>(mins);
-  auto hour = duration_cast<hours>(mins);
-  mins -= duration_cast<minutes>(hour);
+ExperienceCalc::ExperienceCalc() {}
 
-  std::stringstream ss;
-  ss << hour.count() << ":" << mins.count() << ":" << secs.count();
-  return ss.str();
+void ExperienceCalc::reset(int level, int exp) {
+  exp_per_hour_pct = 0;
+  exp_queue.clear();
+  if (level >= 0) {
+    int total_exp = level * kExpPerLevel + exp;
+    exp_queue.push_back(ExpData(GetTickCount64(), total_exp));
+  }
 }
 
-void Experience::check_reset() {
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-  static int zone_id = self->ZoneId;
-  static int prev_level = 0;
-  if (exp_per_hour_pct_tot < 0) ExpInfo.clear();
+void ExperienceCalc::dump() const {
+  int total_exp = exp_queue.empty() ? 0 : exp_queue.back().total_exp;
+  Zeal::Game::print_chat("Total exp: %d, rate: %.2f, Count: %d", total_exp, get_exp_per_hour_pct(), exp_queue.size());
+  for (const auto &entry : exp_queue) Zeal::Game::print_chat("Entry: %llu, %d", entry.timestamp, entry.total_exp);
+}
 
-  if (self->Level != prev_level)  // level up or delevel
-    ExpInfo.clear();
+void ExperienceCalc::update(int level, int exp) {
+  if (level < 0) {
+    reset(level, exp);  // Wipes the queue and resets output to 0.
+    return;
+  }
 
-  if (zone_id != self->ZoneId)  // zoned
-    ExpInfo.clear();
+  // Add any changes in experience to the timestamped queue.
+  int total_exp = level * kExpPerLevel + exp;
+  if (exp_queue.empty() || (total_exp != exp_queue.back().total_exp)) {
+    exp_queue.push_back(ExpData(GetTickCount64(), total_exp));
+    if (exp_queue.size() > kMaxQueueSize) exp_queue.pop_front();
+  }
 
-  prev_level = self->Level;
-  zone_id = self->ZoneId;
+  if (exp_queue.empty()) {
+    exp_per_hour_pct = 0;
+    return;
+  }
+
+  // Calculate the change in experience and time from the first queue entry to now.
+  float delta_exp = (total_exp - exp_queue.front().total_exp) / static_cast<float>(kExpPerLevel);
+  float duration_secs = static_cast<float>((GetTickCount64() - exp_queue.front().timestamp)) / 1000.f;
+  duration_secs = std::clamp(duration_secs, 10.f, 2 * 60 * 60.f);  // Clamp between 10 sec to 2 hours.
+  float exp_per_hour = delta_exp / duration_secs * 60 * 60;
+  exp_per_hour_pct = std::clamp(exp_per_hour * 100.f, 0.f, 600.f);  // Clamp 0 to 600%.
+}
+
+Experience::Experience(ZealService *zeal) {
+  zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::MainLoop);
+  zeal->callbacks->AddGeneric([this]() { reset(); }, callback_type::InitUI);
+  zeal->callbacks->AddGeneric([this]() { reset(); }, callback_type::CleanUI);
+
+  zeal->commands_hook->Add("/resetexp", {}, "resets exp per hour calculations", [this](std::vector<std::string> &args) {
+    if (args.size() == 2 and args[1] == "debug") {
+      auto char_info = Zeal::Game::get_char_info();
+      if (char_info)
+        Zeal::Game::print_chat("Exp: %d, Points: %d, AA exp: %d", char_info->Experience, get_aa_total_points(),
+                               char_info->AlternateAdvancementExperience);
+      exp_calc.dump();
+      aa_calc.dump();
+    } else {
+      reset();
+    }
+    return true;
+  });
+}
+
+void Experience::reset() {
+  reset_exp();
+  reset_aa();
+}
+
+void Experience::reset_exp() {
+  auto self = Zeal::Game::get_self();
+  auto char_info = self ? self->CharInfo : nullptr;
+  int level = self ? self->Level : 0;
+  int exp = char_info ? char_info->Experience : 0;
+  exp_calc.reset(get_exp_level(), exp);
+}
+
+void Experience::reset_aa() {
+  auto self = Zeal::Game::get_self();
+  auto char_info = self ? self->CharInfo : nullptr;
+  int exp = char_info ? char_info->AlternateAdvancementExperience : 0;
+  aa_calc.reset(get_aa_total_points(), exp);
+}
+
+int Experience::get_exp_level() const {
+  auto self = Zeal::Game::get_self();
+  auto char_info = self ? self->CharInfo : nullptr;
+  int level = self ? self->Level : 0;
+  int exp = char_info ? char_info->Experience : 0;
+  if (level <= 0 || level > 65 || exp < 0 || exp > ExperienceCalc::kExpPerLevel) return -1;  // Filters init bad values.
+  return level;
+}
+
+int Experience::get_aa_total_points() const {
+  // The server and client do not directly track the total number of AA points. Instead the new UI calculates the total
+  // spent by summing up the allocated based on earned abilities and then we can add the unspent.
+  const int *aa_wnd = reinterpret_cast<const int *>(Zeal::Game::Windows->AA);
+  if (!aa_wnd) return -1;  // Disables AA exp calc. Will be nullptr with old UI or if UI isn't initialized.
+
+  // The fields below are updated in CAAWnd::Update().
+  int total_unspent = aa_wnd[0x980 / sizeof(int)];  // Copied from self->char_info->AlternateAdvancementUnspent.
+  int total_spent = aa_wnd[0x984 / sizeof(int)];    // Accumulates spent points.
+  int total_points = total_unspent + total_spent;
+
+  auto self = Zeal::Game::get_self();
+  auto char_info = self ? self->CharInfo : nullptr;
+  int exp = char_info ? self->CharInfo->AlternateAdvancementExperience : -1;
+  if (total_points < 0 || total_points > 500 || exp < 0 || exp > ExperienceCalc::kExpPerLevel) return -1;
+  return total_points;
 }
 
 void Experience::callback_main() {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-  if (!self || !Zeal::Game::is_in_game()) return;
-  if (!self->CharInfo) return;
+  if (!self || !self->CharInfo || !Zeal::Game::is_in_game()) return;
 
-  check_reset();
-  exp_per_hour_tot = 0;
-  exp_per_hour_pct_tot = 0;
-  int total_gained = 0;
-  ULONGLONG total_duration = 0;
-  for (auto &e : ExpInfo) {
-    total_gained += e.Gained;
-    total_duration += e.Duration;
-  }
-  if (ExpInfo.size()) total_duration += GetTickCount64() - ExpInfo.back().TimeStamp;
-
-  if (total_gained && total_duration) {
-    exp_per_hour_tot = ((((float)total_gained / (float)total_duration) * 1000) * 60) * 60;
-    exp_per_hour_pct_tot = (exp_per_hour_tot / max_exp) * 100;
-  }
-  std::chrono::milliseconds ms_to_level = std::chrono::milliseconds(0);
-  if (exp_per_hour_tot) {
-    float experience_needed = max_exp - self->CharInfo->Experience;
-    float total_hour_to_level = experience_needed / exp_per_hour_tot;
-    float total_minutes_to_level = total_hour_to_level * 60;
-    float total_seconds_to_level = total_minutes_to_level * 60;
-    int toal_ms_to_level = (int)(total_seconds_to_level * 1000);
-    ms_to_level = std::chrono::milliseconds(toal_ms_to_level);
-  }
-  ttl = format_duration(ms_to_level);
-
-  if (exp != self->CharInfo->Experience && exp != 0) {
-    int gained = self->CharInfo->Experience - exp;
-    ULONGLONG last_stamp = GetTickCount64();
-    if (ExpInfo.size()) last_stamp = ExpInfo.back().TimeStamp;
-    ExpInfo.push_back(_ExpData(gained, last_stamp));
-    if (ExpInfo.size() > 20) ExpInfo.pop_front();
-
-    // float gained_pct = ((float)gained / max_exp) * 100.f;
-    // Zeal::Game::print_chat("percent gained: %.2f%%  actual value: %i", gained_pct, gained);
-  }
-  exp = self->CharInfo->Experience;
-}
-
-Experience::~Experience() {}
-
-Experience::Experience(ZealService *zeal) {
-  exp = 0;
-  exp_per_hour_pct_tot = 0;
-  exp_per_hour_tot = 0;
-  zeal->callbacks->AddGeneric([this]() { callback_main(); });
-  zeal->commands_hook->Add("/resetexp", {}, "resets exp per hour calculations", [this](std::vector<std::string> &args) {
-    ExpInfo.clear();
-    return true;
-  });
+  exp_calc.update(get_exp_level(), self->CharInfo->Experience);
+  aa_calc.update(get_aa_total_points(), self->CharInfo->AlternateAdvancementExperience);
 }

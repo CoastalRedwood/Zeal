@@ -106,14 +106,14 @@ namespace GameEnums {
 enum EntityTypes { Player, NPC, NPCCorpse, PlayerCorpse, Unknown };
 
 enum CameraView {
-  FirstPerson,
-  ThirdPerson1,
-  ThirdPerson2,
-  ThirdPerson3,
-  ThirdPerson4,
-  CharacterSelect,
-  ZealCam,
-  TotalCameras
+  FirstPerson = 0,
+  ThirdPerson1 = 1,  // Top-down view.  Alt+PgUp/Dn for pitch.
+  ThirdPerson2 = 2,  // Chase-camera view. Default for mouse zoom out.
+  ZealCam = 2,       // Replaces ThirdPerson2 when enabled.
+  ThirdPerson3 = 3,  // User camera control (manual).
+  ThirdPerson4 = 4,  // User camera control (manual).
+  CharacterSelect = 5,
+  TotalCameras = 6
 };
 
 enum Stance { Sitting = 110, Ducking = 111, Standing = 100, Frozen = 102, Looting = 105, Feigned = 115, Dead = 120 };
@@ -741,12 +741,15 @@ struct ActorInfo {
   /* 0x0160 */ DWORD FizzleTimeout;  // Set in the OP_MemorizeSpell handler.
   /* 0x0164 */ BYTE Unknown0164[0x20];
   /* 0x0184 */ DWORD Animation;
-  /* 0x0188 */ BYTE Unknown0188[0xc];
-  /* 0x0194 */ struct Entity *Entity0194;  // Entity is linked in UpdatePlayerVisibility.
-  /* 0x0198 */ struct Entity *Entity0198;  // Appears to be a horse entity in UpdatePlayerVisiblity.
+  /* 0x0188 */ BYTE Unknown0188[0x8];
+  /* 0x0190 */ struct Entity *AttachedEntity;
+  /* 0x0194 */ struct Entity *Mount;
+  /* 0x0198 */ struct Entity *Rider;
   /* 0x019C */ BYTE Unknown019c[24];
   /* 0x01B4 */ DWORD IsInvisible;  // NPCs only? used by /hidecorpses command
-  /* 0x01B8 */ BYTE Unknown01B8[10];
+  /* 0x01B8 */ struct Entity *Horse;
+  /* 0x01BC */ DWORD HorseSpellEffect;
+  /* 0x01C0 */ WORD HorseSpellId;
   /* 0x01C2 */ SHORT PetID;
   /* 0x01C4 */ BYTE Unknown01C4[156];
   /* 0x0260 */ DWORD IsHoldingBoth;
@@ -768,7 +771,9 @@ struct ActorInfo {
   /* 0x0294 */ GAMEDAGINFO *DagRightPoint;
   /* 0x0298 */ GAMEDAGINFO *DagLeftPoint;
   /* 0x029C */ GAMEDAGINFO *DagShieldPoint;
-  /* 0x02A0 */ BYTE Unknown02A0[128];
+  /* 0x02A0 */ BYTE Unknown02A0[0x44];
+  /* 0x02E4 */ struct Entity *Following;  // Non-zero if auto-following this entity.
+  /* 0x02E8 */ BYTE Unknown02E8[0x38];
   /* 0x0320 */ BYTE MovementType;  // 0 = None, 4 = Walking, 6 = Running, 7 = Swimming
   /* 0x0321 */ BYTE Unknown0321[12];
   /* 0x032D */ BYTE IsMovingTimer;  // 0 = Moving, 1-6 = Recently Stopped Moving, 200 = Not Moving
@@ -1041,10 +1046,14 @@ struct GAMECHARINFO  // common/patches/mac_structs.h::PlayerProfile_Struct
   /* 0x1363 */ BYTE GuildStatus;  // guild rank
   /* 0x1364 */ BYTE Drunkness;    // 0 = Not Drunk, counts down over time
   /* 0x1365 */ BYTE Unknown1365[451];
-  /* 0x1528 */ DWORD AlternateAdvancementExperience;
-  /* 0x152C */ BYTE Unknown152C[476];
+  /* 0x1528 */ DWORD AlternateAdvancementExperience;  // 330 = 100%.
+  /* 0x152C */ BYTE Unknown152C;
+  /* 0x152D */ BYTE AlternateAdvancementShareOfExpPercent;
+  /* 0x152E */ BYTE Unknown152E[0x1DA];
   /* 0x1708 */ BYTE AirSupply;  // air remaining while swimming underwater
-  /* 0x1709 */ BYTE Unknown1709[2475];
+  /* 0x1709 */ BYTE Unknown1709;
+  /* 0x170A */ WORD AlternateAdvancementUnspent;  // Unspent AA points.
+  /* 0x170C */ BYTE Unknown170C[0x9A8];
 
   // Note: The unmodified client GAMECHARINFO has 8 bank slots with the rest of the structure
   //       effectively unused to the original size of 0x2104. If the server provided game.dll patch

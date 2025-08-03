@@ -236,6 +236,7 @@ Zeal::GameStructures::SPELLMGR *get_spell_mgr();
 int get_spell_level(int spell_id);
 const char *get_spell_name(int spell_id);
 Zeal::GameStructures::Entity *get_controlled();
+Zeal::GameStructures::ViewActor *get_view_actor();
 Zeal::GameStructures::CameraInfo *get_camera();
 Zeal::GameStructures::Entity *get_entity_by_id(short id);  // Returns nullptr if invalid id.
 Zeal::GameStructures::Entity *get_entity_by_parent_id(short parent_id);
@@ -294,6 +295,9 @@ void sort_list_wnd(Zeal::GameUI::ListWnd *list_wnd, int sort_column, SortType so
 short total_spell_affects(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE affect_type, BYTE a3,
                           int *per_buff_values);
 void sit();
+void dismount();
+bool is_mounted();
+bool is_a_mount(const Zeal::GameStructures::Entity *entity);
 
 // game.dll patch support that expanded the number of available bank slots.
 int get_num_personal_bank_slots();
