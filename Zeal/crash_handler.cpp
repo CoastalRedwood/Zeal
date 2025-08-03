@@ -166,9 +166,9 @@ static bool HandleCrashSender(EXCEPTION_POINTERS *pep, const std::string &CrashF
 
 static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
   std::stringstream reasonStream;
-  reasonStream << "Zeal Version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl << std::endl;
   if (pep == nullptr || pep->ExceptionRecord == nullptr) {
     reasonStream << "No exception information." << std::endl;
+    reasonStream << "Zeal Version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
     return reasonStream.str();
   }
 
@@ -184,6 +184,7 @@ static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
   } else {
     reasonStream << "Module information not available." << std::endl;
   }
+  reasonStream << "Zeal Version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
   // Add more details as needed from pep->ExceptionRecord and pep->ContextRecord
   if (extra_data) {
     Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
