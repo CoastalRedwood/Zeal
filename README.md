@@ -444,6 +444,7 @@ ___
   - `25` Global cast recovery countdown timer
   - `26` to `33` Recast recovery countdown timers for spell0 - spell7
   - `34` Attack (melee/range) recovery timer
+  - `35` AA Exp Per Hour
 
 - **Label Type's**
   - `80` Mana/Max Mana
@@ -452,6 +453,7 @@ ___
   - `83` Count of empty inventory slots
   - `84` Count of all inventory slots
   - `85` Count of filled inventory slots
+  - `86` AA Exp Per Hour Percent
   - `124` Current Mana
   - `125` Max Mana
   - `134` Spell being casted

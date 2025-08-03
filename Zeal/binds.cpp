@@ -9,11 +9,10 @@ Binds::~Binds() {}
 
 bool Binds::execute_cmd(UINT cmd, bool isdown) {
   ZealService *zeal = ZealService::get_instance();
-  // Don't call our binds on keydown when the game wants input except for reply cycling.
+  // Don't call our binds on keydown when the game wants input except for reply cycling and auto-run.
   bool reply_cycle = (cmd == 0x3c || cmd == 0x3d);
-  if (!Zeal::Game::game_wants_input() || !isdown || reply_cycle) {
-    // if (isdown)
-    //	Zeal::Game::print_chat("cmd: %i down: %i", cmd, isdown);
+  bool auto_run = (cmd == 1);  // ProcessKeyDown() already filters normal keys during chat. Fixes numlock.
+  if (!Zeal::Game::game_wants_input() || !isdown || reply_cycle || auto_run) {
     if (zeal->binds_hook->ReplacementFunctions.count(cmd) > 0) {
       for (auto &fn : zeal->binds_hook->ReplacementFunctions[cmd])
         if (fn(isdown))  // if the replacement function returns true, end here otherwise its really just adding more to

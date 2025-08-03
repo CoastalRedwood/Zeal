@@ -36,7 +36,10 @@ void ChatCommands::print_commands() {
 // method in order to support all camping pathways (buttons, hotkeyed button, and /camp).
 static void __fastcall GameCamp(void *this_game, int unused_edx) {
   // Support auto-sitting (but peek ahead to see if the camp command is likely allowed).
-  if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive()) Zeal::Game::sit();
+  if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive()) {
+    if (Zeal::Game::is_mounted()) Zeal::Game::dismount();
+    Zeal::Game::sit();
+  }
   if (ZealService::get_instance()->outputfile->setting_export_on_camp.get()) {
     ZealService::get_instance()->outputfile->export_inventory();
     ZealService::get_instance()->outputfile->export_spellbook();
@@ -270,6 +273,8 @@ ChatCommands::ChatCommands(ZealService *zeal) {
   });
   Add("/sit", {}, "Adds arguments on/down to force you to sit down instead of just toggling.",
       [](std::vector<std::string> &args) {
+        if (Zeal::Game::is_mounted())
+          Zeal::Game::print_chat("Must dismount to /sit");  // Toss out a warning. Let downstream fail.
         if (args.size() > 1 && args.size() < 3) {
           if (Zeal::String::compare_insensitive(args[1], "on") || Zeal::String::compare_insensitive(args[1], "down")) {
             Zeal::Game::sit();
@@ -324,6 +329,23 @@ ChatCommands::ChatCommands(ZealService *zeal) {
       ss << "Zeal version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
       Zeal::Game::print_chat(ss.str());
       return true;
+    }
+    if (args.size() == 2 && args[1] == "era") {  // TODO: Remove, temporary testing.
+      auto char_info = Zeal::Game::get_char_info();
+      BYTE char_expansions = char_info ? char_info->Expansions : 0;
+
+      // OP_ExpansionInfo values:
+      BYTE op_expansions = 0;
+      if (*reinterpret_cast<DWORD *>(0x007cf1e8))  // gKunarkEnabled_007cf1e8
+        op_expansions = op_expansions | 0x01;
+      if (*reinterpret_cast<DWORD *>(0x007cf1ec))  // gVeliousEnabled_007cf1ec
+        op_expansions = op_expansions | 0x02;
+      if (*reinterpret_cast<DWORD *>(0x007cf1f0))  // gLuclinEnabled_007cf1f0
+        op_expansions = op_expansions | 0x04;
+      if (*reinterpret_cast<DWORD *>(0x007cf1f4))  // gPlanesOfPowerEnabled_007cf1f4
+        op_expansions = op_expansions | 0x08;
+
+      Zeal::Game::print_chat("Era bits: Character: 0x%02x, Op_ExpansionInfo: 0x%02x", char_expansions, op_expansions);
     }
     if (args.size() == 2 && args[1] == "bank")  // Temporary for bank patch testing.
     {
@@ -443,6 +465,15 @@ ChatCommands::ChatCommands(ZealService *zeal) {
         print_chat("Failed to parse item link.");
     } else if (args.size() == 1) {
       bool is_luclin_enabled = (Zeal::Game::get_era() >= Zeal::Game::Era::Luclin);
+      auto self = Zeal::Game::get_self();
+      if (self) {
+        Zeal::Game::print_chat("---- Misc stats ----");
+        auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
+        float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
+        print_chat("Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
+        if (!horse)
+          print_chat("Movement modifier: %+d%%", (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
+      }
       Zeal::Game::print_chat("---- Defensive stats ----");
       print_chat("AC (display): %i = (Mit: %i  + Avoidance: %i) * 1000/847", Zeal::Game::get_display_AC(),
                  Zeal::Game::get_mitigation(), Zeal::Game::get_avoidance());

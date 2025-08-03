@@ -100,7 +100,7 @@ void SpellSets::handle_finished_memorizing(int a1, int a2) {
   // Handle interruptions gracefully by clearing state and restoring stance.
   if (!Zeal::Game::Windows->SpellBook || !Zeal::Game::Windows->SpellBook->IsVisible) {
     if (Zeal::Game::get_self() && Zeal::Game::is_in_game() && original_stance != Stance::Sit &&
-        ((Stance)Zeal::Game::get_self()->StandingState == Stance::Sit))
+        ((Stance)Zeal::Game::get_self()->StandingState == Stance::Sit) && !Zeal::Game::is_mounted())
       Zeal::Game::get_self()->ChangeStance(original_stance);
     mem_buffer.clear();
     return;
@@ -110,7 +110,7 @@ void SpellSets::handle_finished_memorizing(int a1, int a2) {
   if (mem_buffer.size())
     Zeal::Game::Spells::Memorize(mem_buffer.back().first, mem_buffer.back().second);
   else if (Zeal::Game::Windows->SpellBook->IsVisible) {
-    Zeal::Game::get_self()->ChangeStance(original_stance);
+    if (!Zeal::Game::is_mounted()) Zeal::Game::get_self()->ChangeStance(original_stance);
     Zeal::Game::Windows->SpellBook->show(0, false);
   }
 }

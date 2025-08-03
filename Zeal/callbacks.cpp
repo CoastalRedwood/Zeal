@@ -296,7 +296,7 @@ CallbackManager::CallbackManager(ZealService *zeal) {
   if (gfx_dx8) zeal->hooks->Add("RenderUI", (DWORD)gfx_dx8 + 0x6b7f0, render_ui, hook_type_detour);
 
   zeal->hooks->Add("EnterZone", 0x53D2C4, enterzone_hk, hook_type_detour);
-  zeal->hooks->Add("CDisplayCleanGameUI", 0x4A6EBC, CDisplayCleanGameUI, hook_type_detour);
+  zeal->hooks->Add("CDisplayCleanGameUI", 0x4A6EBC, CDisplayCleanGameUI, hook_type_detour);  // Also char select.
   zeal->hooks->Add("DoCharacterSelection", 0x53b9cf, charselect_hk, hook_type_detour);
   zeal->hooks->Add("InitGameUI", 0x4a60b5, initgameui_hk, hook_type_detour);
   zeal->hooks->Add("InitCharSelectUI", 0x4a5f85, initcharselectui_hk, hook_type_detour);

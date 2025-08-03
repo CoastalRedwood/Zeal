@@ -735,8 +735,9 @@ Vec3 get_view_actor_head_pos() {
   //	head_pos.z = dag_pos.z;
   //	return head_pos;
   // }
-  if (get_view_actor()) {
-    Zeal::GameStructures::Entity *self = get_view_actor()->Entity;
+  auto view_actor = get_view_actor();
+  auto self = view_actor ? view_actor->Entity : nullptr;
+  if (self) {
     Vec3 head_pos = self->Position;
     head_pos.z += (self->CameraHeightOffset - self->ModelHeightOffset) - 0.5f;  // standing
     // if (self->StandingState == Stance::Duck || self->StandingState == Stance::Sit)
@@ -778,7 +779,12 @@ bool collide_with_world(Vec3 start, Vec3 end, Vec3 &result, char collision_type,
 bool can_move() {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
   if (!self) return false;
-  if (!Zeal::Game::is_view_actor_me()) return false;
+  // Check if mounted on a horse.
+  if (self != Zeal::Game::get_self() && Zeal::Game::get_self()->ActorInfo &&
+      Zeal::Game::get_self()->ActorInfo->Mount == self)
+    self = self->ActorInfo->Rider;  // Use Rider for check below.
+
+  if (self->ActorInfo->ViewActor_ != Zeal::Game::get_view_actor()) return false;
   if (self->CharInfo && self->CharInfo->StunnedState) return false;
   if (self->StandingState == Zeal::GameEnums::Stance::Standing ||
       self->StandingState == Zeal::GameEnums::Stance::Ducking)
@@ -2202,7 +2208,8 @@ void Memorize(int book_index, int gem_index) {
   if (!Windows->SpellBook->IsVisible) Zeal::Game::Spells::OpenBook();
   ZealService::get_instance()->callbacks->AddDelayed(
       [book_index, gem_index]() {
-        if (Windows->SpellBook->IsVisible && Zeal::Game::get_self()->StandingState == Stance::Sit)
+        if (Windows->SpellBook->IsVisible &&
+            (Zeal::Game::get_self()->StandingState == Stance::Sit || Zeal::Game::is_mounted()))
           Windows->SpellBook->BeginMemorize(book_index, gem_index, false);
       },
       25);
@@ -2320,6 +2327,20 @@ void sit()  // Using game ::Sit() logic here, but without the sit/stand toggle
   if (entity->StandingState == Stance::NotInControl) return;
   if (char_info->StandingState == Stance::Stand || char_info->StandingState == Stance::Duck)
     entity->ChangeStance(Stance::Sit);
+}
+
+void dismount()  // Same as /dismount
+{
+  reinterpret_cast<void(__cdecl *)(int)>(0x004ff5a6)(1);  // do_dismount(1).
+}
+
+bool is_mounted() {
+  return Zeal::Game::get_self() && Zeal::Game::get_self()->ActorInfo && Zeal::Game::get_self()->ActorInfo->Mount;
+}
+
+bool is_a_mount(const Zeal::GameStructures::Entity *entity) {
+  return entity && entity->ActorInfo && entity->ActorInfo->Rider &&
+         entity->ActorInfo->Rider->Type == Zeal::GameEnums::EntityTypes::Player;
 }
 
 // game.dll patch support that expanded the number of available bank slots.
