@@ -88,7 +88,6 @@ void SpellSets::load(const std::string &name) {
     }
   }
   if (mem_buffer.size()) {
-    if (!interrupted) original_stance = (Stance)Zeal::Game::get_self()->StandingState;
     Zeal::Game::Spells::Memorize(mem_buffer.back().first, mem_buffer.back().second);
   }
 }
@@ -97,11 +96,8 @@ void SpellSets::load(const std::string &name) {
 void SpellSets::handle_finished_memorizing(int a1, int a2) {
   if (!mem_buffer.size()) return;
 
-  // Handle interruptions gracefully by clearing state and restoring stance.
-  if (!Zeal::Game::Windows->SpellBook || !Zeal::Game::Windows->SpellBook->IsVisible) {
-    if (Zeal::Game::get_self() && Zeal::Game::is_in_game() && original_stance != Stance::Sit &&
-        ((Stance)Zeal::Game::get_self()->StandingState == Stance::Sit) && !Zeal::Game::is_mounted())
-      Zeal::Game::get_self()->ChangeStance(original_stance);
+  // Handle interruptions gracefully by clearing state.
+  if (!Zeal::Game::Windows->SpellBook || !Zeal::Game::Windows->SpellBook->Activated) {
     mem_buffer.clear();
     return;
   }
@@ -109,10 +105,8 @@ void SpellSets::handle_finished_memorizing(int a1, int a2) {
   mem_buffer.pop_back();
   if (mem_buffer.size())
     Zeal::Game::Spells::Memorize(mem_buffer.back().first, mem_buffer.back().second);
-  else if (Zeal::Game::Windows->SpellBook->IsVisible) {
-    if (!Zeal::Game::is_mounted()) Zeal::Game::get_self()->ChangeStance(original_stance);
-    Zeal::Game::Windows->SpellBook->show(0, false);
-  }
+  else if (Zeal::Game::Windows->SpellBook && Zeal::Game::Windows->SpellBook->Activated)
+    Zeal::Game::Windows->SpellBook->Deactivate();
 }
 
 // Called after scribing a new spell into spellbook.
@@ -160,7 +154,6 @@ void SpellSets::memorize_spell(int book_index, int gem_index) {
   const int spell_id = char_info->SpellBook[book_index];
   if (!check_caster_level(spell_id)) return;
 
-  if (!interrupted) original_stance = (Stance)Zeal::Game::get_self()->StandingState;
   mem_buffer.push_back({book_index, gem_index});
   Zeal::Game::Spells::Memorize(book_index, gem_index);
 }
@@ -409,7 +402,7 @@ void SpellSets::callback_clean_ui() {
 // Main processing loop callback to handle various reasons why memorization could be aborted.
 void SpellSets::callback_main() {
   if (mem_buffer.size() &&
-      (!Zeal::Game::Windows || !Zeal::Game::Windows->SpellBook || !Zeal::Game::Windows->SpellBook->IsVisible))
+      (!Zeal::Game::Windows || !Zeal::Game::Windows->SpellBook || !Zeal::Game::Windows->SpellBook->Activated))
     mem_buffer.clear();  // Abort in-process memorization if spellbook drops.
 }
 

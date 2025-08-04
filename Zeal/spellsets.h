@@ -53,7 +53,6 @@ class SpellSets {
 
   std::vector<MenuPair> spells_menus;               // Spellbook spells.
   Zeal::GameUI::SpellGemWnd *last_gem_clicked = 0;  // Caches clicked gem between operations.
-  Stance original_stance = Stance::Stand;           // Preserves starting stance across operations.
 
   std::vector<MenuPair> spellsets_menus;        // Spellsets.
   std::map<int, std::string> spellsets_map;     // Links menu IDs to spellset names.

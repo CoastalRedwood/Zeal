@@ -2195,7 +2195,7 @@ HWND get_game_window() {
 namespace Spells {
 void OpenBook() {
   if (!Windows->SpellBook) return;
-  Windows->SpellBook->OpenBook();
+  Windows->SpellBook->Activate();
 }
 
 void StopSpellBookAction() {
@@ -2205,10 +2205,11 @@ void StopSpellBookAction() {
 
 void Memorize(int book_index, int gem_index) {
   if (!Windows->SpellBook) return;
-  if (!Windows->SpellBook->IsVisible) Zeal::Game::Spells::OpenBook();
+  if (!Windows->SpellBook->Activated) Windows->SpellBook->Activate();
+  if (!Windows->SpellBook->Activated) return;
   ZealService::get_instance()->callbacks->AddDelayed(
       [book_index, gem_index]() {
-        if (Windows->SpellBook->IsVisible &&
+        if (Windows->SpellBook && Windows->SpellBook->Activated &&
             (Zeal::Game::get_self()->StandingState == Stance::Sit || Zeal::Game::is_mounted()))
           Windows->SpellBook->BeginMemorize(book_index, gem_index, false);
       },
