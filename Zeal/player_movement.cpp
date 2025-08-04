@@ -6,7 +6,7 @@
 
 static void CloseSpellbook(void) {
   Zeal::Game::get_self()->ChangeStance(Stance::Stand);
-  Zeal::Game::Windows->SpellBook->IsVisible = false;
+  if (Zeal::Game::Windows->SpellBook->Activated) Zeal::Game::Windows->SpellBook->Deactivate();
 }
 
 void PlayerMovement::handle_movement_binds(int cmd, bool key_down) {
@@ -19,7 +19,7 @@ void PlayerMovement::handle_movement_binds(int cmd, bool key_down) {
         if (Zeal::Game::Windows->Loot && Zeal::Game::Windows->Loot->IsOpen && Zeal::Game::Windows->Loot->IsVisible) {
           Zeal::Game::GameInternal::CLootWndDeactivate((int)Zeal::Game::Windows->Loot, 0);
           return;
-        } else if (Zeal::Game::Windows->SpellBook && Zeal::Game::Windows->SpellBook->IsVisible) {
+        } else if (Zeal::Game::Windows->SpellBook && Zeal::Game::Windows->SpellBook->Activated) {
           switch (cmd) {
             case 3:
               CloseSpellbook();
@@ -73,7 +73,7 @@ void PlayerMovement::handle_spellcast_binds(int cmd) {
     if (Zeal::Game::is_new_ui()) {
       if (Zeal::Game::Windows->Loot && Zeal::Game::Windows->Loot->IsOpen && Zeal::Game::Windows->Loot->IsVisible) {
         return;
-      } else if (Zeal::Game::Windows->SpellBook && Zeal::Game::Windows->SpellBook->IsVisible) {
+      } else if (Zeal::Game::Windows->SpellBook && Zeal::Game::Windows->SpellBook->Activated) {
         return;
       }
     } else {
@@ -151,22 +151,6 @@ void PlayerMovement::callback_main() {
     }
   }
 }
-
-// void PlayerMovement::load_settings()
-//{
-//	if (!ini_handle->exists("Zeal", "SpellbookAutostand"))
-//		ini_handle->setValue<bool>("Zeal", "SpellbookAutostand", false);
-//	//if (!ini_handle->exists("Zeal", "LeftStrafeSpellbookAutostand"))
-//	//	ini_handle->setValue<bool>("Zeal", "LeftStrafeSpellbookAutostand", true);
-//	//if (!ini_handle->exists("Zeal", "RightStrafeSpellbookAutostand"))
-//	//	ini_handle->setValue<bool>("Zeal", "RightStrafeSpellbookAutostand", true);
-//
-//	SpellBookAutoStand = ini_handle->getValue<bool>("Zeal", "SpellbookAutostand");
-//	/*spellbook_right_autostand = ini_handle->getValue<bool>("Zeal", "RightTurnSpellbookAutostand");
-//	spellbook_left_strafe_autostand = ini_handle->getValue<bool>("Zeal", "LeftStrafeSpellbookAutostand");
-//	spellbook_right_strafe_autostand = ini_handle->getValue<bool>("Zeal", "RightStrafeSpellbookAutostand");*/
-// }
-//
 
 static int __fastcall CastSpell(void *this_ptr, void *not_used, unsigned char a1, short a2,
                                 Zeal::GameStructures::GAMEITEMINFO **a3, short a4) {

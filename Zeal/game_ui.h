@@ -1067,12 +1067,14 @@ class SpellBookWnd : public SidlWnd {
                                                                                     unsure);
   }
 
-  void OpenBook() const { reinterpret_cast<void(__thiscall *)(const SidlWnd *)>(0x43441F)(this); }
-
   void StopSpellBookAction() const  // Aborts memorization or scribing.
   {
     reinterpret_cast<void(__thiscall *)(const SidlWnd *)>(0x00435531)(this);
   }
+
+  void Activate() const { reinterpret_cast<void(__thiscall *)(const SidlWnd *)>(0x0043441f)(this); }
+
+  void Deactivate() const { reinterpret_cast<void(__thiscall *)(const SidlWnd *)>(0x0043450a)(this); }
 
   int WndNotification(const BasicWnd *src_wnd, int param_2, void *param_3) {
     return reinterpret_cast<int(__thiscall *)(SpellBookWnd *, const BasicWnd *, int, void *)>(0x004345cb)(
@@ -1082,6 +1084,18 @@ class SpellBookWnd : public SidlWnd {
   void DisplaySpellInfo(const BasicWnd *src_wnd) {
     reinterpret_cast<int(__thiscall *)(SpellBookWnd *, const BasicWnd *)>(0x00435234)(this, src_wnd);
   }
+
+  /*0x134*/ BYTE Activated;  // Set to 1 when activated and 0 in Deactivate().
+  /*0x135*/ BYTE Unknown0x135[3];
+  /*0x138*/ DWORD SpellBookIndex;
+  /*0x13C*/ DWORD Unknown0x13C;
+  /*0x140*/ DWORD MemorizingSpellIndex;
+  /*0x144*/ DWORD MemorizingSpellId;
+  /*0x148*/ DWORD MemTicksLeft;
+  /*0x14C*/ DWORD ScribeIndex;  // Unsure.
+  /*0x150*/ DWORD ScribeTicksLeft;
+  /*0x154*/ DWORD CachedSittingState;
+  /*0x158*/ DWORD Timestamp;  // Used in process frame to trigger StopSpellBookAction.
 };
 
 // TODO: The current BasicWnd definition is not the true base class and should probably be
