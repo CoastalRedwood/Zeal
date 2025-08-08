@@ -602,13 +602,13 @@ typedef struct _GAMEITEMINFO : public GAMEITEMINFOBASE {
 
 struct ViewActor {
   /* 0x0000 */ DWORD Type;  // Checked if it is set to 0x18 in GetClickedActor()
-  /* 0x0004 */ DWORD Unknown0004;
-  /* 0x0008 */ DWORD Unknown0008;
+  /* 0x0004 */ DWORD Index;
+  /* 0x0008 */ DWORD Model;
   /* 0x000C */ DWORD Flags;  // Bit 0x40000000 = invisible
   /* 0x0010 */ Vec3 Position;
-  /* 0x001C */ DWORD Unknown001C;
-  /* 0x0020 */ DWORD Unknown0020;
-  /* 0x0024 */ DWORD Unknown0024;
+  /* 0x001C */ DWORD Heading;
+  /* 0x0020 */ DWORD Pitch;
+  /* 0x0024 */ DWORD Roll;
   /* 0x0028 */ DWORD RegionNumber;
   /* 0x002C */ struct _GAMEACTORCOLLISIONINFO *CollisionInfo;
   /* 0x0030 */ DWORD Unknown0030;
@@ -1101,7 +1101,7 @@ struct Entity {
   /* 0x0044 */ DWORD ZoneId;  // Game_ZONE_ID_x
   /* 0x0048 */ Vec3 Position;
   /* 0x0054 */ FLOAT Heading;  // camera view left/right, yaw
-  /* 0x0058 */ FLOAT Unk;
+  /* 0x0058 */ FLOAT ViewActorPitch;
   /* 0x005C */ FLOAT MovementSpeed;
   /* 0x0060 */ FLOAT MovementSpeedY;
   /* 0x0064 */ FLOAT MovementSpeedX;

@@ -277,16 +277,17 @@ void CameraMods::process_time_tick() {
     zeal_cam_yaw = self->Heading;
   }
 
-  // Allow keyboard control of zeal camera and self pitch.
+  // In Zeal camera mode, we allow some keyboard control of pitch.
+  if (kKeyDownStates[CMD_CENTER_VIEW]) zeal_cam_pitch = 0.f;  // Center to match client behavior.
+
+  // The self pitch is controlled to enhance control during levitation or swimming.
+  // - The client doesn't center the self pitch when center_view is pressed.
+  // - The current integrated self pitch isn't visible in 3rd person, so just cancel out
+  //   any integrated large pitch if an opposite direction key is pressed.
   auto pitch_self = get_pitch_control_entity();
-  if (kKeyDownStates[CMD_CENTER_VIEW]) {
-    zeal_cam_pitch = 0;
-    if (pitch_self) pitch_self->Pitch = 0;  // Center first-person pitch.
-  } else if (kKeyDownStates[CMD_PITCH_UP] || kKeyDownStates[CMD_PITCH_DOWN]) {
-    zeal_cam_pitch += (kKeyDownStates[CMD_PITCH_UP] ? -0.3f : +0.3f);
-    zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
-    if (pitch_self) pitch_self->Pitch = 0;  // Center first-person pitch for now.
-  }
+  if (pitch_self && (kKeyDownStates[CMD_CENTER_VIEW] || (kKeyDownStates[CMD_PITCH_UP] && pitch_self->Pitch < 0) ||
+                     (kKeyDownStates[CMD_PITCH_DOWN] && pitch_self->Pitch > 0)))
+    pitch_self->Pitch = 0.f;
 }
 
 void CameraMods::update_fps_sensitivity() {
