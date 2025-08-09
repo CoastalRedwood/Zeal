@@ -52,41 +52,34 @@ static int __fastcall SetNameSpriteTint_UpdateState(void *this_display, void *no
 bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   if (!setting_extended_nameplate.get()) return false;
 
-  // No arguments - show our custom help message and suppress original
-  if (args.size() < 2) {
+  int value = -1;
+  bool valid_value =
+      (args.size() == 2) && Zeal::String::tryParse(args[1], &value, true) && (value >= 1) && (value <= 7);
+
+  if (args.size() != 2 || (args[1] != "off" && !valid_value)) {
     Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
     return true;  // Suppress the original command
   }
 
-  // Check if it's one of our extended cases
-  int value;
-  if (Zeal::String::tryParse(args[1], &value)) {
-    if (value == 0 || value > 7) {
-      Zeal::Game::print_chat("Error. Try again. Defaulting to Everything.");
-      Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
-      value = 4;
-      if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
-        *reinterpret_cast<int32_t *>(0x007d01e4) = value;
-        ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
-      }
-      return true;
-    } else if (value == 5) {
-      Zeal::Game::print_chat("Title and first names.");
-    } else if (value == 6) {
-      Zeal::Game::print_chat("Title, first, and last names.");
-    } else if (value == 7) {
-      Zeal::Game::print_chat("First and guild names.");
-    } 
+  // Add some confirmation text missing for the extended nameplates.
+  if (valid_value) {
+    if (value == 5)
+      Zeal::Game::print_chat("Showing title and first names.");
+    else if (value == 6)
+      Zeal::Game::print_chat("Showing title, first, and last names.");
+    else if (value == 7)
+      Zeal::Game::print_chat("Showing first and guild names.");
   }
 
-  // PR reviewed to fix prior bug
+  // Keep the UI options in sync. Immediately write to some globals now that the original command will perform
+  // later so the update options call below works correctly.
+  if (valid_value) *reinterpret_cast<int32_t *>(0x007d01e4) = value;  // Update the current shownames level.
+  *reinterpret_cast<int *>(0x00798af4) = valid_value;  // Update the depressed button Show PC Names button state.
   if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
-    *reinterpret_cast<int32_t *>(0x007d01e4) = value;
     ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
   }
 
-  // For all other cases (off/1/2/3/4), let the original command handle it
-  return false;
+  return false;  // Let the original command run fully update (beyond shortcuts above).
 }
 
 NamePlate::NamePlate(ZealService *zeal) {
@@ -289,7 +282,8 @@ void NamePlate::render_ui() {
     // Added Unknown0003 check due to some bad results with 0x05 at startup causing a crash.
     if (!entity || entity->StructType != 0x03 || !entity->ActorInfo || !entity->ActorInfo->DagHeadPoint ||
         !entity->ActorInfo->ViewActor_ ||
-        entity->ActorInfo->ViewActor_->Flags & 0x20000000)  // Empirically found flag for incomplete actor.
+        ((entity->ActorInfo->ViewActor_->Flags & 0x20000000)  // Empirically found flag for incomplete actor.
+         && !entity->ActorInfo->Mount))  // Empirically found flag is unreliable when mounted (but always a player).
       continue;
     auto it = nameplate_info_map.find(entity);
     if (it == nameplate_info_map.end()) continue;

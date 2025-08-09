@@ -30,14 +30,9 @@ int GetSensitivityForSlider(ZealSetting<float> &value) {
 
 int Shownames_Combobox_dropdown() {
   // Update shownames dropdown - check both the boolean and the value
-  bool names_enabled = *(bool *)0x798af4;  // ShowPCNamesGUIButtonBoolean
-  int current_shownames = Zeal::Game::get_showname();
-  if (!names_enabled) {
-    return 0;  // "Off"
-  } 
-  else {
-    return current_shownames;  // 1-7
-  }
+  bool names_enabled = *(int *)0x798af4 != 0;  // ShowPCNamesGUIButton
+  int current_shownames = std::clamp(Zeal::Game::get_showname(), 1, 7);
+  return names_enabled ? current_shownames : 0;
 }
 
 void ui_options::PlayTellSound() const {
@@ -861,7 +856,6 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
-
     // Sync the ComboBox with /shownames command
     std::vector<std::string> args = {"shownames"};
     if (value == 0) {
@@ -870,11 +864,11 @@ void ui_options::InitNameplate() {
       args.push_back(std::to_string(value));
     }
 
-    //PR Reviewed to add clamp value since someone putting in any 4 digit value number could cause a crash here.
-    //If player puts in high number beyond 7, it will default to 4 to show everything
+    // PR Reviewed to add clamp value since someone putting in any 4 digit value number could cause a crash here.
+    // If player puts in high number beyond 7, it will default to 4 to show everything
     if (value > 7) value = 4;
 
-    //Create arg_buffer for /shownames call. Static buffer: "off" = 4 bytes (3 chars + null terminator)
+    // Create arg_buffer for /shownames call. Static buffer: "off" = 4 bytes (3 chars + null terminator)
     static char arg_buffer[4];
     if (value == 0) {
       strcpy_s(arg_buffer, "off");
@@ -884,11 +878,9 @@ void ui_options::InitNameplate() {
 
     // Call the original game function /shownames with value selected from ComboBox
     reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
-    
-   
+
     // Update UI immediately after execution (NO DELAYS)
     UpdateOptionsNameplate();
-
   });
 }
 
@@ -1236,8 +1228,14 @@ void ui_options::UpdateDynamicUI() {
 
   cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateShownames_Combobox");
   if (cmb) {
-    std::vector<std::string> shownames_options = {"Off",        "1 - First Names", "2 - First+Last Names", "3 - First+Last+Guild",
-                                                  "4 - Everything", "5 - Title+First", "6 - Title+First+Last", "7 - First+Guild"};
+    std::vector<std::string> shownames_options = {"Off",
+                                                  "1 - First Names",
+                                                  "2 - First+Last Names",
+                                                  "3 - First+Last+Guild",
+                                                  "4 - Everything",
+                                                  "5 - Title+First",
+                                                  "6 - Title+First+Last",
+                                                  "7 - First+Guild"};
     cmb->DeleteAll();
     ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
   }
