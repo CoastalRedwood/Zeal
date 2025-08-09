@@ -61,20 +61,27 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   // Check if it's one of our extended cases
   int value;
   if (Zeal::String::tryParse(args[1], &value)) {
-    if (value == 5) {
+    if (value == 0 || value > 7) {
+      Zeal::Game::print_chat("Error. Try again. Defaulting to Everything.");
+      Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
+      value = 4;
+      if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
+        *reinterpret_cast<int32_t *>(0x007d01e4) = value;
+        ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
+      }
+      return true;
+    } else if (value == 5) {
       Zeal::Game::print_chat("Title and first names.");
-      //return false;  // Let original command run to set the value
     } else if (value == 6) {
       Zeal::Game::print_chat("Title, first, and last names.");
-      //return false;  // Let original command run to set the value
     } else if (value == 7) {
       Zeal::Game::print_chat("First and guild names.");
-      //return false;  // Let original command run to set the value
-    }
+    } 
   }
 
-  // Update UI dropdown immediately after command execution
+  // PR reviewed to fix prior bug
   if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
+    *reinterpret_cast<int32_t *>(0x007d01e4) = value;
     ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
   }
 
