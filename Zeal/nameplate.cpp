@@ -63,14 +63,19 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   if (Zeal::String::tryParse(args[1], &value)) {
     if (value == 5) {
       Zeal::Game::print_chat("Title and first names.");
-      return false;  // Let original command run to set the value
+      //return false;  // Let original command run to set the value
     } else if (value == 6) {
       Zeal::Game::print_chat("Title, first, and last names.");
-      return false;  // Let original command run to set the value
+      //return false;  // Let original command run to set the value
     } else if (value == 7) {
       Zeal::Game::print_chat("First and guild names.");
-      return false;  // Let original command run to set the value
+      //return false;  // Let original command run to set the value
     }
+  }
+
+  // Update UI dropdown immediately after command execution
+  if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
+    ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
   }
 
   // For all other cases (off/1/2/3/4), let the original command handle it
