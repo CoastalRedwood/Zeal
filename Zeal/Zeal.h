@@ -7,7 +7,7 @@
 
 #include "framework.h"
 #include "game_addresses.h"
-#define ZEAL_VERSION "1.1.0-beta2"
+#define ZEAL_VERSION "1.1.0-beta3"
 #ifndef ZEAL_BUILD_VERSION               // Set by github actions
 #define ZEAL_BUILD_VERSION "UNOFFICIAL"  // Local build
 #endif
