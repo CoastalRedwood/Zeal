@@ -35,6 +35,20 @@ int Shownames_Combobox_dropdown() {
   return names_enabled ? current_shownames : 0;
 }
 
+int LocalAATitleChoice_Combobox_dropdown() {
+  int current_choice = ZealService::get_instance()->nameplate->setting_local_aa_title.get();
+  auto self = Zeal::Game::get_self();
+  int max_choice = 0;
+
+  if (self) {
+    // Clamp max_choice to 3 or player's AA rank, whichever is smaller
+    max_choice = (self->AlternateAdvancementRank > 3) ? 3 : (int)self->AlternateAdvancementRank;
+  }
+
+  // Clamp current_choice to valid range based on current AA rank
+  return (current_choice > max_choice) ? max_choice : current_choice;
+}
+
 void ui_options::PlayTellSound() const {
   // For now at least just copy the same sound list from invites. A future goal is to
   // support custom wave sounds for tells.
@@ -856,6 +870,7 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+
     // Sync the ComboBox with /shownames command
     std::vector<std::string> args = {"shownames"};
     if (value == 0) {
@@ -879,8 +894,20 @@ void ui_options::InitNameplate() {
     // Call the original game function /shownames with value selected from ComboBox
     reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
 
+
     // Update UI immediately after execution (NO DELAYS)
     UpdateOptionsNameplate();
+    
+  });
+
+  ui->AddComboCallback(wnd, "Zeal_NameplateLocalAATitle_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+    auto self = Zeal::Game::get_self();
+    if (self) {
+      // Clamp selection to available AA ranks
+      int max_choice = (self->AlternateAdvancementRank > 3) ? 3 : (int)self->AlternateAdvancementRank;
+      value = (value > max_choice) ? max_choice : value;
+    }
+    ZealService::get_instance()->nameplate->setting_local_aa_title.set(value);
   });
 }
 
@@ -1074,8 +1101,11 @@ void ui_options::UpdateOptionsNameplate() {
   std::string current_font = ZealService::get_instance()->nameplate->setting_fontname.get();
   UpdateComboBox("Zeal_NameplateFont_Combobox", current_font, BitmapFont::kDefaultFontName);
 
-  int dropdown_value = Shownames_Combobox_dropdown();
-  ui->SetComboValue("Zeal_NameplateShownames_Combobox", dropdown_value);
+  int shownames_dropdown_value = Shownames_Combobox_dropdown();
+  ui->SetComboValue("Zeal_NameplateShownames_Combobox", shownames_dropdown_value);
+
+  int local_aa_title_choice_dropdown_value = LocalAATitleChoice_Combobox_dropdown();
+  ui->SetComboValue("Zeal_NameplateLocalAATitle_Combobox", local_aa_title_choice_dropdown_value);
 }
 
 void ui_options::UpdateOptionsFloatingDamage() {
@@ -1239,6 +1269,27 @@ void ui_options::UpdateDynamicUI() {
     cmb->DeleteAll();
     ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
   }
+  
+  cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateLocalAATitle_Combobox");
+  if (cmb) {
+    cmb->DeleteAll();
+
+    auto self = Zeal::Game::get_self();
+    int max_aa_rank = self ? self->AlternateAdvancementRank : 0;
+
+    std::vector<std::string> choices = {"Off"};
+    if (max_aa_rank >= 1) choices.push_back("General");
+    if (max_aa_rank >= 2) choices.push_back("Archetype");
+    if (max_aa_rank >= 3) choices.push_back("Class");
+
+    ZealService::get_instance()->ui->AddListItems(cmb, choices);
+
+    // Set the current selection after populating
+    int current_choice = ZealService::get_instance()->nameplate->setting_local_aa_title.get();
+    int max_choice = (max_aa_rank > 3) ? 3 : max_aa_rank;
+    current_choice = (current_choice > max_choice) ? max_choice : current_choice;
+    cmb->SetChoice(current_choice);
+  }
 }
 
 void ui_options::CleanDynamicUI() {
@@ -1247,7 +1298,7 @@ void ui_options::CleanDynamicUI() {
   std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox", "Zeal_MapFont_Combobox",
                                        "Zeal_FloatingFont_Combobox",      "Zeal_NameplateFont_Combobox",
                                        "Zeal_TellSound_Combobox",         "Zeal_InviteSound_Combobox",
-                                       "Zeal_NameplateShownames_Combobox"};
+                                       "Zeal_NameplateShownames_Combobox", "Zeal_NameplateLocalAATitle_Combobox"};
   for (const auto &box_name : box_list) {
     Zeal::GameUI::ComboWnd *cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem(box_name.c_str());
     if (cmb) {

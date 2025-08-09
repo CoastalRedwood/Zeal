@@ -577,8 +577,23 @@ std::string NamePlate::generate_nameplate_text(const Zeal::GameStructures::Entit
     text += "Trader ";  // String id 0x157f.
 
   else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_show_title(show_name)) {
-    text += Zeal::Game::get_title_desc(entity.Class, entity.AlternateAdvancementRank, entity.Gender);
+    bool should_show_aa_title = true;
+    int display_rank = entity.AlternateAdvancementRank;
+
+    // Override for self if local AA title setting is active
+    if (&entity == Zeal::Game::get_self()) {
+      int choice = setting_local_aa_title.get();
+      if (choice == 0) {
+        should_show_aa_title = false;  // "Off" selected
+      } else if (choice > 0 && choice <= entity.AlternateAdvancementRank) {
+        display_rank = choice;
+      }
+    }
+
+    if (should_show_aa_title) {
+      text += Zeal::Game::get_title_desc(entity.Class, display_rank, entity.Gender);
     text += " ";
+    }
   }
 
   // Finally work on the primary player name with embellishments.
