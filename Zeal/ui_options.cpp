@@ -870,6 +870,10 @@ void ui_options::InitNameplate() {
       args.push_back(std::to_string(value));
     }
 
+    //PR Reviewed to add clamp value since someone putting in any 4 digit value number could cause a crash here.
+    //If player puts in high number beyond 7, it will default to 4 to show everything
+    if (value > 7) value = 4;
+
     //Create arg_buffer for /shownames call. Static buffer: "off" = 4 bytes (3 chars + null terminator)
     static char arg_buffer[4];
     if (value == 0) {
