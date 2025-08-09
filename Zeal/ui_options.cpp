@@ -28,6 +28,18 @@ int GetSensitivityForSlider(ZealSetting<float> &value) {
     return 0;
 }
 
+int Shownames_Combobox_dropdown() {
+  // Update shownames dropdown - check both the boolean and the value
+  bool names_enabled = *(bool *)0x798af4;  // ShowPCNamesGUIButtonBoolean
+  int current_shownames = Zeal::Game::get_showname();
+  if (!names_enabled) {
+    return 0;  // "Off"
+  } 
+  else {
+    return current_shownames;  // 1-7
+  }
+}
+
 void ui_options::PlayTellSound() const {
   // For now at least just copy the same sound list from invites. A future goal is to
   // support custom wave sounds for tells.
@@ -847,6 +859,37 @@ void ui_options::InitNameplate() {
     if (value >= 0) font_name = wnd->CmbListWnd->GetItemText(value, 0);
     ZealService::get_instance()->nameplate->setting_fontname.set(font_name);
   });
+
+  ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+
+    // Sync the ComboBox with /shownames command
+    std::vector<std::string> args = {"shownames"};
+    if (value == 0) {
+      args.push_back("off");
+    } else {
+      args.push_back(std::to_string(value));
+    }
+
+    //PR Reviewed to add clamp value since someone putting in any 4 digit value number could cause a crash here.
+    //If player puts in high number beyond 7, it will default to 4 to show everything
+    if (value > 7) value = 4;
+
+    //Create arg_buffer for /shownames call. Static buffer: "off" = 4 bytes (3 chars + null terminator)
+    static char arg_buffer[4];
+    if (value == 0) {
+      strcpy_s(arg_buffer, "off");
+    } else {
+      sprintf_s(arg_buffer, "%d", value);
+    }
+
+    // Call the original game function /shownames with value selected from ComboBox
+    reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
+    
+   
+    // Update UI immediately after execution (NO DELAYS)
+    UpdateOptionsNameplate();
+
+  });
 }
 
 void ui_options::UpdateOptions() {
@@ -1038,6 +1081,9 @@ void ui_options::UpdateOptionsNameplate() {
 
   std::string current_font = ZealService::get_instance()->nameplate->setting_fontname.get();
   UpdateComboBox("Zeal_NameplateFont_Combobox", current_font, BitmapFont::kDefaultFontName);
+
+  int dropdown_value = Shownames_Combobox_dropdown();
+  ui->SetComboValue("Zeal_NameplateShownames_Combobox", dropdown_value);
 }
 
 void ui_options::UpdateOptionsFloatingDamage() {
@@ -1187,6 +1233,14 @@ void ui_options::UpdateDynamicUI() {
     cmb->DeleteAll();
     ZealService::get_instance()->ui->AddListItems(cmb, sounds);
   }
+
+  cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateShownames_Combobox");
+  if (cmb) {
+    std::vector<std::string> shownames_options = {"Off",        "1 - First Names", "2 - First+Last Names", "3 - First+Last+Guild",
+                                                  "4 - Everything", "5 - Title+First", "6 - Title+First+Last", "7 - First+Guild"};
+    cmb->DeleteAll();
+    ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
+  }
 }
 
 void ui_options::CleanDynamicUI() {
@@ -1194,7 +1248,8 @@ void ui_options::CleanDynamicUI() {
 
   std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox", "Zeal_MapFont_Combobox",
                                        "Zeal_FloatingFont_Combobox",      "Zeal_NameplateFont_Combobox",
-                                       "Zeal_TellSound_Combobox",         "Zeal_InviteSound_Combobox"};
+                                       "Zeal_TellSound_Combobox",         "Zeal_InviteSound_Combobox",
+                                       "Zeal_NameplateShownames_Combobox"};
   for (const auto &box_name : box_list) {
     Zeal::GameUI::ComboWnd *cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem(box_name.c_str());
     if (cmb) {
