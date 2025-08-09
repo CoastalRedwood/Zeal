@@ -48,6 +48,7 @@ class CameraMods {
   bool ui_active = false;
 
   void synchronize_set_enable();
+  void callback_zone();
   void callback_main();
   void update_desired_zoom(float zoom);
   void set_zeal_cam_active(bool activate);

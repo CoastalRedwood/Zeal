@@ -224,9 +224,8 @@ static bool is_over_title_bar(void) {
 
 // Periodic call to handle left button panning in ZealCam.
 void CameraMods::update_left_pan(DWORD camera_view) {
-  if (!*Zeal::Game::is_right_mouse_down && *Zeal::Game::is_left_mouse_down &&
-      camera_view == Zeal::GameEnums::CameraView::ZealCam && !is_over_title_bar() &&
-      !Zeal::Game::is_game_ui_window_hovered()) {
+  if (!*Zeal::Game::is_right_mouse_down && *Zeal::Game::is_left_mouse_down && is_zeal_cam_active() &&
+      !is_over_title_bar() && !Zeal::Game::is_game_ui_window_hovered()) {
     if (!lmouse_time) {
       GetCursorPos(&lmouse_cursor_pos);
       hide_cursor = true;
@@ -261,6 +260,8 @@ void CameraMods::process_time_tick() {
     zoom_out = false;           // Reset zoom key press so not double-counted below.
   }
 
+  update_left_pan(camera_view);  // Call to keep cursor visibility updated.
+
   if (!is_zeal_cam_active()) return;
 
   if (kKeyDownStates[CMD_ZOOM_IN])
@@ -268,8 +269,6 @@ void CameraMods::process_time_tick() {
   else if (zoom_out)
     update_desired_zoom((min_zoom_in > desired_zoom) ? (min_zoom_in - desired_zoom) : 0.3f);
   interpolate_zoom();
-
-  update_left_pan(camera_view);
 
   // Cam lock mode yaws camera to match heading when enabled.
   Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
@@ -322,6 +321,17 @@ void CameraMods::update_fps_sensitivity() {
   sensitivity_x *= multiplier;
   sensitivity_y *= multiplier;
   lastTime = currentTime;
+}
+
+void CameraMods::callback_zone() {
+  if (Zeal::Game::get_controlled()) {
+    zeal_cam_yaw = Zeal::Game::get_controlled()->Heading;
+    zeal_cam_pitch = camera_math::pitch_to_normal(get_pitch_control_entity()->Pitch);
+  }
+  if (desired_zoom > 0) {
+    desired_zoom = std::clamp(desired_zoom, min_zoom_in, max_zoom_out);
+    zeal_cam_zoom = desired_zoom;
+  }
 }
 
 // Called periodically to keep the camera synced and compensate for fps rates.
@@ -429,6 +439,7 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);  // Also covers char select.
+  zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);
 
   zeal->binds_hook->replace_cmd(CMD_CENTER_VIEW, [](int state) {
     if (!state) kKeyDownStates[CMD_CENTER_VIEW] = state;  // Client is not clearing this state.
