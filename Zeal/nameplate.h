@@ -72,7 +72,7 @@ class NamePlate {
                                                   },
                                                   true};
   // Local AA Title Choice
-  ZealSetting<int> setting_local_aa_title = {0, "Zeal", "NameplateLocalAATitle", true};
+  ZealSetting<int> setting_local_aa_title = {3, "Zeal", "NameplateLocalAATitle", true};
 
   // Advanced fonts
   ZealSetting<bool> setting_health_bars = {false, "Zeal", "NameplateHealthBars", false};
