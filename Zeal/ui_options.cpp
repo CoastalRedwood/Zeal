@@ -35,20 +35,6 @@ int Shownames_Combobox_dropdown() {
   return names_enabled ? current_shownames : 0;
 }
 
-int LocalAATitleChoice_Combobox_dropdown() {
-  int current_choice = ZealService::get_instance()->nameplate->setting_local_aa_title.get();
-  auto self = Zeal::Game::get_self();
-  int max_choice = 0;
-
-  if (self) {
-    // Clamp max_choice to 3 or player's AA rank, whichever is smaller
-    max_choice = (self->AlternateAdvancementRank > 3) ? 3 : (int)self->AlternateAdvancementRank;
-  }
-
-  // Clamp current_choice to valid range based on current AA rank
-  return (current_choice > max_choice) ? max_choice : current_choice;
-}
-
 void ui_options::PlayTellSound() const {
   // For now at least just copy the same sound list from invites. A future goal is to
   // support custom wave sounds for tells.
@@ -901,12 +887,6 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateLocalAATitle_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
-    auto self = Zeal::Game::get_self();
-    if (self) {
-      // Clamp selection to available AA ranks
-      int max_choice = (self->AlternateAdvancementRank > 3) ? 3 : (int)self->AlternateAdvancementRank;
-      value = (value > max_choice) ? max_choice : value;
-    }
     ZealService::get_instance()->nameplate->setting_local_aa_title.set(value);
   });
 }
@@ -1104,8 +1084,8 @@ void ui_options::UpdateOptionsNameplate() {
   int shownames_dropdown_value = Shownames_Combobox_dropdown();
   ui->SetComboValue("Zeal_NameplateShownames_Combobox", shownames_dropdown_value);
 
-  int local_aa_title_choice_dropdown_value = LocalAATitleChoice_Combobox_dropdown();
-  ui->SetComboValue("Zeal_NameplateLocalAATitle_Combobox", local_aa_title_choice_dropdown_value);
+  ui->SetComboValue("Zeal_NameplateLocalAATitle_Combobox",
+                    ZealService::get_instance()->nameplate->setting_local_aa_title.get());
 }
 
 void ui_options::UpdateOptionsFloatingDamage() {
@@ -1274,21 +1254,9 @@ void ui_options::UpdateDynamicUI() {
   if (cmb) {
     cmb->DeleteAll();
 
-    auto self = Zeal::Game::get_self();
-    int max_aa_rank = self ? self->AlternateAdvancementRank : 0;
-
-    std::vector<std::string> choices = {"Off"};
-    if (max_aa_rank >= 1) choices.push_back("General");
-    if (max_aa_rank >= 2) choices.push_back("Archetype");
-    if (max_aa_rank >= 3) choices.push_back("Class");
-
+    // Static choices - always show all options
+    std::vector<std::string> choices = {"Off", "General", "Archetype", "Class"};
     ZealService::get_instance()->ui->AddListItems(cmb, choices);
-
-    // Set the current selection after populating
-    int current_choice = ZealService::get_instance()->nameplate->setting_local_aa_title.get();
-    int max_choice = (max_aa_rank > 3) ? 3 : max_aa_rank;
-    current_choice = (current_choice > max_choice) ? max_choice : current_choice;
-    cmb->SetChoice(current_choice);
   }
 }
 
