@@ -1,5 +1,7 @@
 #include "nameplate.h"
 
+#include <algorithm>
+
 #include "game_addresses.h"
 #include "string_util.h"
 #include "zeal.h"
@@ -576,9 +578,17 @@ std::string NamePlate::generate_nameplate_text(const Zeal::GameStructures::Entit
   if (entity.ActorInfo->IsTrader == 1 && Zeal::Game::get_self() && Zeal::Game::get_self()->ZoneId == 0x97)
     text += "Trader ";  // String id 0x157f.
 
-  else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_show_title(show_name)) {
-    text += Zeal::Game::get_title_desc(entity.Class, entity.AlternateAdvancementRank, entity.Gender);
-    text += " ";
+else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_show_title(show_name)) {
+    int display_rank = entity.AlternateAdvancementRank;
+
+    // For self, apply local AA title choice
+    if (&entity == Zeal::Game::get_self())
+      display_rank = min(entity.AlternateAdvancementRank, setting_local_aa_title.get());
+
+    if (display_rank > 0) {
+      text += Zeal::Game::get_title_desc(entity.Class, display_rank, entity.Gender);
+      text += " ";
+    }
   }
 
   // Finally work on the primary player name with embellishments.

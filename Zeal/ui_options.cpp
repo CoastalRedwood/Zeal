@@ -856,6 +856,7 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+
     // Sync the ComboBox with /shownames command
     std::vector<std::string> args = {"shownames"};
     if (value == 0) {
@@ -879,8 +880,14 @@ void ui_options::InitNameplate() {
     // Call the original game function /shownames with value selected from ComboBox
     reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
 
+
     // Update UI immediately after execution (NO DELAYS)
     UpdateOptionsNameplate();
+    
+  });
+
+  ui->AddComboCallback(wnd, "Zeal_NameplateLocalAATitle_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+    ZealService::get_instance()->nameplate->setting_local_aa_title.set(value);
   });
 }
 
@@ -1074,8 +1081,11 @@ void ui_options::UpdateOptionsNameplate() {
   std::string current_font = ZealService::get_instance()->nameplate->setting_fontname.get();
   UpdateComboBox("Zeal_NameplateFont_Combobox", current_font, BitmapFont::kDefaultFontName);
 
-  int dropdown_value = Shownames_Combobox_dropdown();
-  ui->SetComboValue("Zeal_NameplateShownames_Combobox", dropdown_value);
+  int shownames_dropdown_value = Shownames_Combobox_dropdown();
+  ui->SetComboValue("Zeal_NameplateShownames_Combobox", shownames_dropdown_value);
+
+  ui->SetComboValue("Zeal_NameplateLocalAATitle_Combobox",
+                    ZealService::get_instance()->nameplate->setting_local_aa_title.get());
 }
 
 void ui_options::UpdateOptionsFloatingDamage() {
@@ -1239,6 +1249,15 @@ void ui_options::UpdateDynamicUI() {
     cmb->DeleteAll();
     ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
   }
+  
+  cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateLocalAATitle_Combobox");
+  if (cmb) {
+    cmb->DeleteAll();
+
+    // Static choices - always show all options
+    std::vector<std::string> choices = {"Off", "General", "Archetype", "Class"};
+    ZealService::get_instance()->ui->AddListItems(cmb, choices);
+  }
 }
 
 void ui_options::CleanDynamicUI() {
@@ -1247,7 +1266,7 @@ void ui_options::CleanDynamicUI() {
   std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox", "Zeal_MapFont_Combobox",
                                        "Zeal_FloatingFont_Combobox",      "Zeal_NameplateFont_Combobox",
                                        "Zeal_TellSound_Combobox",         "Zeal_InviteSound_Combobox",
-                                       "Zeal_NameplateShownames_Combobox"};
+                                       "Zeal_NameplateShownames_Combobox", "Zeal_NameplateLocalAATitle_Combobox"};
   for (const auto &box_name : box_list) {
     Zeal::GameUI::ComboWnd *cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem(box_name.c_str());
     if (cmb) {
