@@ -582,13 +582,8 @@ else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_sho
     int display_rank = entity.AlternateAdvancementRank;
 
     // For self, apply local AA title choice
-    if (&entity == Zeal::Game::get_self()) {
-      int choice = setting_local_aa_title.get();
-      if (choice == 0)
-        display_rank = 0;  // Signal to skip title
-      else
-        display_rank = min(entity.AlternateAdvancementRank, choice);
-    }
+    if (&entity == Zeal::Game::get_self())
+      display_rank = min(entity.AlternateAdvancementRank, setting_local_aa_title.get());
 
     if (display_rank > 0) {
       text += Zeal::Game::get_title_desc(entity.Class, display_rank, entity.Gender);
