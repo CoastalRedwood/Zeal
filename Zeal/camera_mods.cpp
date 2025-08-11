@@ -326,7 +326,7 @@ void CameraMods::update_fps_sensitivity() {
 void CameraMods::callback_zone() {
   if (Zeal::Game::get_controlled()) {
     zeal_cam_yaw = Zeal::Game::get_controlled()->Heading;
-    zeal_cam_pitch = camera_math::pitch_to_normal(get_pitch_control_entity()->Pitch);
+    zeal_cam_pitch = 0;  // First person pitch is not reset on zoning.
   }
   if (desired_zoom > 0) {
     desired_zoom = std::clamp(desired_zoom, min_zoom_in, max_zoom_out);

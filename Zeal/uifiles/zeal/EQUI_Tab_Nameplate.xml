@@ -278,7 +278,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>230</Y>
+      <Y>234</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -300,7 +300,7 @@
     <DrawTemplate>WDT_Inner</DrawTemplate>
     <Location>
       <X>10</X>
-      <Y>248</Y>
+      <Y>254</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -322,7 +322,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>268</Y>
+      <Y>289</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -344,7 +344,7 @@
     <DrawTemplate>WDT_Inner</DrawTemplate>
     <Location>
       <X>10</X>
-      <Y>284</Y>
+      <Y>309</Y>
     </Location>
     <Size>
       <CX>150</CX>
