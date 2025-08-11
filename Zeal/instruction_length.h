@@ -275,6 +275,16 @@ process_instruction_body:
         goto error;
       }
 
+    case 0xD8:  // various FP instructions
+      modrm = *p++;
+      length++;  //  account for FP prefix
+      switch (modrm) {
+        case 0x51:
+          return length + 2;  // modrm + 8-bit offset
+        default:
+          goto error;  // unrecognized (supported) 2nd byte
+      }
+
     case 0xD9:  // various FP instructions
       modrm = *p++;
       length++;  //  account for FP prefix

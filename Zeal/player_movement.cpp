@@ -161,6 +161,28 @@ static int __fastcall CastSpell(void *this_ptr, void *not_used, unsigned char a1
                                                                                         a4);
 }
 
+static void __fastcall Player_SetAccel(Zeal::GameStructures::Entity *this_entity, int unused_edx, float target_speed,
+                                       int param2) {
+  if (this_entity->MovementSpeed == target_speed)
+    return;  // Match original function and bail out when no speed change is required.
+
+  // Special handling for mounts (entities with riders).
+  if (param2 == 0 && this_entity->ActorInfo && this_entity->ActorInfo->Rider) {
+    if (target_speed < this_entity->MovementSpeed) {
+      this_entity->MovementSpeed = target_speed;  // Immediately decelerate to target speed.
+      return;
+    }
+
+    float min_speed = min(target_speed, 0.7f);
+    if (this_entity->MovementSpeed < min_speed) {
+      this_entity->MovementSpeed = min_speed;  // Immediately accelerate up to running speed (0.7f).
+      return;
+    }
+  }
+  ZealService::get_instance()->hooks->hook_map["Player_SetAccel"]->original(Player_SetAccel)(this_entity, unused_edx,
+                                                                                             target_speed, param2);
+}
+
 static int ProcessMovementKeys(int dinput_code, int unknown) {
   ZealService::get_instance()->movement->handle_movement_keys(dinput_code);
   return ZealService::get_instance()->hooks->hook_map["ProcessMovementKeys"]->original(ProcessMovementKeys)(dinput_code,
@@ -170,6 +192,7 @@ static int ProcessMovementKeys(int dinput_code, int unknown) {
 PlayerMovement::PlayerMovement(ZealService *zeal) {
   zeal->hooks->Add("CastSpell", 0x004C483B, CastSpell, hook_type_detour);
   zeal->hooks->Add("ProcessMovementKeys", 0x005257fa, ProcessMovementKeys, hook_type_detour);
+  zeal->hooks->Add("Player_SetAccel", 0x00520074, Player_SetAccel, hook_type_detour);
   Binds *binds = zeal->binds_hook.get();
 
   // Support enhanced auto-run: more consistent 'lock on' behavior including strafe support
