@@ -265,7 +265,8 @@ void WriteMiniDump(EXCEPTION_POINTERS *pep, const std::string &reason, const std
   std::string CrashFileName = ZipCrash(folderName, dumpFilePath, reasonFilePath);
 
   // Trigger optional crash sender.
-  HandleCrashSender(pep, CrashFileName, reasonStream.str());
+  // Note: Disabled to avoid using crashsender.exe versions installed by earlier Zeal versions.
+  // HandleCrashSender(pep, CrashFileName, reasonStream.str());
 }
 
 void ShowCrashLoopDialog(PEXCEPTION_POINTERS pep) {
