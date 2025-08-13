@@ -162,25 +162,28 @@ static int __fastcall CastSpell(void *this_ptr, void *not_used, unsigned char a1
 }
 
 static void __fastcall Player_SetAccel(Zeal::GameStructures::Entity *this_entity, int unused_edx, float target_speed,
-                                       int param2) {
-  if (this_entity->MovementSpeed == target_speed)
-    return;  // Match original function and bail out when no speed change is required.
+                                       int ignore_rider_flag) {
+  if (this_entity->MovementSpeed == target_speed) return;
 
-  // Special handling for mounts (entities with riders).
-  if (param2 == 0 && this_entity->ActorInfo && this_entity->ActorInfo->Rider) {
-    if (target_speed < this_entity->MovementSpeed) {
-      this_entity->MovementSpeed = target_speed;  // Immediately decelerate to target speed.
-      return;
-    }
+  // If not a mount with a rider, immediately accelerate to target_speed.
+  if (ignore_rider_flag || !this_entity->ActorInfo || !this_entity->ActorInfo->Rider)
+    this_entity->MovementSpeed = target_speed;
 
-    float min_speed = min(target_speed, 0.7f);
-    if (this_entity->MovementSpeed < min_speed) {
-      this_entity->MovementSpeed = min_speed;  // Immediately accelerate up to running speed (0.7f).
-      return;
-    }
+  // Special mount handling:
+  // Immediately decelerate to target speed.
+  if (target_speed < this_entity->MovementSpeed) {
+    this_entity->MovementSpeed = target_speed;
+    return;
   }
-  ZealService::get_instance()->hooks->hook_map["Player_SetAccel"]->original(Player_SetAccel)(this_entity, unused_edx,
-                                                                                             target_speed, param2);
+
+  // Accelerate immediately up to at least running speed but then slowly accelerate to max.
+  // The nominal acceleration is frame rate adjusted in process_physics. The original per second rate is
+  // 0.02f * 1000 / fps * 0.02f * fps = 0.4 delta_v / sec, which is 4.4 sec to 250% speed.
+  // The mod below adjusts it to 0.25 because of the starting offset which is 4.2 sec to 250%.
+  float min_speed = min(target_speed, 0.7f);
+  float process_physics_fps_factor = *reinterpret_cast<float *>(0x007d01dc);  // min(12.0, 0.02f * frame_time_ms)
+  float accel_speed = process_physics_fps_factor * 0.0125 + this_entity->MovementSpeed;
+  this_entity->MovementSpeed = max(min_speed, min(target_speed, accel_speed));
 }
 
 static int ProcessMovementKeys(int dinput_code, int unknown) {
