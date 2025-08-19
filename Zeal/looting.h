@@ -1,6 +1,10 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <Windows.h>
+
+#include <string>
+#include <vector>
+
+#include "game_structures.h"
 #include "zeal_settings.h"
 
 class Looting {

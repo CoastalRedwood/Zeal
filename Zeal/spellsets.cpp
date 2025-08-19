@@ -2,9 +2,14 @@
 
 #include <algorithm>
 
+#include "callbacks.h"
+#include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
+#include "hook_wrapper.h"
 #include "spell_categories.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // Message IDs used in callbacks from context menus.

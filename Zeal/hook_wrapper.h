@@ -1,11 +1,11 @@
 #pragma once
+#include <Windows.h>
+
 #include <unordered_map>
 
 #include "instruction_length.h"
 #include "memory.h"
 
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "psapi.lib")
 #define czVOID(c) (void)c
 
 enum hook_type_ { hook_type_replace_call, hook_type_jmp, hook_type_detour, hook_type_vtable };

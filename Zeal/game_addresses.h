@@ -37,7 +37,6 @@ static int *ptr_AlternateKeyMap = (int *)0x7CDC4C;
 static BYTE *strafe_direction = (BYTE *)0x7985EB;
 static float *strafe_speed = (float *)0x799780;
 static GameStructures::Entity *_ControlledPlayer = (GameStructures::Entity *)0x7f94e0;
-static int *Display = (int *)0x7F9510;
 static GameStructures::Cam *camera = (GameStructures::Cam *)0x799688;  // 0x7996C0;
 static int16_t *mouse_client_x = (int16_t *)0x00798580;                // Mouse coordinates in client rect.
 static int16_t *mouse_client_y = (int16_t *)0x00798582;                // Set to 32767 when invalid.

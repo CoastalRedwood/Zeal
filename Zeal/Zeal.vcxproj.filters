@@ -51,9 +51,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="memory.h">
       <Filter>Header Files\memory</Filter>
     </ClInclude>
@@ -285,6 +282,9 @@
     <ClInclude Include="operator_overloads.h">
       <Filter>Header Files\helpers</Filter>
     </ClInclude>
+    <ClInclude Include="ui_skin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -488,6 +488,9 @@
     <ClCompile Include="ui_inspect.cpp">
       <Filter>Source Files\ui</Filter>
     </ClCompile>
+    <ClCompile Include="ui_skin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Zeal.rc">
@@ -506,15 +509,10 @@
     <None Include="uifiles\zeal\optional\README.md">
       <Filter>UI Files</Filter>
     </None>
+    <None Include="uifiles\zeal\big_xml\generate_big_xml.py" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="uifiles\zeal\optional\EQUI_CharacterSelect.xml">
-      <Filter>UI Files</Filter>
-    </Xml>
-    <Xml Include="uifiles\zeal\EQUI_GuildManagementWnd.xml">
-      <Filter>UI Files</Filter>
-    </Xml>
-    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml">
       <Filter>UI Files</Filter>
     </Xml>
     <Xml Include="uifiles\zeal\EQUI_Tab_Cam.xml">

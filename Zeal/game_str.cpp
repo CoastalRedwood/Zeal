@@ -1,8 +1,7 @@
 #include "game_str.h"
 
-#include "game_addresses.h"
-#include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
 #include "zeal.h"
 
 GameStr::~GameStr() {}

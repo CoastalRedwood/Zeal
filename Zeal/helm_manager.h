@@ -1,7 +1,7 @@
 #pragma once
+#include <Windows.h>
+
 #include "game_packets.h"
-#include "game_structures.h"
-#include "hook_wrapper.h"
 #include "zeal_settings.h"
 
 class HelmManager {
@@ -14,10 +14,10 @@ class HelmManager {
   static WORD ToRacialHelmMaterial(WORD material, WORD race, BYTE gender);
 
   // Hook implementations
-  void HandleWearChangeArmor(int cDisplay, Zeal::GameStructures::Entity *spawn, int wear_slot, WORD new_material,
-                             WORD old_material, DWORD color_tint, int local_only);
-  int HandleSwapHead(int cDisplay, Zeal::GameStructures::Entity *entity, int new_material, int old_material,
-                     DWORD color, int local_only);
+  void HandleWearChangeArmor(Zeal::GameStructures::Display *cDisplay, Zeal::GameStructures::Entity *spawn,
+                             int wear_slot, WORD new_material, WORD old_material, DWORD color_tint, int local_only);
+  int HandleSwapHead(Zeal::GameStructures::Display *cDisplay, Zeal::GameStructures::Entity *entity, int new_material,
+                     int old_material, DWORD color, int local_only);
   int HandleIllusion(Zeal::GameStructures::Entity *entity, Zeal::Packets::Illusion_Struct *illusion);
 
   // Refreshes your helmet graphics to your current equipment and ShowHelm toggle.

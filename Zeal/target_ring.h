@@ -1,12 +1,8 @@
 #pragma once
-#include <stdint.h>
+#include <Windows.h>
 
 #include "directx.h"
 #include "game_functions.h"
-#include "game_structures.h"
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 enum DxStateType_ { DxStateType_Render, DxStateType_Texture };

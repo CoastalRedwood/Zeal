@@ -1,3 +1,5 @@
+#pragma once
+
 /* (C) Copyright 2012-2014 Semantic Designs, Inc.
    You may freely use this code provided you retain this copyright message
 */

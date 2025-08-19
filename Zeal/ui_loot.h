@@ -1,7 +1,4 @@
 #pragma once
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class ui_loot {
  public:

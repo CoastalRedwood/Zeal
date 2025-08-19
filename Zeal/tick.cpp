@@ -1,7 +1,10 @@
 #include "tick.h"
 
-#include "game_packets.h"
+#include "commands.h"
 #include "game_structures.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "named_pipe.h"
 #include "zeal.h"
 
 constexpr DWORD kAverageTickDuration = 6010;

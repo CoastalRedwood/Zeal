@@ -4,11 +4,7 @@
 #include <unordered_map>
 
 #include "bitmap_font.h"
-#include "d3dx8/d3d8.h"
-#include "game_structures.h"
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+#include "vectors.h"
 #include "zeal_settings.h"
 
 struct ExploreZoneData {

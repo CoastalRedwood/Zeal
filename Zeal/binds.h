@@ -2,8 +2,6 @@
 #include <functional>
 #include <unordered_map>
 
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "operator_overloads.h"
 
 enum class key_category : int  // this is bitwise so you can do multiple categorys by doing Movement | Target for
@@ -37,5 +35,8 @@ class Binds {
   void replace_cmd(int cmd, std::function<bool(int state)> callback);
   void main_loop();
   void on_zone();
-  bool execute_cmd(UINT opcode, bool state);
+  bool execute_cmd(unsigned int opcode, bool state);
+
+ private:
+  void basic_binds();
 };

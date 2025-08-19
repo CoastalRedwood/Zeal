@@ -1,17 +1,16 @@
 #define NOMINMAX
 #include "target_ring.h"
 
-#include <algorithm>
-#include <random>
-
-#include "d3dx8\d3dx8.h"
-#include "game_addresses.h"
-#include "game_packets.h"
+#include "commands.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
+#include "ui_manager.h"
+#include "ui_skin.h"
 #include "zeal.h"
+
 #define NUM_VERTICES 4
 
-static constexpr char const *kTextureDirectoryPath = "./uifiles/zeal/targetrings/";
+static constexpr char const *kTextureSubDirectoryPath = "targetrings";
 
 static D3DCOLOR get_target_color() {
   const int kTargetColorIndex = 18;  // NamePlate::ColorIndex::Target
@@ -80,8 +79,9 @@ void TargetRing::load_texture(const std::string &filename) {
     if (!filename.length() || filename == "None") return;
 
     // Full texture path
-    std::string texturePath = kTextureDirectoryPath + filename + ".tga";
-
+    std::filesystem::path texturePath = UISkin::get_zeal_resources_path() /
+                                        std::filesystem::path(kTextureSubDirectoryPath) /
+                                        std::filesystem::path(filename + ".tga");
     // Get the Direct3D device
     IDirect3DDevice8 *device = ZealService::get_instance()->dx->GetDevice();
     if (!device) {
@@ -90,10 +90,10 @@ void TargetRing::load_texture(const std::string &filename) {
     }
 
     // Create texture from file
-    HRESULT result = D3DXCreateTextureFromFileA(device, texturePath.c_str(), &targetRingTexture);
+    HRESULT result = D3DXCreateTextureFromFileA(device, texturePath.string().c_str(), &targetRingTexture);
     if (FAILED(result)) {
       targetRingTexture = nullptr;
-      Zeal::Game::print_chat("Error: Failed to load texture file: " + texturePath);
+      Zeal::Game::print_chat("Error: Failed to load texture file: %s", texturePath.string().c_str());
       return;
     }
   } catch (const std::exception &ex) {
@@ -153,7 +153,8 @@ LPDIRECT3DVERTEXBUFFER8 CreateVertexBuffer(LPDIRECT3DDEVICE8 d3dDevice, VertexTy
 //				LPDIRECT3DVERTEXBUFFER8 texturedVertexBuffer = CreateVertexBuffer(device,
 // texture_vertices, vertex_count, D3DFVF_XYZ | D3DFVF_TEX1); 				device->SetTexture(0, texture);
 // device->SetStreamSource(0, texturedVertexBuffer, sizeof(TextureVertex));
-// device->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX1); 				device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, vertex_count - 2);
+// device->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX1);
+// device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, vertex_count - 2);
 //				texturedVertexBuffer->Release();
 //			}
 // }
@@ -432,7 +433,7 @@ void TargetRing::callback_render() {
   }
 }
 
-static std::vector<std::string> GetTGAFiles(const std::string &directoryPath) {
+static std::vector<std::string> GetTGAFiles(const std::filesystem::path &directoryPath) {
   std::vector<std::string> tgaFiles;
 
   // Iterate over the directory
@@ -448,8 +449,10 @@ static std::vector<std::string> GetTGAFiles(const std::string &directoryPath) {
 }
 
 std::vector<std::string> TargetRing::get_available_textures() const {
-  std::vector<std::string> tgas = GetTGAFiles(kTextureDirectoryPath);
-  if (tgas.empty()) Zeal::Game::print_chat("Warning: no texture files found at: %s", kTextureDirectoryPath);
+  std::filesystem::path texturePath =
+      UISkin::get_zeal_resources_path() / std::filesystem::path(kTextureSubDirectoryPath);
+  std::vector<std::string> tgas = GetTGAFiles(texturePath);
+  if (tgas.empty()) Zeal::Game::print_chat("Warning: no texture files found at: %s", texturePath.c_str());
   tgas.insert(tgas.begin(), "None");
   return tgas;
 }

@@ -14,11 +14,13 @@
 #define NOMINMAX
 #include "bitmap_font.h"
 
+#include <filesystem>
 #include <fstream>
 
 #include "default_spritefont.h"
 #include "game_functions.h"
 #include "string_util.h"
+#include "ui_skin.h"
 
 namespace {
 
@@ -101,10 +103,12 @@ std::unique_ptr<BitmapFont> BitmapFont::create_bitmap_font(IDirect3DDevice8 &dev
 
   // Attempt to load a filesystem font if there's a candidate name.
   if (!font_filename.empty() && font_filename != kDefaultFontName) {
-    std::string full_filename = std::string(kFontDirectoryPath) + "/" + font_filename + kFontFileExtension;
-    bitmap_font = std::make_unique<BitmapFont>(device, full_filename.c_str());
+    std::filesystem::path full_filename = UISkin::get_zeal_resources_path() /
+                                          std::filesystem::path(kFontSubDirectoryPath) /
+                                          std::filesystem::path(font_filename + kFontFileExtension);
+    bitmap_font = std::make_unique<BitmapFont>(device, full_filename.string().c_str());
     if (!bitmap_font->is_valid()) {
-      Zeal::Game::print_chat("Failed to load font file: %s", full_filename.c_str());
+      Zeal::Game::print_chat("Failed to load font file: %s", full_filename.string().c_str());
       bitmap_font.reset();  // Release the invalid font and nulls the ptr.
     }
     return bitmap_font;
@@ -121,10 +125,11 @@ std::unique_ptr<BitmapFont> BitmapFont::create_bitmap_font(IDirect3DDevice8 &dev
 }
 
 std::vector<std::string> BitmapFontBase::get_available_fonts() {
-  const std::string directoryPath = kFontDirectoryPath;
+  std::filesystem::path directory_path =
+      UISkin::get_zeal_resources_path() / std::filesystem::path(kFontSubDirectoryPath);
 
   std::vector<std::string> fonts = {kDefaultFontName};  // "default" is always first in list.
-  for (const auto &entry : std::filesystem::directory_iterator(directoryPath)) {
+  for (const auto &entry : std::filesystem::directory_iterator(directory_path)) {
     if (entry.is_regular_file() && entry.path().extension() == kFontFileExtension) {
       fonts.push_back(entry.path().stem().string());  // Add filename without extension.
     }
@@ -651,10 +656,12 @@ std::unique_ptr<SpriteFont> SpriteFont::create_sprite_font(IDirect3DDevice8 &dev
 
   // Attempt to load a filesystem font if there's a candidate name.
   if (!font_filename.empty() && font_filename != kDefaultFontName) {
-    std::string full_filename = std::string(kFontDirectoryPath) + "/" + font_filename + kFontFileExtension;
-    sprite_font = std::make_unique<SpriteFont>(device, full_filename.c_str());
+    std::filesystem::path full_filename = UISkin::get_zeal_resources_path() /
+                                          std::filesystem::path(kFontSubDirectoryPath) /
+                                          std::filesystem::path(font_filename + kFontFileExtension);
+    sprite_font = std::make_unique<SpriteFont>(device, full_filename.string().c_str());
     if (!sprite_font->is_valid()) {
-      Zeal::Game::print_chat("Failed to load font file: %s", full_filename.c_str());
+      Zeal::Game::print_chat("Failed to load font file: %s", full_filename.string().c_str());
       sprite_font.reset();  // Release the invalid font and nulls the ptr.
     }
     return sprite_font;

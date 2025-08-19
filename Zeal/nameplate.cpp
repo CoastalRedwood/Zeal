@@ -2,8 +2,12 @@
 
 #include <algorithm>
 
+#include "commands.h"
 #include "game_addresses.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
+#include "target_ring.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // Test cases:
@@ -276,7 +280,7 @@ void NamePlate::render_ui() {
   auto visible_entities = Zeal::Game::get_world_visible_actor_list(kMaxDist, false);
   auto self = Zeal::Game::get_self();
   if (self && *Zeal::Game::camera_view != Zeal::GameEnums::CameraView::FirstPerson &&
-      !Zeal::Game::GameInternal::is_invisible(Zeal::Game::Display, 0, self, self))
+      !Zeal::Game::GameInternal::is_invisible(Zeal::Game::get_display(), 0, self, self))
     visible_entities.push_back(self);  // Add self nameplate.
 
   std::vector<RenderInfo> render_list;
@@ -578,7 +582,7 @@ std::string NamePlate::generate_nameplate_text(const Zeal::GameStructures::Entit
   if (entity.ActorInfo->IsTrader == 1 && Zeal::Game::get_self() && Zeal::Game::get_self()->ZoneId == 0x97)
     text += "Trader ";  // String id 0x157f.
 
-else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_show_title(show_name)) {
+  else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_show_title(show_name)) {
     int display_rank = entity.AlternateAdvancementRank;
 
     // For self, apply local AA title choice
@@ -622,7 +626,7 @@ else if (entity.AlternateAdvancementRank > 0 && entity.Gender != 2 && should_sho
 
 // Returns true if it updated the nameplate state. False if the default code needs to run.
 bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructures::Entity *entity, int show) {
-  // Note: The this_display pointer should be equal to *Zeal::Game::Display.
+  // Note: The this_display pointer should be equal to Zeal::Game::get_display().
   if (!entity || !entity->ActorInfo || !entity->ActorInfo->DagHeadPoint)
     return false;  // Note: Possibly change to true to avoid client handler from running.
 

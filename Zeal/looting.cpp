@@ -2,12 +2,16 @@
 
 #include <fstream>
 
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
-#include "game_structures.h"
+#include "hook_wrapper.h"
+#include "memory.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
+
 // void __fastcall finalize_loot(int uk, int lootwnd_ptr)
 //{
 //	Zeal::GameStructures::Entity* corpse =  Zeal::Game::get_active_corpse();
@@ -193,7 +197,7 @@ void Looting::looted_item() {
     std::string corpse_name = Zeal::Game::strip_name(Zeal::Game::get_active_corpse()->Name);
     std::string self_name = Zeal::Game::get_self()->Name;
     bool is_me = corpse_name == self_name;  // my own corpse
-    byte nodrop_confirm_bypass[2] = {0x74, 0x22};
+    BYTE nodrop_confirm_bypass[2] = {0x74, 0x22};
     int item_count = 0;
     for (int i = 0; i < kMaxItemCount; i++)
       if (Zeal::Game::Windows->Loot->Item[i]) item_count++;
@@ -441,7 +445,7 @@ bool Looting::is_trade_protected(Zeal::GameUI::TradeWnd *wnd) const {
 
 static std::string get_protected_items_filename() {
   if (!Zeal::Game::get_char_info()) return "";
-  return std::format("./{0}_protected.ini", Zeal::Game::get_char_info()->Name);
+  return std::format(".\\{0}_protected.ini", Zeal::Game::get_char_info()->Name);
 }
 
 void Looting::load_protected_items() {

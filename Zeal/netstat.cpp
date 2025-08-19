@@ -1,5 +1,7 @@
 #include "netstat.h"
 
+#include "callbacks.h"
+#include "memory.h"
 #include "zeal.h"
 
 static BYTE *netstat_flag = (BYTE *)0x7985EC;
@@ -18,19 +20,19 @@ void Netstat::callback_main() {
   // netstat_flag_was_reset = true;
 
   // comment the below out in the event that the character select callbacks are functioning properly.
-  mem::write<byte>(0x7985EC, (int)is_visible.get());
+  mem::write<BYTE>(0x7985EC, (int)is_visible.get());
 }
 
 void Netstat::callback_characterselect() {
   // Can't seem to trigger the character select callback into working properly. Fallback to continuous memory writes on
   // main.
   if (netstat_flag_was_reset) {
-    mem::write<byte>(0x7985EC, 0);
+    mem::write<BYTE>(0x7985EC, 0);
     netstat_flag_was_reset = false;
   }
 }
 
-void Netstat::update_netstat_state() { mem::write<byte>(0x7985EC, (int)is_visible.get()); }
+void Netstat::update_netstat_state() { mem::write<BYTE>(0x7985EC, (int)is_visible.get()); }
 
 Netstat::Netstat(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::MainLoop);

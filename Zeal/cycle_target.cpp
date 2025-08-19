@@ -2,11 +2,7 @@
 
 #include <algorithm>
 
-#include "game_addresses.h"
 #include "game_functions.h"
-#include "game_structures.h"
-#include "string_util.h"
-#include "zeal.h"
 
 static size_t last_index = -1;
 static std::vector<Zeal::GameStructures::Entity *> near_ents;
@@ -20,7 +16,7 @@ void AddIndex() {
   if (last_index >= near_ents.size()) last_index = 0;
 }
 
-Zeal::GameStructures::Entity *CycleTarget::get_next_ent(float dist, byte type) {
+Zeal::GameStructures::Entity *CycleTarget::get_next_ent(float dist, BYTE type) {
   static ULONGLONG last_press = 0;
 
   std::vector<Zeal::GameStructures::Entity *> visible_ents = Zeal::Game::get_world_visible_actor_list(dist, true);
@@ -59,7 +55,7 @@ Zeal::GameStructures::Entity *CycleTarget::get_next_ent(float dist, byte type) {
     return 0;
 }
 
-Zeal::GameStructures::Entity *CycleTarget::get_nearest_ent(float dist, byte type) {
+Zeal::GameStructures::Entity *CycleTarget::get_nearest_ent(float dist, BYTE type) {
   static ULONGLONG last_press = 0;
   std::vector<Zeal::GameStructures::Entity *> visible_ents;
   if (type > 0)
@@ -91,14 +87,4 @@ Zeal::GameStructures::Entity *CycleTarget::get_nearest_ent(float dist, byte type
     return near_ents.front();
   else
     return 0;
-}
-
-CycleTarget::~CycleTarget() {
-  // hook->remove(); //hooks being removed from dllmain
-}
-
-CycleTarget::CycleTarget(ZealService *zeal) {
-  // originally this used a hook and replaced target nearest but now uses a bind
-  //	hook = zeal->hooks->Add("NearestEnt", Zeal::Game::GameInternal::fn_targetnearestnpc, get_nearest_ent,
-  // hook_type_detour, 6);
 }

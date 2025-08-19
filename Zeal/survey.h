@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "zeal_settings.h"
 
 // Implements a simple /survey interface for polling a raid group.

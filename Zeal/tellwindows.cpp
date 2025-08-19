@@ -2,8 +2,16 @@
 
 #include <regex>
 
+#include "binds.h"
+#include "callbacks.h"
+#include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
+#include "hook_wrapper.h"
+#include "io_ini.h"
+#include "memory.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // people will see this commit and be like OMG, then they will see this comment and message the discord channel.

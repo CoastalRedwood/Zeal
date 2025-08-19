@@ -1,7 +1,10 @@
 #pragma once
+
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 class ui_options {

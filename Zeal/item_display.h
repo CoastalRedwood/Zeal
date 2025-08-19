@@ -1,9 +1,9 @@
 #pragma once
+#include <unordered_map>
 #include <vector>
 
 #include "game_structures.h"
 #include "game_ui.h"
-#include "io_ini.h"
 #include "zeal_settings.h"
 
 class ItemDisplay {

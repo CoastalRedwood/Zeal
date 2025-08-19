@@ -1,6 +1,7 @@
 #include "equip_item.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "game_addresses.h"

@@ -3,15 +3,19 @@
 #include <algorithm>
 #include <cctype>
 
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "memory.h"
 #include "string_util.h"
 #include "zeal.h"
 
 void ui_group::InitUI() {}
 
-void ui_group::swap(UINT index1, UINT index2) {
+void ui_group::swap(int index1, int index2) {
   auto *group_info = Zeal::Game::GroupInfo;
   if (index1 < 5 && index2 < 5) {
     std::pair<std::string, Zeal::GameStructures::Entity *> Ent1 =
@@ -79,7 +83,8 @@ ui_group::ui_group(ZealService *zeal, UIManager *mgr) {
       [this](std::vector<std::string> &args) {
         int index1 = 0;
         int index2 = 0;
-        if (args.size() > 2 && Zeal::String::tryParse(args[1], &index1) && Zeal::String::tryParse(args[2], &index2))
+        if (args.size() > 2 && Zeal::String::tryParse(args[1], &index1) && Zeal::String::tryParse(args[2], &index2) &&
+            index1 > 0 && index1 <= 6 && index2 > 0 && index2 <= 6)
           swap(
               index1 - 1,
               index2 - 1);  // makes this easier for end users so /sortgroup 1 2 will swap players 1 and 2 in your group

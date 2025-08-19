@@ -2,9 +2,10 @@
 
 #include <algorithm>
 
-#include "game_addresses.h"
+#include "callbacks.h"
+#include "commands.h"
 #include "game_functions.h"
-#include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
 #include "zeal.h"
 

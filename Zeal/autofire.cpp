@@ -1,7 +1,14 @@
 #include "autofire.h"
 
+#include "callbacks.h"
+#include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
+#include "game_str.h"
 #include "zeal.h"
+
+// #include "hook_wrapper.h"
+// #include "memory.h"
 
 //
 // bool AutoFire::HandleDoAttack(Zeal::GameStructures::Entity* player, uint8_t type, uint8_t p2,

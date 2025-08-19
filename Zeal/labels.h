@@ -1,6 +1,5 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <string>
 
 class Labels {
  public:

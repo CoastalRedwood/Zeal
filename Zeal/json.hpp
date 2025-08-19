@@ -17,6 +17,7 @@
 
 #ifndef INCLUDE_NLOHMANN_JSON_HPP_
 #define INCLUDE_NLOHMANN_JSON_HPP_
+#pragma warning(push, 0)  // Zeal custom
 
 #include <algorithm> // all_of, find, for_each
 #include <cstddef> // nullptr_t, ptrdiff_t, size_t
@@ -8237,6 +8238,7 @@ class lexer : public lexer_base<BasicJsonType>
                 }
             }
 
+            [[fallthrough]];  // Zeal custom suppress warning.
             // multi-line comments skip input until */ is read
             case '*':
             {
@@ -8272,6 +8274,7 @@ class lexer : public lexer_base<BasicJsonType>
                 }
             }
 
+            [[fallthrough]];  // Zeal custom suppress warning.
             // unexpected character after reading '/'
             default:
             {
@@ -24761,6 +24764,6 @@ inline void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL& j1, nlohmann::NLOHMANN_BASIC
 #undef JSON_HEDLEY_WARN_UNUSED_RESULT_MSG
 #undef JSON_HEDLEY_FALL_THROUGH
 
-
+#pragma warning(pop)  // Zeal custom
 
 #endif  // INCLUDE_NLOHMANN_JSON_HPP_

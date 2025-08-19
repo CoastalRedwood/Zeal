@@ -1,15 +1,17 @@
 #include "camera_mods.h"
 
-#include <windowsx.h>
-
 #include <algorithm>
 #include <thread>
 
+#include "binds.h"
 #include "camera_math.h"
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // #define debug_cam
@@ -164,7 +166,7 @@ bool CameraMods::handle_proc_mouse() {
     delta->y = 0;  // May not be necessary but just in case reset to avoid downstream usage.
     delta->x = 0;
 
-    if (*(byte *)0x7985E8)  // invert
+    if (*(BYTE *)0x7985E8)  // invert
       smoothMouseDeltaY = -smoothMouseDeltaY;
 
     if (Zeal::Game::can_move()) {
@@ -238,7 +240,7 @@ void CameraMods::update_left_pan(DWORD camera_view) {
       GetCursorPos(&cursor_pos_for_window);
       if (gwnd == WindowFromPoint(cursor_pos_for_window)) {
         if (hide_cursor && GetTickCount64() - lmouse_time > pan_delay.get()) {
-          mem::write<byte>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
+          mem::write<BYTE>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
           hide_cursor = false;
         }
         handle_proc_mouse();
@@ -246,7 +248,7 @@ void CameraMods::update_left_pan(DWORD camera_view) {
       }
     }
   } else {
-    if (lmouse_time) mem::write<byte>(0x53edef, 0x75);  // Restore showcursor check.
+    if (lmouse_time) mem::write<BYTE>(0x53edef, 0x75);  // Restore showcursor check.
     lmouse_time = 0;
   }
 }
@@ -316,7 +318,7 @@ void CameraMods::update_fps_sensitivity() {
     }
   }
 
-  float current_sens = (float)(*(byte *)0x798b0c);
+  float current_sens = (float)(*(BYTE *)0x798b0c);
   float multiplier = current_sens / 4.0f;
   sensitivity_x *= multiplier;
   sensitivity_y *= multiplier;

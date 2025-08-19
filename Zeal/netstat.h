@@ -1,6 +1,5 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
+
 #include "zeal_settings.h"
 
 class Netstat {
@@ -13,7 +12,6 @@ class Netstat {
   ZealSetting<bool> is_visible = {true, "Zeal", "NetstatVisibilityState", false};
   void callback_main();
   void callback_characterselect();
-  void load_settings();
   void update_netstat_state();
 
   bool netstat_flag_was_reset = true;

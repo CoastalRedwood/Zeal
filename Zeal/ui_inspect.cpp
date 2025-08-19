@@ -2,10 +2,14 @@
 
 #include <format>
 
+#include "callbacks.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "game_ui.h"
 #include "items.h"
+#include "memory.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 static int __fastcall InspectItemClickDown(Zeal::GameUI::InvSlotWnd *pWnd, int unused, Zeal::GameUI::CXPoint pt,
@@ -23,7 +27,7 @@ static int __fastcall InspectItemClickDown(Zeal::GameUI::InvSlotWnd *pWnd, int u
   return 0;
 }
 
-static void __fastcall InvSlotDestructor(Zeal::GameUI::BasicWnd *pWnd, int unusedEDX, byte delete_me) {
+static void __fastcall InvSlotDestructor(Zeal::GameUI::BasicWnd *pWnd, int unusedEDX, BYTE delete_me) {
   pWnd->DeleteCustomVTable((Zeal::GameUI::BaseVTable *)ZealService::get_instance()->ui->inspect->orig_vtable);
   pWnd->Deconstruct(delete_me);  // Calls the vtable's destructor.
 }

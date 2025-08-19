@@ -1,5 +1,7 @@
 #include "alarm.h"
 
+#include "callbacks.h"
+#include "game_functions.h"
 #include "zeal.h"
 
 void Alarm::Set(int minutes, int seconds) {

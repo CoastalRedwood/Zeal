@@ -1,9 +1,11 @@
 #include "ui_hotbutton.h"
 
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
-#include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 void hotbutton_state::tick() {

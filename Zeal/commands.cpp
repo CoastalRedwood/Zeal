@@ -3,11 +3,22 @@
 #include <algorithm>
 #include <cctype>
 
+#include "alarm.h"
+#include "cycle_target.h"
+#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
 #include "game_structures.h"
+#include "helm_manager.h"
+#include "hook_wrapper.h"
+#include "item_display.h"
+#include "melody.h"
+#include "memory.h"
+#include "outputfile.h"
 #include "string_util.h"
+#include "tellwindows.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 void ChatCommands::print_commands() {
@@ -96,14 +107,16 @@ ChatCommands::~ChatCommands() {}
 
 // call interpret command without hitting the detour, useful for aliasing default commands
 void ForwardCommand(std::string cmd) {
-  reinterpret_cast<bool(__thiscall *)(int game, Zeal::GameStructures::Entity *player, const char *cmd)>(
-      ZealService::get_instance()->hooks->hook_map["commands"]->trampoline)(*(int *)0x809478, Zeal::Game::get_self(),
-                                                                            cmd.c_str());
+  reinterpret_cast<bool(__thiscall *)(Zeal::GameStructures::GameClass * game, Zeal::GameStructures::Entity * player,
+                                      const char *cmd)>(
+      ZealService::get_instance()->hooks->hook_map["commands"]->trampoline)(Zeal::Game::get_game(),
+                                                                            Zeal::Game::get_self(), cmd.c_str());
 }
 
 ChatCommands::ChatCommands(ZealService *zeal) {
   Add("/crash", {}, "Tests a crash", [](std::vector<std::string> &args) {
     int *x = 0;
+#pragma warning(suppress : 6011)
     *x = 0;  // nullptr exception
     return false;
   });
@@ -471,7 +484,7 @@ ChatCommands::ChatCommands(ZealService *zeal) {
         auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
         float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
         print_chat("Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
-        if (!horse)
+        if (!horse && self->ActorInfo)
           print_chat("Movement modifier: %+d%%", (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
       }
       Zeal::Game::print_chat("---- Defensive stats ----");

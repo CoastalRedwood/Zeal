@@ -1,10 +1,8 @@
 #pragma once
-#include <stdint.h>
+#include <Windows.h>
 
 #include "bitmap_font.h"
 #include "game_structures.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 class NamePlate {

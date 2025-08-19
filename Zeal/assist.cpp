@@ -1,6 +1,8 @@
 #include "assist.h"
 
+#include "commands.h"
 #include "game_functions.h"
+#include "game_structures.h"
 #include "string_util.h"
 #include "zeal.h"
 

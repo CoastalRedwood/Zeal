@@ -1,6 +1,8 @@
 #include "entity_manager.h"
 
+#include "callbacks.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "zeal.h"
 
 void EntityManager::Add(struct Zeal::GameStructures::Entity *ent) {

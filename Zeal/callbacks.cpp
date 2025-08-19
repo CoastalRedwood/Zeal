@@ -1,9 +1,12 @@
 #include "callbacks.h"
 
+#include "chatfilter.h"
+#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
 #include "zeal.h"
 
 namespace {

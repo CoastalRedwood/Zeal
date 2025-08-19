@@ -1,7 +1,8 @@
 #pragma once
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+
+#include <string>
+#include <vector>
+
 #include "zeal_settings.h"
 
 class Chat {

@@ -1,11 +1,19 @@
 #include "crash_handler.h"
 
+#include <dbghelp.h>
+
 #include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <map>
 #include <sstream>
+#include <string>
 #include <vector>
 
+#include "callbacks.h"
+#include "game_functions.h"
 #include "miniz.h"
 #include "zeal.h"
 
@@ -161,6 +169,8 @@ static bool HandleCrashSender(EXCEPTION_POINTERS *pep, const std::string &CrashF
                  NULL,              // Use parent's starting directory
                  &si,               // Pointer to STARTUPINFO structure
                  &pi);              // Pointer to PROCESS_INFORMATION structure
+  CloseHandle(pi.hProcess);         // Release to prevent leaks. It will still run standalone.
+  CloseHandle(pi.hThread);
   return true;
 }
 
@@ -190,19 +200,22 @@ static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
     Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
     Zeal::GameStructures::Entity *spawn_info = (char_info ? char_info->SpawnInfo : nullptr);
     Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-    reasonStream << "GAMECHARINFO: 0x" << std::hex << (uint32_t)(char_info) << std::endl;
-    reasonStream << "SpawnInfo: 0x" << std::hex << (uint32_t)(spawn_info) << std::endl;
-    reasonStream << "Self: 0x" << std::hex << (uint32_t)(self) << std::dec << std::endl;
     reasonStream << "Character: " << (char_info ? char_info->Name : "Unknown") << std::endl;
-    std::string ui_skin = (char *)0x63D3C0;
-    reasonStream << "UI Skin: " << ui_skin << std::endl;
+    reasonStream << "UI Skin: " << Zeal::Game::get_ui_skin() << std::endl;
     int zone_id = self ? self->ZoneId : -1;
     reasonStream << "Zone ID: " << zone_id << std::endl;
     reasonStream << "Game state: " << Zeal::Game::get_gamestate() << std::endl;
-    reasonStream << "ShowSpellEffects: " << *reinterpret_cast<unsigned int *>(0x007cf290) << std::endl;
-    reasonStream << "BootHeapCheck: " << ZealService::heap_failed_line << std::endl;
     if (ZealService::get_instance() && ZealService::get_instance()->callbacks)
       reasonStream << "Callbacks: " << ZealService::get_instance()->callbacks->get_trace();
+    if (!char_info) reasonStream << "GAMECHARINFO: 0x" << std::hex << (uint32_t)(char_info) << std::endl;
+    if (!self || !spawn_info || self != spawn_info) {
+      reasonStream << "SpawnInfo: 0x" << std::hex << (uint32_t)(spawn_info) << std::endl;
+      reasonStream << "Self: 0x" << std::hex << (uint32_t)(self) << std::dec << std::endl;
+    }
+    int show_spell_effects = *reinterpret_cast<unsigned int *>(0x007cf290);
+    if (show_spell_effects) reasonStream << "ShowSpellEffects: " << show_spell_effects << std::endl;
+    if (ZealService::get_heap_failed_line())
+      reasonStream << "BootHeapCheck: " << ZealService::get_heap_failed_line() << std::endl;
   }
   return reasonStream.str();
 }

@@ -1,12 +1,13 @@
 #include "ui_buff.h"
 
-#include <cstdio>
-#include <cstring>
 #include <string>
 
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 TickTime Game_CalculateTickTime(int ticks) {
@@ -124,9 +125,9 @@ int __fastcall CastSpellWnd_PostDraw(Zeal::GameUI::CastSpellWnd *this_ptr, void 
   auto self = Zeal::Game::get_self();
   auto actor_info = self ? self->ActorInfo : nullptr;
   auto char_info = Zeal::Game::get_char_info();
-  int *this_display = *(int **)Zeal::Game::Display;
-  if (!self || !actor_info || !char_info || !this_display) return result;
-  int game_time = this_display[200 / 4];  // The client uses this display offset as a timestamp.
+  auto display = Zeal::Game::get_display();
+  if (!self || !actor_info || !char_info || !display) return result;
+  int game_time = display->GameTimeMs;
 
   for (size_t i = 0; i < GAME_NUM_SPELL_GEMS; i++) {
     if (!Zeal::Game::Spells::IsValidSpellIndex(char_info->MemorizedSpell[i]) ||

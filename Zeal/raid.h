@@ -1,6 +1,4 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class Raid {
  public:

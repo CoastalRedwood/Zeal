@@ -1,11 +1,13 @@
 #include "chatfilter.h"
 
-#include <regex>
-
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_ui.h"
+#include "hook_wrapper.h"
+#include "memory.h"
+#include "ui_manager.h"
 #include "zeal.h"
+
 // Standard ChannelMaps and filter offset
 #define ChannelMap0 0
 #define ChannelMap40 0x28
@@ -249,7 +251,7 @@ static void HandleMyHitsMode(char *buffer, const char *s1, const char *s2, const
     }
 
     if (hitmode >= 0 && hitmode <= 2)  // Print with logging disabled (for abbreviated cases).
-      Zeal::Game::GameInternal::print_chat(*(int *)0x809478, 0, output, CHANNEL_MYMELEESPECIAL, false);
+      Zeal::Game::get_game()->dsp_chat(output, CHANNEL_MYMELEESPECIAL, false);
 
     if (*Zeal::Game::is_logging_enabled && damage > -0x29)  // Comparison copied from client code.
       Zeal::Game::log(buffer);
@@ -277,7 +279,7 @@ void HandleOtherHitsOtherMode(char *buffer, const char *s1, const char *s2, cons
     }
 
     if (hitmode >= 0 && hitmode <= 2)  // Print with logging disabled (for abbreviated cases).
-      Zeal::Game::GameInternal::print_chat(*(int *)0x809478, 0, output, CHANNEL_OTHERMELEESPECIAL, false);
+      Zeal::Game::get_game()->dsp_chat(output, CHANNEL_OTHERMELEESPECIAL, false);
 
     if (*Zeal::Game::is_logging_enabled && damage > -0x29)  // Comparison copied from client code.
       Zeal::Game::log(buffer);
@@ -487,10 +489,10 @@ chatfilter::chatfilter(ZealService *zeal) {
   zeal->hooks->Add("whoGlobalPrintChat4", 0x4e53b1, whoGlobalPrintChat_wrapped, hook_type_replace_call);
 
   // ChatWindow::WndNotification Conditional Patch
-  mem::write<byte[2]>(0x414117, {0x8d, 0x05});  // lea eax
+  mem::write<BYTE[2]>(0x414117, {0x8d, 0x05});  // lea eax
   mem::write<int>(0x414119, (int)FilterConditional);
-  mem::write<byte[2]>(0x41411D, {0xFF, 0xE0});  // jmp eax
-  mem::write<byte[4]>(0x41411F, {0x90, 0x90, 0x90, 0x90});
+  mem::write<BYTE[2]>(0x41411D, {0xFF, 0xE0});  // jmp eax
+  mem::write<BYTE[4]>(0x41411F, {0x90, 0x90, 0x90, 0x90});
 }
 
 chatfilter::~chatfilter() {}

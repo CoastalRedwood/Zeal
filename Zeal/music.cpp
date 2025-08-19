@@ -1,7 +1,10 @@
 #include "music.h"
 
+#include <Windows.h>
+
 #include <random>
 
+#include "hook_wrapper.h"
 #include "zeal.h"
 
 static ULONGLONG g_LastMusicStop = 0;

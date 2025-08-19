@@ -1,7 +1,5 @@
 #pragma once
-#include <vector>
 
-#include "game_structures.h"
 #include "game_ui.h"
 #include "zeal_settings.h"
 

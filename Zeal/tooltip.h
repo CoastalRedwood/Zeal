@@ -1,6 +1,4 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 class Tooltip {
@@ -11,7 +9,4 @@ class Tooltip {
   ZealSetting<int> hover_timeout = {500, "Zeal", "TooltipTime", false};
   Tooltip(class ZealService *pHookWrapper);
   ~Tooltip();
-
- private:
-  void LoadSettings(class IO_ini *ini);
 };

@@ -4,9 +4,11 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "json.hpp"
 #include "zeal_settings.h"
+
 enum struct pipe_data_type { log, label, gauge, player, custom, raid, group };
 
 struct pipe_data {

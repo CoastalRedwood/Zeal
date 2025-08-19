@@ -1,9 +1,6 @@
 #pragma once
 #include <functional>
 
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 #define CHANNEL_MYPETDMG 1000

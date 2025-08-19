@@ -1,7 +1,11 @@
 #pragma once
+
+#include <functional>
+#include <string>
+#include <utility>
+
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+
 using InputDialogCallback = std::function<void(std::string input)>;
 
 class ui_inputdialog {

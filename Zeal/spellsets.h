@@ -1,9 +1,14 @@
 #pragma once
-#pragma once
-#include "game_functions.h"
-#include "hook_wrapper.h"
+
+#include <Windows.h>
+
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "game_ui.h"
 #include "io_ini.h"
-#include "memory.h"
 
 struct menudata {
   std::string Name;

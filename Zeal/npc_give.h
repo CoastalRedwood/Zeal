@@ -1,7 +1,5 @@
 #pragma once
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+#include "game_structures.h"
 #include "zeal_settings.h"
 
 class NPCGive {

@@ -5,9 +5,13 @@
 
 #include <thread>
 
+#include "commands.h"
+#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
+#include "labels.h"
 #include "string_util.h"
 #include "zeal.h"
 
@@ -134,6 +138,11 @@ const std::map<int, std::string> GaugeNames = {
     {33, "Spell6Recast"},
 };
 
+static nlohmann::json toJson(const Vec3 &position) {
+  nlohmann::json data = {{"x", position.x}, {"y", position.y}, {"z", position.z}};
+  return data;
+}
+
 pipe_data::pipe_data(pipe_data_type _type, std::string _data) {
   data = _data;
   if (Zeal::Game::is_in_game() && Zeal::Game::get_self())
@@ -199,7 +208,7 @@ void NamedPipe::main_loop() {
 
         const auto &entity = entity_manager->Get(member.Name);
         if (entity) {
-          raid_data["loc"] = entity->Position.toJson();
+          raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
         }
 
@@ -227,7 +236,7 @@ void NamedPipe::main_loop() {
         if ((strlen(group_info->Names[i]) > 0) && member) {
           nlohmann::json group_data = nlohmann::json::object();
           group_data["name"] = group_info->Names[i];
-          group_data["loc"] = member->Position.toJson();
+          group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
 
           group_array.push_back(group_data);
@@ -274,7 +283,7 @@ void NamedPipe::main_loop() {
     if (Zeal::Game::get_self()) {
       nlohmann::json player_data = nlohmann::json::object();
       player_data["zone"] = Zeal::Game::get_self()->ZoneId;
-      player_data["location"] = Zeal::Game::get_self()->Position.toJson();
+      player_data["location"] = toJson(Zeal::Game::get_self()->Position);
       player_data["heading"] = Zeal::Game::get_self()->Heading;
       player_data["autoattack"] = (bool)(*(BYTE *)0x7f6ffe);
       // nlohmann::json data = { {"zone", Zeal::Game::get_self()->ZoneId}, {"location",
