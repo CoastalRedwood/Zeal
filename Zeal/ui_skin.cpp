@@ -222,10 +222,13 @@ std::string UISkin::get_global_default_ui_skin_name() {
 bool UISkin::is_ui_skin_big_fonts_mode(const char *ui_skin) {
   if (!ui_skin || !ui_skin[0]) return false;
   std::filesystem::path ui_skin_path = std::filesystem::path(ui_skin);  // Drop uifiles if present.
+  std::filesystem::path ui_skin_name = ui_skin_path.filename();
+  if (ui_skin_name.empty()) ui_skin_name = ui_skin_path.parent_path().filename();
+
   if (std::filesystem::is_directory(ui_skin_path))
     ui_skin_path = ui_skin_path.parent_path();  // Drop the trailing separator.
-  std::filesystem::path file_path = std::filesystem::current_path() / std::filesystem::path("uifiles") /
-                                    ui_skin_path.filename() / std::filesystem::path(kBigFontsTriggerFilename);
+  std::filesystem::path file_path = std::filesystem::current_path() / std::filesystem::path("uifiles") / ui_skin_name /
+                                    std::filesystem::path(kBigFontsTriggerFilename);
   return std::filesystem::exists(file_path);
 }
 
