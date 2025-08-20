@@ -8,8 +8,7 @@
 #include "game_packets.h"
 #include "game_structures.h"
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+
 enum class callback_type {
   MainLoop,
   Zone,

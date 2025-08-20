@@ -1,9 +1,17 @@
 #include "ui_zoneselect.h"
 
+#include <deque>
+#include <vector>
+
+#include "character_select.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
+#include "memory.h"
 #include "string_util.h"
+#include "ui_manager.h"
+#include "ui_skin.h"
 #include "zeal.h"
 
 void ui_zoneselect::CleanUI() {
@@ -57,7 +65,7 @@ void ui_zoneselect::InitUI() {
   // by adding a simple button wnd.
   if (!Zeal::Game::Windows->CharacterSelect->GetChildItem("Zeal_ZoneSelect")) {
     if (!btn_wnd) {
-      static const char *xml_file = "./uifiles/zeal/EQUI_ZealButtonWnd.xml";
+      std::filesystem::path xml_file = UISkin::get_zeal_xml_path() / std::filesystem::path("EQUI_ZealButtonWnd.xml");
       if (ui && std::filesystem::exists(xml_file)) btn_wnd = ui->CreateSidlScreenWnd("ZealButtonWnd");
     }
 
@@ -73,11 +81,11 @@ void ui_zoneselect::InitUI() {
   // Initialize Zone select window.
   if (wnd) Zeal::Game::print_chat("Warning: Init out of sync for ui_zoneselect");
 
-  static const char *xml_file = "./uifiles/zeal/EQUI_ZoneSelect.xml";
+  std::filesystem::path xml_file = UISkin::get_zeal_xml_path() / std::filesystem::path("EQUI_ZoneSelect.xml");
   if (!wnd && ui && std::filesystem::exists(xml_file)) wnd = ui->CreateSidlScreenWnd("ZealZoneSelect");
 
   if (!wnd) {
-    Zeal::Game::print_chat("Error: Failed to load %s", xml_file);
+    Zeal::Game::print_chat("Error: Failed to load %s", xml_file.string().c_str());
     return;
   }
 
@@ -151,7 +159,4 @@ ui_zoneselect::ui_zoneselect(ZealService *zeal, UIManager *mgr) {
         Hide();
       },
       callback_type::InitCharSelectUI);
-
-  ui->AddXmlInclude("EQUI_ZoneSelect.xml");
-  ui->AddXmlInclude("EQUI_ZealButtonWnd.xml");
 }

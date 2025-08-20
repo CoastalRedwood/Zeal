@@ -1,11 +1,13 @@
 #include "floating_damage.h"
 
-#include <cstdint>
 #include <random>
 
-#include "game_addresses.h"
+#include "commands.h"
 #include "game_packets.h"
+#include "game_structures.h"
 #include "string_util.h"
+#include "target_ring.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 #if 0  // Not currently used.
@@ -205,8 +207,8 @@ void FloatingDamage::render_text() {
               else
                 fnt->DrawWrappedText(
                     dmg.str_dmg.c_str(),
-                    Zeal::GameUI::CXRect((int)(screen_pos.x + dmg.y_offset), (int)(screen_pos.y + dmg.x_offset),
-                                         (int)(screen_pos.x + 150), (int)(screen_pos.y + 150)),
+                    Zeal::GameUI::CXRect((int)(screen_pos.y + dmg.x_offset), (int)(screen_pos.x + dmg.y_offset),
+                                         (int)(screen_pos.y + 150), (int)(screen_pos.x + 150)),
                     Zeal::GameUI::CXRect(0, 0, (int)(screen_size.x * 2), (int)(screen_size.y * 2)), color, 1, 0);
             }
           }
@@ -386,15 +388,15 @@ bool FloatingDamage::add_texture(std::string path) {
 
 void FloatingDamage::init_ui() {
   clean_ui();  // Just in case releases all resources and clears textures.
-  std::string current_ui = (char *)0x63D3C0;
+  std::string current_ui = Zeal::Game::get_ui_skin();
   std::string path = current_ui;
-  std::string default_path = "./uifiles/default/";
+  std::filesystem::path default_path = Zeal::Game::get_default_ui_skin_path().append("");
   for (int i = 1; i <= 3; i++) {
     std::stringstream filepath;
     filepath << path << "gemicons0" << i << ".tga";
     if (add_texture(filepath.str())) continue;
     filepath.str("");
-    filepath << default_path << "gemicons0" << i << ".tga";
+    filepath << default_path.string() << "gemicons0" << i << ".tga";
     if (!add_texture(filepath.str())) Zeal::Game::print_chat("Texture not found: %s", filepath.str().c_str());
   }
 }

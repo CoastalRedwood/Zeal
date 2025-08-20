@@ -4,7 +4,7 @@
 #include <regex>
 #include <sstream>
 
-#include "zeal.h"
+#include "game_functions.h"
 
 namespace Zeal {
 namespace String {

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <span>
 
 #include "directx.h"
 #include "vectors.h"
@@ -19,7 +19,7 @@
 // Virtual base class with utility functions for handling fonts and some common processing.
 class BitmapFontBase {
  public:
-  static constexpr char kFontDirectoryPath[] = "./uifiles/zeal/fonts";
+  static constexpr char kFontSubDirectoryPath[] = "fonts";  // Within the zeal ui skin path.
   static constexpr char kFontFileExtension[] = ".spritefont";
   static constexpr char kDefaultFontName[] = "default";
 

@@ -1,7 +1,5 @@
 #pragma once
 #include "game_structures.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class BuffDetails {
  public:

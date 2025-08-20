@@ -1,9 +1,11 @@
 #include "survey.h"
 
+#include "commands.h"
 #include "game_addresses.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "ui_inputdialog.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 namespace {

@@ -2,6 +2,40 @@
 
 Summarizes notable changes to Zeal
 
+## [1.1.0] - 2025/08/11
+
+### New Features:
+
+* Luclin horse support
+  - ZealCam: Now functional in first and third person
+  - Self-click thru: Now also applies to your mount
+  - Spellsets: Now functional when mounted
+  - /camp: Performs an auto-dismount to allow sitting and camping
+  - Fix to Type 134 (spell casting name) when mounted
+  - Target nearest and cycle targets now excludes mounts (horses)
+  - Fixes Zeal font nameplates disappearing when mounted
+
+* ZealCam
+  - Refactored to support mounts and to slightly polish behavior
+
+* New option (Enhanced auto-run) that tweaks the auto-run keybind behavior
+  - Instead of toggling state, a key press will lock on if the forward
+    key is already pressed. Also will lock strafe key.
+  - Also made disabling auto-run/strafe more reliable  
+
+* UI labels:
+  - Gauge type 35: AA Exp Per Hour
+  - Label type 86: AA Exp Per Hour Percent
+
+* Experience per hour:
+  - Refactored to support AAs
+  - Changed calculation so it does not reset on zone (use /resetexp if desired)
+
+* Nameplate updates:
+  - Adds UI (Zeal nameplate options tab) combo boxes for selecting shownames mode
+  - Adds UI combo box for optionally choosing a specific AA title (local display only)
+
+
 ## [1.0.0] - 2025/08/02
 
 ### New Features:

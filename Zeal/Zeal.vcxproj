@@ -51,6 +51,8 @@
       <Optimization>MaxSpeed</Optimization>
       <DisableSpecificWarnings>26495;6387</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BasicRuntimeChecks>
+      </BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,6 +88,7 @@
     <ClInclude Include="ui_group.h" />
     <ClInclude Include="ui_inputdialog.h" />
     <ClInclude Include="ui_inspect.h" />
+    <ClInclude Include="ui_skin.h" />
     <ClInclude Include="ui_zoneselect.h" />
     <ClInclude Include="zeal_settings.h" />
     <ClInclude Include="zone_map.h" />
@@ -116,7 +119,6 @@
     <ClInclude Include="game_ui.h" />
     <ClInclude Include="experience.h" />
     <ClInclude Include="find_pattern.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="hook_wrapper.h" />
     <ClInclude Include="io_ini.h" />
     <ClInclude Include="labels.h" />
@@ -164,6 +166,7 @@
     <ClCompile Include="ui_group.cpp" />
     <ClCompile Include="ui_inputdialog.cpp" />
     <ClCompile Include="ui_inspect.cpp" />
+    <ClCompile Include="ui_skin.cpp" />
     <ClCompile Include="ui_zoneselect.cpp" />
     <ClCompile Include="zone_map.cpp" />
     <ClCompile Include="miniz.c" />
@@ -217,13 +220,12 @@
   <ItemGroup>
     <None Include="..\CHANGELOG.md" />
     <None Include="..\README.md" />
+    <None Include="uifiles\zeal\big_xml\generate_big_xml.py" />
     <None Include="uifiles\zeal\optional\README.md" />
     <None Include="uifiles\zeal\spell_info\fetch_spell_info.py" />
     <None Include="uifiles\zeal\spell_info\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="uifiles\zeal\EQUI_GuildManagementWnd.xml" />
-    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_Cam.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_Colors.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_FloatingDamage.xml" />

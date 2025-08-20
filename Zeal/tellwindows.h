@@ -1,10 +1,11 @@
 #pragma once
-#include <stdint.h>
 
-#include "game_structures.h"
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class TellWindows {
  public:

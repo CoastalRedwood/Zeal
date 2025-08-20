@@ -39,7 +39,7 @@ jobs:
         env:
           SED_PARAMS: 's/^[^"]*"\([^"]*\)".*/\1/'
         run: |
-          ZEAL_VERSION=$(grep '#define ZEAL_VERSION' Zeal/Zeal.h | sed $SED_PARAMS)
+          ZEAL_VERSION=$(grep '#define ZEAL_VERSION' Zeal/zeal.h | sed $SED_PARAMS)
           echo version=v$ZEAL_VERSION >> $GITHUB_OUTPUT
 
       - name: Build the Zeal solution using msbuild to find the path to VS Studio

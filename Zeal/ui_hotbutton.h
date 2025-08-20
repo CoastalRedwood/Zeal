@@ -1,9 +1,8 @@
 #pragma once
-#include <map>
+
+#include <unordered_map>
 
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class hotbutton_state {
  public:

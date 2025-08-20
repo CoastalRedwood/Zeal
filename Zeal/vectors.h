@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "json.hpp"
 typedef float vec_t;
 typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
@@ -170,11 +169,6 @@ struct Vec3 {
     this->y /= v.y;
     this->z /= v.z;
     return *this;
-  }
-
-  inline nlohmann::json toJson() {
-    nlohmann::json data = {{"x", x}, {"y", y}, {"z", z}};
-    return data;
   }
 
   inline std::string toString() {

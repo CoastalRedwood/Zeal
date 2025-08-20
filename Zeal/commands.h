@@ -1,9 +1,8 @@
 #pragma once
 #include <functional>
+#include <string>
 #include <unordered_map>
-
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <vector>
 
 struct ZealCommand {
   std::vector<std::string> aliases;

@@ -1,9 +1,14 @@
 #include "labels.h"
 
+#include "commands.h"
+#include "experience.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
 #include "game_ui.h"
+#include "hook_wrapper.h"
+#include "memory.h"
+#include "tick.h"
 #include "zeal.h"
 
 void default_empty(Zeal::GameUI::CXSTR *str, bool *override_color, ULONG *color) {
@@ -140,14 +145,12 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
 static int get_remaining_cast_recovery_time() {
   auto self = Zeal::Game::get_self();
   auto actor_info = self ? self->ActorInfo : nullptr;
-  int *this_display = *(int **)Zeal::Game::Display;
-  if (!self || !actor_info || !this_display) return 0;
+  auto display = Zeal::Game::get_display();
+  if (!self || !actor_info || !display) return 0;
 
-  int game_time = this_display[200 / 4];                 // The client uses this display offset as a timestamp.
+  DWORD game_time = display->GameTimeMs;
   if (actor_info->FizzleTimeout <= game_time) return 0;  // Idle state.
-
-  int time_left = max(0, actor_info->FizzleTimeout - game_time);
-  return time_left;
+  return actor_info->FizzleTimeout - game_time;
 }
 
 static int get_attack_timer_gauge(Zeal::GameUI::CXSTR *str) {
@@ -210,14 +213,14 @@ static int get_recast_time_gauge(int index, Zeal::GameUI::CXSTR *str) {
   auto self = Zeal::Game::get_self();
   auto actor_info = self ? self->ActorInfo : nullptr;
   auto char_info = Zeal::Game::get_char_info();
-  int *this_display = *(int **)Zeal::Game::Display;
-  if (invalid_index || !self || !actor_info || !char_info || !this_display) {
+  auto display = Zeal::Game::get_display();
+  if (invalid_index || !self || !actor_info || !char_info || !display) {
     if (str) str->Set("0");
     return 0;
   }
 
   // Empty gauge if recast timeout is < current game time or the fizzle timeout (GCD).
-  int game_time = this_display[200 / 4];  // The client uses this display offset as a timestamp.
+  int game_time = display->GameTimeMs;
   int spell_id = char_info->MemorizedSpell[index];
   if (!Zeal::Game::Spells::IsValidSpellIndex(spell_id) || actor_info->CastingSpellId == spell_id ||
       actor_info->RecastTimeout[index] <= game_time || actor_info->RecastTimeout[index] <= actor_info->FizzleTimeout) {

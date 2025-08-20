@@ -1,10 +1,6 @@
 #include "ui_raid.h"
 
-#include <algorithm>
-
-#include "game_addresses.h"
-#include "game_functions.h"
-#include "game_structures.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // void ui_raid::CleanUI()

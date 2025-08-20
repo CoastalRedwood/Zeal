@@ -3,7 +3,9 @@
 #include <random>
 
 #include "game_addresses.h"
-#include "io_ini.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 // DWORD GetRandomZone()
@@ -43,20 +45,18 @@ static void SetSafeCoordsAndMovePlayer(const Vec3 &position) {
 }
 
 static void SetDayPeriod(int period) {
-  // CDisplay::SetDayPeriod()
-  reinterpret_cast<void(__fastcall *)(int display, int unused_edx, int period)>(0x004b177f)(*Zeal::Game::Display, 0,
-                                                                                            period);
+  auto display = Zeal::Game::get_display();
+  if (display) display->SetDayPeriod(period);
 }
 
 static void SetSunLight() {
-  // CDisplay::SetSunLight()
-  reinterpret_cast<void(__fastcall *)(int display, int unused_edx)>(0x004b18b1)(*Zeal::Game::Display, 0);
+  auto display = Zeal::Game::get_display();
+  if (display) display->SetSunLight();
 }
 
 static void SetYon(float clip) {
-  // CDisplay::SetYon().
-  reinterpret_cast<void(__fastcall *)(int display, int unused_edx, float clip)>(0x004aca7f)(*Zeal::Game::Display, 0,
-                                                                                            clip);
+  auto display = Zeal::Game::get_display();
+  if (display) display->SetYon(clip);
 }
 
 static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused, DWORD character_slot, DWORD unk2) {
@@ -333,11 +333,8 @@ void CharacterSelect::load_zonedata() {
 }
 
 // Stuck here for future reference
-// static void set_clear_view()
-//{
-//	// CDisplay::SetFog() with some parameters to set a clear view.
-//	reinterpret_cast<void(__fastcall*)
-//		(int display, int unused_edx, int toggle, float distance, float unknown, char r, char g, char
-// b)>(0x004add26)
-//		(*Zeal::Game::Display, 0, 1, 0, 0, 0x0c, 0x0c, 0x0c);
-// }
+// static void set_clear_view() {
+//  //	CDisplay::SetFog() with the parameters to set a clear view.
+//  auto display = Zeal::Game::get_display();
+//  if (display) display->SetFog(1, 0, 0, 0x0c, 0x0c, 0x0c);
+//}

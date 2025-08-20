@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <Windows.h>
 
 #include "game_structures.h"
 #include "memory.h"
@@ -764,12 +764,18 @@ struct GameKey {
 };
 
 struct CTextureFont {
+  // Internal use only method for passing CXSTR through.
+  int DrawWrappedText(CXSTR str, CXRect rect1, CXRect rect2, unsigned long color, unsigned short unk1, int unk2) const {
+    return reinterpret_cast<int(__thiscall *)(const CTextureFont *, CXSTR, CXRect, CXRect, unsigned long,
+                                              unsigned short, int)>(0x005a4a30)(this, str, rect1, rect2, color, unk1,
+                                                                                unk2);
+  }
+
+  // Convenience function with const char* to CXSTR handling.
   int DrawWrappedText(const char *text, CXRect rect1, CXRect rect2, unsigned long color, unsigned short unk1,
                       int unk2) const {
     CXSTR str(text);  // DrawWrappedText calls FreeRep() internally.
-    return reinterpret_cast<int(__thiscall *)(const CTextureFont *, CXSTR, int, int, int, CXRect, unsigned long,
-                                              unsigned short, int)>(0x5A4970)(this, str, rect1.Top, rect1.Left,
-                                                                              rect1.Right, rect2, color, unk1, unk2);
+    return this->DrawWrappedText(str, rect1, rect2, color, unk1, unk2);
   }
 
   int GetHeight() { return reinterpret_cast<int(__thiscall *)(const CTextureFont *)>(0x5A4930)(this); }

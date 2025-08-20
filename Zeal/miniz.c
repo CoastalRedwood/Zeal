@@ -2687,7 +2687,9 @@ extern "C" {
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
 
+#ifndef WIN32_LEAN_AND_MEAN  // Zeal custom
 #define WIN32_LEAN_AND_MEAN
+#endif  // Zeal custom
 #include <windows.h>
 
 static WCHAR *mz_utf8z_to_widechar(const char *str) {

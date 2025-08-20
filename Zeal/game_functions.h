@@ -1,18 +1,8 @@
 #pragma once
-#include <cstdarg>
+#include <filesystem>
 
 #include "game_structures.h"
 #include "game_ui.h"
-#include "memory.h"
-
-#define CON_WHITE ZealService::get_instance()->ui->options->GetColor(15)  // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0)
-#define CON_RED ZealService::get_instance()->ui->options->GetColor(17)    // D3DCOLOR_ARGB(0xff, 0xf0, 0x0, 0x0)
-#define CON_BLUE                                      \
-  ZealService::get_instance()->ui->options->GetColor( \
-      14)  // D3DCOLOR_ARGB(0xff, 0x0, 0x40, 0xf0) Slightly lighter by default
-#define CON_YELLOW ZealService::get_instance()->ui->options->GetColor(16)     // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0x0)
-#define CON_LIGHTBLUE ZealService::get_instance()->ui->options->GetColor(13)  // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0xf0)
-#define CON_GREEN ZealService::get_instance()->ui->options->GetColor(12)      // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0x0)
 
 enum Stance {
   Stand = 0x64,
@@ -44,7 +34,6 @@ static int fn_interpretcmd = 0x54572f;
 /*inline int fn_loadoptions = 0x536CE0;*/
 static int fn_KeyboardPageHandleKeyboardMsg = 0x42c4fb;
 
-static mem::function<void __fastcall(int t, int unused, char *data, short color, bool un)> print_chat = 0x537f99;
 static mem::function<void __fastcall(int t, int unused, char *data, int unknown)> DoPercentConvert = 0x00538110;
 static mem::function<void __cdecl(const char *data)> gamelog = 0x005240dc;
 static mem::function<char __fastcall(void *this_display, int unused_edx, Zeal::GameStructures::Entity *viewer,
@@ -52,10 +41,6 @@ static mem::function<char __fastcall(void *this_display, int unused_edx, Zeal::G
     is_invisible = 0x4afa90;  // can_target
 static mem::function<char __fastcall(int, int, int, int, float *, float, UINT32)> get_world_visible_actor_list =
     0x7f9850;
-static mem::function<char __fastcall(int, int, int, int, float *, float, UINT32)> get_camera_location = 0x7f99d4;
-static mem::function<char __fastcall(int, int, float, float, float, float, float, float, float *, float *, float *,
-                                     char)>
-    s3dCollideSphereWithWorld = 0x4b3c45;
 static mem::function<short __fastcall(int, int)> get_max_mana = 0x4B9483;
 static mem::function<short __fastcall(int, int)> get_cur_mana = 0x4b9450;
 static mem::function<int __cdecl(int, Vec3 *)> t3dGetRegionNumberFromWorldAndXYZ = 0x0;
@@ -188,6 +173,9 @@ void do_join(Zeal::GameStructures::Entity *player, const char *name);
 void send_to_channel(int chat_channel_zero_based, const char *message);
 void execute_cmd(UINT cmd, bool isdown, int unk2);
 GameStructures::GameClass *get_game();
+GameStructures::Display *get_display();
+const char *get_ui_skin();
+std::filesystem::path get_default_ui_skin_path();
 int get_gamestate();
 int get_channel_number(const char *name);  // Zero-based channel number.
 void SetMusicSelection(int number, bool enabled);
@@ -207,7 +195,6 @@ std::vector<std::string> get_command_matches(const std::string &start_of_command
 Zeal::GameStructures::Entity *get_view_actor_entity();
 inline Zeal::GameStructures::GuildName *guild_names = (Zeal::GameStructures::GuildName *)0x7F9C94;
 bool collide_with_world(Vec3 start, Vec3 end, Vec3 &result, char collision_type = 0x3, bool debug = false);
-void get_camera_location();
 bool is_view_actor_invisible(Zeal::GameStructures::Entity *entity);
 std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float max_dist, bool only_targetable = true);
 Zeal::GameStructures::ActorLocation get_actor_location(int actor);
@@ -247,7 +234,6 @@ const char *trim_name(const char *name);   // Cleans but leaves suffixes. Use fo
 const char *strip_name(const char *name);  // Strips numbers and any text past an apostrophe ('s corpse).
 char *get_string(UINT id);
 // void set_camera_position(Vec3* pos);
-int *get_display();
 float heading_to_yaw(float heading);
 bool is_mouse_hovering_window();
 int get_showname();        // Holds value of /showname command.

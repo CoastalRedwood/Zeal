@@ -1,8 +1,8 @@
 #include "tooltip.h"
 
-#include "game_addresses.h"
+#include "commands.h"
 #include "game_functions.h"
-#include "game_structures.h"
+#include "memory.h"
 #include "string_util.h"
 #include "zeal.h"
 
@@ -19,15 +19,15 @@ void Tooltip::set_alt_all_containers(bool enabled) {
     mem::set(0x416D1D, 0x90, 2);  // remove the hovered check for showing tooltips while holding alt for containers
     mem::set(0x416D22, 0x90, 2);  // remove the hovered check for showing tooltips while holding alt for containers
   } else {
-    mem::write<byte[2]>(0x416d1d, {0x74, 0x74});
-    mem::write<byte[2]>(0x416D22, {0x74, 0x6F});
+    mem::write<BYTE[2]>(0x416d1d, {0x74, 0x74});
+    mem::write<BYTE[2]>(0x416D22, {0x74, 0x6F});
   }
   // Zeal::Game::print_chat("Tooltips for all containers while holding alt: %s", all_containers ? "enabled" :
   // "disabled");
 }
 
 Tooltip::Tooltip(ZealService *zeal) {
-  mem::write<byte>(0x59e112, 0x82);  // change from jbe to jb so if you disable the tooltip timer completely it doesnt
+  mem::write<BYTE>(0x59e112, 0x82);  // change from jbe to jb so if you disable the tooltip timer completely it doesnt
                                      // flash as you move your cursor (unnoticeable change for normal)
   set_alt_all_containers(all_containers.get());
   set_timer(hover_timeout.get());

@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "commands.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
 #include "zeal.h"
 

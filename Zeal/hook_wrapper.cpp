@@ -1,5 +1,7 @@
 #include "hook_wrapper.h"
-typedef BYTE byte;  // unsigned char
+
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "psapi.lib")
 
 namespace Zeal {
 namespace Memory {
@@ -36,16 +38,16 @@ static void patch_relative_addresses(int trampoline, int addr, int byte_count) {
 void hook::detour(int addr, int dest) {
   int orig_to_dest_offset = dest - addr - 5;
   DWORD old_protect;
-  if (*(byte *)addr == 0xE9)  // a jump (already hooked by something lets play nice)
+  if (*(BYTE *)addr == 0xE9)  // a jump (already hooked by something lets play nice)
   {
     orig_byte_count = 5;
     trampoline = (int)malloc(orig_byte_count);
     VirtualProtect((LPVOID)trampoline, orig_byte_count, PAGE_EXECUTE_READWRITE, &old_protect);
     int jmp_absolute = mem::instruction_to_absolute_address(addr);
     int trampoline_to_orig_offset = jmp_absolute - trampoline - 5;
-    mem::write<byte>(trampoline, 0xE9);
+    mem::write<BYTE>(trampoline, 0xE9);
     mem::write<int>(trampoline + 1, trampoline_to_orig_offset);
-    mem::write<byte>(addr, 0xE9);
+    mem::write<BYTE>(addr, 0xE9);
     mem::write<int>(addr + 1, orig_to_dest_offset);
     // there is no need to write a jump back to the original since we are just going to jump to their hook
   } else {
@@ -58,11 +60,11 @@ void hook::detour(int addr, int dest) {
     int trampoline_to_orig_offset = addr - trampoline - orig_byte_count;
 
     // Write the relative jump instruction at the end of the trampoline
-    mem::write<byte>(trampoline + orig_byte_count, 0xE9);
+    mem::write<BYTE>(trampoline + orig_byte_count, 0xE9);
     mem::write<int>(trampoline + orig_byte_count + 1, trampoline_to_orig_offset);
 
     // Write the relative jump instruction at the original address
-    mem::write<byte>(addr, 0xE9);
+    mem::write<BYTE>(addr, 0xE9);
     mem::write<int>(addr + 1, orig_to_dest_offset);
 
     // If there are more than 5 bytes of original instructions, fill the gap with NOPs
@@ -83,7 +85,7 @@ void hook::replace_vtable(int addr, int index, int dest) {
   orig_byte_count = 4;
   trampoline = (int)malloc(5);
   VirtualProtect((LPVOID)trampoline, 5, PAGE_EXECUTE_READWRITE, &old_protect);
-  mem::write<byte>(trampoline, 0xE9);
+  mem::write<BYTE>(trampoline, 0xE9);
   mem::write<int>(trampoline + 1, orig_addr);
   mem::write<int>(addr, dest);
 }
@@ -93,7 +95,7 @@ void hook::replace_vtable(int addr, int dest) {
   trampoline = (int)malloc(5);
   VirtualProtect((LPVOID)trampoline, 5, PAGE_EXECUTE_READWRITE, &old_protect);
   int trampoline_to_orig_offset = *(int *)addr - trampoline - 5;
-  mem::write<byte>(trampoline, 0xE9);
+  mem::write<BYTE>(trampoline, 0xE9);
   mem::write<int>(trampoline + 1, trampoline_to_orig_offset);
   mem::write<int>(addr, dest);
 }

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Windows.h>
 
 #include "vectors.h"
@@ -19,12 +18,13 @@
 #define GAME_NUM_HOTBUTTONS 10
 #define GAME_NUM_HOTBUTTONS_TOTAL 100
 #define GAME_NUM_CONTAINER_SLOTS 10
+#define GAMESTATE_STARTUP 0
 #define GAMESTATE_CHARSELECT 1
 #define GAMESTATE_SOMETHING 4
 #define GAMESTATE_INGAME 5
 #define GAMESTATE_PRECHARSELECT 6
 #define GAMESTATE_LOGGINGIN 253
-#define GAMESTATE_UNLOADING 255
+#define GAMESTATE_UNLOADING 255  // Set to this state to exit ProcessGame() loop.
 
 #define USERCOLOR_SAY 0xFF + 1                 //  1  - Say
 #define USERCOLOR_TELL 0xFF + 2                //  2  - Tell
@@ -1078,10 +1078,83 @@ struct GameClass {
 
   BYTE IsOkToTransact() { return reinterpret_cast<BYTE(__thiscall *)(GameClass *)>(0x54825C)(this); }
 
+  void doInspect(struct Zeal::GameStructures::Entity *player) {
+    reinterpret_cast<void(__thiscall *)(GameClass *, Zeal::GameStructures::Entity *)>(0x54390E)(this, player);
+  }
+
+  void DoPercentConvert(const char *buffer, int unk_flag) {
+    reinterpret_cast<void(__thiscall *)(GameClass *, const char *, int)>(0x00538110)(this, buffer, unk_flag);
+  }
+
+  void dsp_chat(char *data, short color, bool un) {
+    reinterpret_cast<void(__thiscall *)(GameClass *, char *, short, bool)>(0x00537f99)(this, data, color, un);
+  }
+
+  const char *GetClassDesc(int class_id) {
+    return reinterpret_cast<const char *(__thiscall *)(GameClass *, int)>(0x0052d5f1)(this, class_id);
+  }
+
+  const char *GetTitleDesc(int class_id, int aa_rank, int gender) {
+    return reinterpret_cast<const char *(__thiscall *)(GameClass *, int, int, int)>(0x0052eb69)(this, class_id, aa_rank,
+                                                                                                gender);
+  }
+
+  void IssuePetCommand(int command, short spawn_id) {
+    reinterpret_cast<void(__thiscall *)(GameClass *, int, short)>(0x00547749)(this, command, spawn_id);
+  }
+
+  char *stripName(const char *spawn_name) {
+    return reinterpret_cast<char *(__thiscall *)(GameClass *, const char *)>(0x00537f99)(this, spawn_name);
+  }
+
+  char *trimName(const char *spawn_name) {
+    return reinterpret_cast<char *(__thiscall *)(GameClass *, const char *)>(0x00537D39)(this, spawn_name);
+  }
+
   /*0x000*/ BYTE Unknown0000[0x288];
   /*0x288*/ void *ChannelServerApi;  // Pointer to ChannelServerApi object.
   /*0x28C*/ BYTE Unknown028c[0x320];
-  /*0x5AC*/ int game_state;
+  /*0x5AC*/ int game_state;  // Holds GAMESTATE_* values.
+};
+
+struct Display {
+  void SetDayPeriod(int period) { reinterpret_cast<void(__thiscall *)(Display *, int)>(0x004b177f)(this, period); }
+
+  void SetFog(int toggle, float distance, float unknown, char r, char g, char b) {
+    reinterpret_cast<void(__thiscall *)(Display *, int, float, float, char, char, char)>(0x004add26)(
+        this, toggle, distance, unknown, r, g, b);
+  }
+
+  void SetSunLight() { reinterpret_cast<void(__thiscall *)(Display *)>(0x004b18b1)(this); }
+
+  void SetYon(float clip) { reinterpret_cast<void(__thiscall *)(Display *, float)>(0x004aca7f)(this, clip); }
+
+  // Calls s3dCollideSphereWithWorld internally.
+  char GenericSphereColl(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z,
+                         float *result_x, float *result_y, float *result_z, char collision_type) {
+    return reinterpret_cast<char(__thiscall *)(Display *, float, float, float, float, float, float, float *, float *,
+                                               float *, char)>(0x004b3c45)(
+        this, start_x, start_y, start_z, end_x, end_y, end_z, result_x, result_y, result_z, collision_type);
+  }
+
+  struct ReferenceList {
+    int unknown;
+    int count;           // Number of valid entries in list.
+    int allocated_size;  // Allocated size of buffer.
+    int *list;           // Base of list.
+  };
+
+  /* 0x0000 */ BYTE Unknown0000[0x4];
+  /* 0x0004 */ int *World;
+  /* 0x0008 */ float *ActiveCamera;  // Pointer to camera position (source used to update CameraLocation).
+  /* 0x000C */ BYTE Unknown000C[0x10];
+  /* 0x001C */ float CameraLocation[7];  // Updated in RenderWorld with t3dGetCameraLocation.
+  /* 0x0038 */ BYTE Unknown0038[0x90];
+  /* 0x00C8 */ DWORD GameTimeMs;  // Millisecond timestamp updated at start of RealRender_World.
+  /* 0x00CC */ BYTE Unknown00CC[0x2bd8];
+  /* 0x2CA4 */ DWORD WorldDisplayStarted;  // Set in CDisplay::StartWorldDisplay().
+  /* 0x2CA8 */ BYTE Unknown2CA4[0x28];
+  /* 0x2CD0 */ ReferenceList VisibleReferenceList;
 };
 
 struct Entity {

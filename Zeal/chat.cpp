@@ -3,10 +3,21 @@
 #include <algorithm>
 #include <regex>
 
+#include "binds.h"
+#include "chatfilter.h"
+#include "commands.h"
+#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "labels.h"
+#include "memory.h"
+#include "named_pipe.h"
 #include "string_util.h"
+#include "tellwindows.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 std::string ReadFromClipboard() {
@@ -510,7 +521,7 @@ void __fastcall DoPercentConvert(int *t, int u, char *data, int u2) {
 
   if (Zeal::Game::is_in_game()) {
     try {
-      auto chat_hook = ZealService::get_instance()->chat_hook;
+      auto chat_hook = ZealService::get_instance()->chat_hook.get();  // Temporary raw pointer.
       if (chat_hook) {
         chat_hook->DoPercentReplacements(str_data);
         size_t new_len = str_data.length();
@@ -698,10 +709,10 @@ Chat::Chat(ZealService *zeal) {
 
 void Chat::set_classes() {
   if (UseClassicClassNames.get()) {
-    mem::write<byte>(0x4bc090, 66);  // this just changes the if statement to check if the player is > 65 rather than >
+    mem::write<BYTE>(0x4bc090, 66);  // this just changes the if statement to check if the player is > 65 rather than >
                                      // 50
   } else {
-    mem::write<byte>(0x4bc090, 51);
+    mem::write<BYTE>(0x4bc090, 51);
   }
 }
 

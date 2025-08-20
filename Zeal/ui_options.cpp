@@ -1,13 +1,33 @@
 #include "ui_options.h"
 
-#include <algorithm>
-
+#include "assist.h"
+#include "camera_mods.h"
+#include "chat.h"
+#include "chatfilter.h"
+#include "directx.h"
+#include "equip_item.h"
+#include "floating_damage.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "helm_manager.h"
+#include "hook_wrapper.h"
+#include "item_display.h"
+#include "looting.h"
+#include "music.h"
+#include "nameplate.h"
+#include "npc_give.h"
+#include "outputfile.h"
+#include "patches.h"
+#include "player_movement.h"
 #include "string_util.h"
+#include "target_ring.h"
+#include "tellwindows.h"
+#include "tooltip.h"
+#include "ui_manager.h"
+#include "ui_skin.h"
 #include "zeal.h"
-#include "zeal_settings.h"
+#include "zone_map.h"
 
 static constexpr int kMaxComboBoxItems = 50;  // Maximum length of dynamic combobox lists.
 static constexpr char kDefaultSoundNone[] = "None";
@@ -323,11 +343,11 @@ void ui_options::LoadColors() {
 void ui_options::InitUI() {
   if (wnd) Zeal::Game::print_chat("Warning: Init out of sync for ui_options");
 
-  static const char *xml_file = "./uifiles/zeal/EQUI_ZealOptions.xml";
+  std::filesystem::path xml_file = UISkin::get_zeal_xml_path() / std::filesystem::path("EQUI_ZealOptions.xml");
   if (!wnd && ui && std::filesystem::exists(xml_file)) wnd = ui->CreateSidlScreenWnd("ZealOptions");
 
   if (!wnd) {
-    Zeal::Game::print_chat("Error: Failed to load %s", xml_file);
+    Zeal::Game::print_chat("Error: Failed to load %s", xml_file.string().c_str());
     return;
   }
 
@@ -856,7 +876,6 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
-
     // Sync the ComboBox with /shownames command
     std::vector<std::string> args = {"shownames"};
     if (value == 0) {
@@ -880,10 +899,8 @@ void ui_options::InitNameplate() {
     // Call the original game function /shownames with value selected from ComboBox
     reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
 
-
     // Update UI immediately after execution (NO DELAYS)
     UpdateOptionsNameplate();
-    
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateLocalAATitle_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
@@ -1249,7 +1266,7 @@ void ui_options::UpdateDynamicUI() {
     cmb->DeleteAll();
     ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
   }
-  
+
   cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateLocalAATitle_Combobox");
   if (cmb) {
     cmb->DeleteAll();
@@ -1263,9 +1280,9 @@ void ui_options::UpdateDynamicUI() {
 void ui_options::CleanDynamicUI() {
   if (!wnd) return;
 
-  std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox", "Zeal_MapFont_Combobox",
-                                       "Zeal_FloatingFont_Combobox",      "Zeal_NameplateFont_Combobox",
-                                       "Zeal_TellSound_Combobox",         "Zeal_InviteSound_Combobox",
+  std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox",  "Zeal_MapFont_Combobox",
+                                       "Zeal_FloatingFont_Combobox",       "Zeal_NameplateFont_Combobox",
+                                       "Zeal_TellSound_Combobox",          "Zeal_InviteSound_Combobox",
                                        "Zeal_NameplateShownames_Combobox", "Zeal_NameplateLocalAATitle_Combobox"};
   for (const auto &box_name : box_list) {
     Zeal::GameUI::ComboWnd *cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem(box_name.c_str());
@@ -1335,7 +1352,6 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { RenderUI(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { Deactivate(); }, callback_type::DeactivateUI);
-  ui->AddXmlInclude("EQUI_ZealOptions.xml");
 
   zeal->hooks->Add("ContainerWndSetContainer", 0x0041717d, ContainerWndSetContainer, hook_type_detour);
   zeal->hooks->Add("SidlScreenWndHandleRButtonDown", 0x005703f0, SidlScreenWndHandleRButtonDown, hook_type_detour);

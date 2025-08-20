@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<XML ID="EQInterfaceDefinitionLanguage">
+<Composite>
+	<Include>EQUI_Tab_Colors.xml</Include>
+	<Include>EQUI_Tab_General.xml</Include>
+	<Include>EQUI_Tab_Cam.xml</Include>
+	<Include>EQUI_Tab_Map.xml</Include>
+	<Include>EQUI_Tab_TargetRing.xml</Include>
+	<Include>EQUI_Tab_Nameplate.xml</Include>
+	<Include>EQUI_Tab_FloatingDamage.xml</Include>
+</Composite>
+<Schema xmlns="EverQuestData" xmlns:dt="EverQuestDataTypes" />
+  <TabBox item="ZealOptionsTabs">
+    <ScreenID>ZealOptionsTabs</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <AutoStretch>true</AutoStretch>
+    <TopAnchorToTop>true</TopAnchorToTop>
+    <BottomAnchorToTop>false</BottomAnchorToTop>
+    <LeftAnchorToLeft>true</LeftAnchorToLeft>
+    <RightAnchorToLeft>false</RightAnchorToLeft>
+    <TabBorderTemplate>FT_DefTabBorder</TabBorderTemplate>
+    <PageBorderTemplate>FT_DefPageBorder</PageBorderTemplate>
+    <Pages>Tab_General</Pages>
+    <Pages>Tab_Camera</Pages>
+    <Pages>Tab_Map</Pages>
+    <Pages>Tab_TargetRing</Pages>
+	<Pages>Tab_Nameplate</Pages>
+	<Pages>Tab_FloatingDamage</Pages>
+	<Pages>Tab_Colors</Pages>
+  </TabBox>
+  <Screen item="ZealOptions">
+    <ScreenID>ZealOptions</ScreenID>
+    <RelativePosition>false</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>20</Y>
+    </Location>
+    <Size>
+      <CX>1080</CX>
+      <CY>790</CY>
+    </Size>
+    <Text>Zeal Options</Text>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+	<AutoStretch>true</AutoStretch>
+    <TooltipReference />
+    <DrawTemplate>WDT_Def</DrawTemplate>
+    <Style_Titlebar>true</Style_Titlebar>
+    <Style_Closebox>false</Style_Closebox>
+    <Style_Minimizebox>true</Style_Minimizebox>
+    <Style_Border>true</Style_Border>
+    <Style_Sizable>false</Style_Sizable>
+    <Pieces>ZealOptionsTabs</Pieces>
+  </Screen>
+</XML>

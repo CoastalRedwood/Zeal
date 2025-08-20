@@ -1,10 +1,5 @@
 #pragma once
-#include <windows.h>
-#include <dbghelp.h>
-
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <Windows.h>
 
 class CrashHandler {
  public:

@@ -1,6 +1,4 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class Alarm {
  public:
@@ -11,7 +9,7 @@ class Alarm {
 
  private:
   void callback_main();
-  ULONGLONG start_time = 0;
+  unsigned long long start_time = 0;
   double duration = 0;
   bool enabled = false;
 };

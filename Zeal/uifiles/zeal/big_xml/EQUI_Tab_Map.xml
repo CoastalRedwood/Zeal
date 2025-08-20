@@ -1,0 +1,1077 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<XML ID="EQInterfaceDefinitionLanguage">
+  <Schema xmlns="EverQuestData" xmlns:dt="EverQuestDataTypes" />
+<Button item="Zeal_Map">
+    <ScreenID>Zeal_Map</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>28</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Toggles the map overlay</TooltipReference>
+    <Text>Enabled</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Label item="Zeal_MapBackground_Label">
+    <ScreenID>Zeal_MapBackground_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>86</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Background</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapBackground_Combobox">
+    <ScreenID>Zeal_MapBackground_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>20</X>
+      <Y>126</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>None</Choices>
+    <Choices>Dark</Choices>
+    <Choices>Light</Choices>
+    <Choices>Tan</Choices>
+  </Combobox>  
+  
+  <Label item="Zeal_MapBackgroundAlpha_Label">
+    <ScreenID>Zeal_MapBackgroundAlpha_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>200</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Background alpha</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapBackgroundAlpha_Slider">
+    <ScreenID>Zeal_MapBackgroundAlpha_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>240</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapBackgroundAlpha_Value">
+    <ScreenID>Zeal_MapBackgroundAlpha_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>220</X>
+      <Y>240</Y>
+    </Location>
+    <Size>
+      <CX>80</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapFadedZLevelAlpha_Label">
+    <ScreenID>Zeal_MapFadedZLevelAlpha_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>284</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Faded Z-level alpha</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapFadedZLevelAlpha_Slider">
+    <ScreenID>Zeal_MapFadedZLevelAlpha_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>324</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapFadedZLevelAlpha_Value">
+    <ScreenID>Zeal_MapFadedZLevelAlpha_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>220</X>
+      <Y>324</Y>
+    </Location>
+    <Size>
+      <CX>80</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Button item="Zeal_MapAutoFadeEnable">
+    <ScreenID>Zeal_MapAutoFadeEnable</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>368</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Defaults to z-level autofade mode</TooltipReference>
+    <Text>Default to Z Autofade</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Label item="Zeal_MapAlignment_Label">
+    <ScreenID>Zeal_MapAlignment_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>428</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Alignment</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapAlignment_Combobox">
+    <ScreenID>Zeal_MapAlignment_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>20</X>
+      <Y>468</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Top Left</Choices>
+    <Choices>Top Center</Choices>
+    <Choices>Top Right</Choices>
+  </Combobox>
+  
+  <Label item="Zeal_MapLabels_Label">
+    <ScreenID>Zeal_MapLabels_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>538</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Labels</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapLabels_Combobox">
+    <ScreenID>Zeal_MapLabels_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>20</X>
+      <Y>578</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Off</Choices>
+    <Choices>Summary</Choices>
+    <Choices>All</Choices>
+    <Choices>Marker only</Choices>
+  </Combobox>
+  
+  <Label item="Zeal_MapShowGroup_Label">
+    <ScreenID>Zeal_MapShowGroup_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>648</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Show group members</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapShowGroup_Combobox">
+    <ScreenID>Zeal_MapShowGroup_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>20</X>
+      <Y>688</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Off</Choices>
+    <Choices>Markers only</Choices>
+    <Choices>Markers and numbers</Choices>
+    <Choices>Markers and names</Choices>
+  </Combobox>  
+  
+  <Button item="Zeal_MapShowRaid">
+    <ScreenID>Zeal_MapShowRaid</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>758</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Shows raid members on map</TooltipReference>
+    <Text>Show Raid</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_MapShowPlayerHeadings">
+    <ScreenID>Zeal_MapShowPlayerHeadings</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>802</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Shows all player headings</TooltipReference>
+    <Text>Show Headings</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Label item="Zeal_MapNamesLength_Label">
+    <ScreenID>Zeal_MapNamesLength_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>862</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Member names length</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapNamesLength_Slider">
+    <ScreenID>Zeal_MapNamesLength_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>902</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapNamesLength_Value">
+    <ScreenID>Zeal_MapNamesLength_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>220</X>
+      <Y>902</Y>
+    </Location>
+    <Size>
+      <CX>80</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Button item="Zeal_MapShowGrid">
+    <ScreenID>Zeal_MapShowGrid</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>948</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Shows grid lines on map</TooltipReference>
+    <Text>Show grid lines</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Label item="Zeal_MapGridPitch_Label">
+    <ScreenID>Zeal_MapGridPitch_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>1008</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Grid line pitch</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapGridPitch_Slider">
+    <ScreenID>Zeal_MapGridPitch_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>1048</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapGridPitch_Value">
+    <ScreenID>Zeal_MapGridPitch_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>220</X>
+      <Y>1048</Y>
+    </Location>
+    <Size>
+      <CX>80</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapKeyBinds_Label">
+    <ScreenID>Zeal_MapKeyBinds_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>10</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>64</CY>
+    </Size>
+    <Text>See Keyboard-&gt;UI for Map Keybinds (recommended)</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapSizing_Label">
+    <ScreenID>Zeal_MapSizing_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>86</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>64</CY>
+    </Size>
+    <Text>Use unlocked interactive mode to resize/move map.</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  
+  <Button item="Zeal_MapInteractiveEnable">
+    <ScreenID>Zeal_MapInteractiveEnable</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>190</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Enables windowed mode for internal map</TooltipReference>
+    <Text>Interactive Enable</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+    <Button item="Zeal_MapExternalWindow">
+      <ScreenID>Zeal_MapExternalWindow</ScreenID>
+      <RelativePosition>true</RelativePosition>
+      <Location>
+        <X>394</X>
+        <Y>250</Y>
+      </Location>
+      <Size>
+        <CX>300</CX>
+        <CY>40</CY>
+      </Size>
+      <Style_VScroll>false</Style_VScroll>
+      <Style_HScroll>false</Style_HScroll>
+      <Style_Transparent>false</Style_Transparent>
+      <Style_Checkbox>true</Style_Checkbox>
+      <TooltipReference>Shows map in an external window</TooltipReference>
+      <Text>External Window</Text>
+      <TextColor>
+        <R>255</R>
+        <G>255</G>
+        <B>255</B>
+      </TextColor>
+      <ButtonDrawTemplate>
+        <Normal>A_BtnNormal</Normal>
+        <Pressed>A_BtnPressed</Pressed>
+        <Flyby>A_BtnFlyby</Flyby>
+        <Disabled>A_BtnDisabled</Disabled>
+        <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+      </ButtonDrawTemplate>
+    </Button>
+  
+  <Label item="Zeal_MapPositionSize_Label">
+    <ScreenID>Zeal_MapPositionSize_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>312</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Position size</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapPositionSize_Slider">
+    <ScreenID>Zeal_MapPositionSize_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>352</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapPositionSize_Value">
+    <ScreenID>Zeal_MapPositionSize_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>594</X>
+      <Y>352</Y>
+    </Location>
+    <Size>
+      <CX>100</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapMarkerSize_Label">
+    <ScreenID>Zeal_MapMarkerSize_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>396</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Marker size</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapMarkerSize_Slider">
+    <ScreenID>Zeal_MapMarkerSize_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>436</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapMarkerSize_Value">
+    <ScreenID>Zeal_MapMarkerSize_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>594</X>
+      <Y>436</Y>
+    </Location>
+    <Size>
+      <CX>100</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapZoom_Label">
+    <ScreenID>Zeal_MapZoom_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>480</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Zoom</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_MapZoom_Slider">
+    <ScreenID>Zeal_MapZoom_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>520</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_MapZoom_Value">
+    <ScreenID>Zeal_MapZoom_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>594</X>
+      <Y>520</Y>
+    </Location>
+    <Size>
+      <CX>100</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+  
+  <Label item="Zeal_MapZoomDefault_Label">
+    <ScreenID>Zeal_MapZoomDefault_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>584</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Default Zoom</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapZoomDefault_Combobox">
+    <ScreenID>Zeal_MapZoomDefault_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>394</X>
+      <Y>624</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>100% (1x)</Choices>
+    <Choices>200% (2x)</Choices>
+    <Choices>400% (4x)</Choices>
+    <Choices>800% (8x)</Choices>
+  </Combobox>
+  
+  <Label item="Zeal_MapFont_Label">
+    <ScreenID>Zeal_MapFont_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>694</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Font</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapFont_Combobox">
+    <ScreenID>Zeal_MapFont_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>394</X>
+      <Y>734</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>default</Choices>
+  </Combobox>
+  
+  <Label item="Zeal_MapDataMode_Label">
+    <ScreenID>Zeal_MapDataMode_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>804</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Map data source</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Combobox item="Zeal_MapDataMode_Combobox">
+    <ScreenID>Zeal_MapDataMode_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>394</X>
+      <Y>844</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Internal only</Choices>
+    <Choices>Both</Choices>
+    <Choices>External</Choices>
+  </Combobox>
+  <Button item="Zeal_MapAddLocText">
+    <ScreenID>Zeal_MapAddLocText</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>916</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Adds location coordinates to map</TooltipReference>
+    <Text>Add /loc text</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  
+  <Page item="Tab_Map">
+    <ScreenID>Tab_Map</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    
+    <Style_VScroll>true</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <DrawTemplate>WDT_Def</DrawTemplate>
+    <TabText>Map</TabText>
+    <TabTextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TabTextColor>
+    <TabTextActiveColor>
+      <R>255</R>
+      <G>255</G>
+      <B>0</B>
+    </TabTextActiveColor>
+    <Style_Sizable>true</Style_Sizable>
+    <Pieces>Zeal_Map</Pieces>
+    <Pieces>Zeal_MapShowRaid</Pieces>
+    <Pieces>Zeal_MapShowPlayerHeadings</Pieces>
+    <Pieces>Zeal_MapShowGrid</Pieces>
+    <Pieces>Zeal_MapInteractiveEnable</Pieces>
+    <Pieces>Zeal_MapExternalWindow</Pieces>
+    <Pieces>Zeal_MapPositionSize_Label</Pieces>
+    <Pieces>Zeal_MapPositionSize_Slider</Pieces>
+    <Pieces>Zeal_MapPositionSize_Value</Pieces>
+    <Pieces>Zeal_MapMarkerSize_Label</Pieces>
+    <Pieces>Zeal_MapMarkerSize_Slider</Pieces>
+    <Pieces>Zeal_MapMarkerSize_Value</Pieces>
+    <Pieces>Zeal_MapZoom_Label</Pieces>
+    <Pieces>Zeal_MapZoom_Slider</Pieces>
+    <Pieces>Zeal_MapZoom_Value</Pieces>
+    <Pieces>Zeal_MapKeyBinds_Label</Pieces>
+    <Pieces>Zeal_MapSizing_Label</Pieces>
+    <Pieces>Zeal_MapLabels_Label</Pieces>
+    <Pieces>Zeal_MapLabels_Combobox</Pieces>
+    <Pieces>Zeal_MapBackgroundAlpha_Label</Pieces>
+    <Pieces>Zeal_MapBackgroundAlpha_Slider</Pieces>
+    <Pieces>Zeal_MapBackgroundAlpha_Value</Pieces>
+    <Pieces>Zeal_MapFadedZLevelAlpha_Label</Pieces>
+    <Pieces>Zeal_MapFadedZLevelAlpha_Slider</Pieces>
+    <Pieces>Zeal_MapFadedZLevelAlpha_Value</Pieces>
+    <Pieces>Zeal_MapAutoFadeEnable</Pieces>
+    <Pieces>Zeal_MapAddLocText</Pieces>
+    <Pieces>Zeal_MapNamesLength_Label</Pieces>
+    <Pieces>Zeal_MapNamesLength_Slider</Pieces>
+    <Pieces>Zeal_MapNamesLength_Value</Pieces>
+    <Pieces>Zeal_MapGridPitch_Label</Pieces>
+    <Pieces>Zeal_MapGridPitch_Slider</Pieces>
+    <Pieces>Zeal_MapGridPitch_Value</Pieces>
+    <Pieces>Zeal_MapDataMode_Label</Pieces>
+    <Pieces>Zeal_MapDataMode_Combobox</Pieces>
+    <Pieces>Zeal_MapFont_Label</Pieces>
+    <Pieces>Zeal_MapFont_Combobox</Pieces>
+    <Pieces>Zeal_MapZoomDefault_Label</Pieces>
+    <Pieces>Zeal_MapZoomDefault_Combobox</Pieces>
+    <Pieces>Zeal_MapShowGroup_Label</Pieces>
+    <Pieces>Zeal_MapShowGroup_Combobox</Pieces>
+    <Pieces>Zeal_MapAlignment_Label</Pieces>
+    <Pieces>Zeal_MapAlignment_Combobox</Pieces>
+    <Pieces>Zeal_MapBackground_Label</Pieces>
+    <Pieces>Zeal_MapBackground_Combobox</Pieces>
+    <Location>
+      <X>0</X>
+      <Y>44</Y>
+    </Location>
+    <Size>
+      <CX>760</CX>
+      <CY>678</CY>
+    </Size>
+  </Page>
+  </XML>

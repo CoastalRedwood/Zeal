@@ -1,6 +1,6 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <Windows.h>
+
 #include "zeal_settings.h"
 
 enum strafe_direction { None, Left, Right };

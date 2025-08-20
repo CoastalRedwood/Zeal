@@ -1,13 +1,12 @@
 #pragma once
-#include <stdint.h>
+#include <Windows.h>
+
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "bitmap_font.h"
 #include "d3dx8/d3d8.h"
-#include "game_packets.h"
-#include "game_structures.h"
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "zeal_settings.h"
 
 struct DamageData {

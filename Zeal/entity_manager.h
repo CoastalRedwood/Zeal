@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "game_structures.h"
-#include "hook_wrapper.h"
 
 class EntityManager {
  public:

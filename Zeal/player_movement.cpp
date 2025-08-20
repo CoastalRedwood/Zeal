@@ -1,6 +1,10 @@
 #include "player_movement.h"
 
+#include "binds.h"
+#include "commands.h"
 #include "game_addresses.h"
+#include "hook_wrapper.h"
+#include "memory.h"
 #include "string_util.h"
 #include "zeal.h"
 

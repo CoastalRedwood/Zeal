@@ -1,7 +1,4 @@
 #pragma once
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 
 class ui_raid {
  public:
@@ -9,8 +6,5 @@ class ui_raid {
   ~ui_raid();
 
  private:
-  void InitUI();
-  void CleanUI();
-  void LoadSettings(class IO_ini *ini);
   UIManager *ui;
 };

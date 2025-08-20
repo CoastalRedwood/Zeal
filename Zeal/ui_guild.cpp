@@ -2,9 +2,13 @@
 
 #include <algorithm>
 
-#include "game_addresses.h"
+#include "callbacks.h"
+#include "commands.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
+#include "memory.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 void ui_guild::CleanUI() {
@@ -26,7 +30,7 @@ void ui_guild::InitUI() {
   members = (Zeal::GameUI::ListWnd *)guild->GetChildItem("MemberList");
 }
 
-ui_guild::ui_guild(ZealService *zeal, IO_ini *ini, UIManager *mgr) {
+ui_guild::ui_guild(ZealService *zeal, UIManager *mgr) {
   ui = mgr;
   guild = nullptr;
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);

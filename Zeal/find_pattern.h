@@ -1,8 +1,5 @@
 #pragma once
 #include <Windows.h>
-#include <psapi.h>
-
-#include <iostream>
 
 namespace Zeal {
 namespace Memory {

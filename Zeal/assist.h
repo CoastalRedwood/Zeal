@@ -1,5 +1,9 @@
 #pragma once
-#include "game_structures.h"
+
+#include <string>
+#include <vector>
+
+#include "game_packets.h"
 #include "zeal_settings.h"
 
 // Enhancements for the /assist command. Separate class since commands.cpp can't use settings.

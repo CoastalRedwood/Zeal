@@ -1,9 +1,9 @@
 #include "directx.h"
 
+#include "hook_wrapper.h"
 #include "zeal.h"
 #pragma comment(lib, "d3dx8/d3d8.lib")
 #pragma comment(lib, "d3dx8/d3dx8.lib")
-#include <chrono>
 
 HRESULT WINAPI Local_BeginScene(LPDIRECT3DDEVICE8 pDevice) {
   if (pDevice) {

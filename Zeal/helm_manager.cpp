@@ -1,7 +1,9 @@
 #include "helm_manager.h"
 
-#include "game_addresses.h"
+#include "commands.h"
 #include "game_functions.h"
+#include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
 #include "zeal.h"
 
@@ -30,8 +32,9 @@ constexpr bool HELM_MANAGER_LOG_DEBUG = false;
 static const std::string SwapHeadHook = "CDisplaySwapHead";
 
 // Callback any time the head is changing
-int __fastcall SwapHead_hk(int cDisplay, int unused_edx, Zeal::GameStructures::Entity *entity, int new_material,
-                           int old_material, DWORD color, int local_only) {
+int __fastcall SwapHead_hk(Zeal::GameStructures::Display *cDisplay, int unused_edx,
+                           Zeal::GameStructures::Entity *entity, int new_material, int old_material, DWORD color,
+                           int local_only) {
   return ZealService::get_instance()->helm->HandleSwapHead(cDisplay, entity, new_material, old_material, color,
                                                            local_only);
 }
@@ -43,8 +46,9 @@ int __fastcall EntityChangeForm_hk(Zeal::GameStructures::Entity *entity, int unu
 }
 
 // Callback when Server (local_only=true) or UI (local_only=false) is changing our armor appearance
-void __fastcall WearChangeArmor_hk(int cDisplay, int unused_edx, Zeal::GameStructures::Entity *spawn, int wear_slot,
-                                   WORD new_material, WORD old_material, DWORD colors, bool local_only) {
+void __fastcall WearChangeArmor_hk(Zeal::GameStructures::Display *cDisplay, int unused_edx,
+                                   Zeal::GameStructures::Entity *spawn, int wear_slot, WORD new_material,
+                                   WORD old_material, DWORD colors, bool local_only) {
   ZealService::get_instance()->helm->HandleWearChangeArmor(cDisplay, spawn, wear_slot, new_material, old_material,
                                                            colors, local_only);
 }
@@ -53,12 +57,12 @@ void __fastcall WearChangeArmor_hk(int cDisplay, int unused_edx, Zeal::GameStruc
 int SwapHeadOriginal(Zeal::GameStructures::Entity *entity, int new_material, int old_material, DWORD color,
                      int local_only) {
   return ZealService::get_instance()->hooks->hook_map[SwapHeadHook]->original(SwapHead_hk)(
-      *(int *)Zeal::Game::Display, 0, entity, new_material, old_material, color, local_only);
+      Zeal::Game::get_display(), 0, entity, new_material, old_material, color, local_only);
 }
 
 // Helper function
 int SwapHead(Zeal::GameStructures::Entity *entity, int new_material, int old_material, DWORD color, int local_only) {
-  return SwapHead_hk(*(int *)Zeal::Game::Display, 0, entity, new_material, old_material, color, local_only);
+  return SwapHead_hk(Zeal::Game::get_display(), 0, entity, new_material, old_material, color, local_only);
 }
 
 // This is the main hook that handles 80% of fixing Velious Helms. For context, the issue with Velious helms is the
@@ -72,8 +76,8 @@ int SwapHead(Zeal::GameStructures::Entity *entity, int new_material, int old_mat
 // head/material (4) when they wear nothing.
 // - The base head (material 0) ends up only being used while wearing a Velious Helm, so that their hair doesn't clip
 // through, because we deleted all the hair.
-int HelmManager::HandleSwapHead(int cDisplay, Zeal::GameStructures::Entity *entity, int new_material, int old_material,
-                                DWORD color, int local_only) {
+int HelmManager::HandleSwapHead(Zeal::GameStructures::Display *cDisplay, Zeal::GameStructures::Entity *entity,
+                                int new_material, int old_material, DWORD color, int local_only) {
   ZealService *zeal = ZealService::get_instance();
 
   // (1) Respect the ShowHelm toggle:
@@ -112,6 +116,7 @@ int HelmManager::HandleSwapHead(int cDisplay, Zeal::GameStructures::Entity *enti
     local_only = true;
   }
 
+#pragma warning(suppress : 6237)
   if (HELM_MANAGER_LOG_DEBUG && entity == Zeal::Game::get_self()) {
     Zeal::Game::print_chat("[HelmManager] [SwapHead_hk] APPLY SwapHead (%i -> %i) %s Race:%u Gender:%u Silent:%s",
                            old_material, new_material, entity->Name, entity->Race, entity->Gender,
@@ -212,8 +217,9 @@ int HelmManager::HandleIllusion(Zeal::GameStructures::Entity *entity, Zeal::Pack
 }
 
 // Callback when Server (local_only=true) or UI (local_only=false) is changing our armor appearance
-void HelmManager::HandleWearChangeArmor(int cDisplay, Zeal::GameStructures::Entity *spawn, int wear_slot,
-                                        WORD new_material, WORD old_material, DWORD colors, int local_only) {
+void HelmManager::HandleWearChangeArmor(Zeal::GameStructures::Display *cDisplay, Zeal::GameStructures::Entity *spawn,
+                                        int wear_slot, WORD new_material, WORD old_material, DWORD colors,
+                                        int local_only) {
   int block_wearchange = 0;
   if (wear_slot == kMaterialSlotHead && local_only && spawn == Zeal::Game::get_self()) {
     // Check for any showhelm violation.
@@ -520,9 +526,9 @@ void HelmManager::SyncShowHelm(bool server_silent) {
 }
 
 void HelmManager::DetectInstalledFixes() {
-  int *this_display = *(int **)Zeal::Game::Display;
-  if (this_display) {
-    int dictionary = this_display[1];
+  auto display = Zeal::Game::get_display();
+  if (display) {
+    int dictionary = reinterpret_cast<int>(display->World);
     if (dictionary) {
       FARPROC fn = GetProcAddress(GetModuleHandleA("eqgfx_dx8.dll"), "t3dGetPointerFromDictionary");
       if (fn) {
@@ -531,7 +537,7 @@ void HelmManager::DetectInstalledFixes() {
         uintptr_t initialized = t3dGetPointerFromDictionary(
             dictionary, "ELFHE00_DMSPRITEDEF");  // Use a known-good value to ensure stuff is loaded
         if (initialized) {
-          IO_ini ini(".\\eqclient.ini");
+          IO_ini ini(IO_ini::kClientFilename);
           UseHumanFemaleFix = !ini.getValue<bool>("Defaults", "UseLuclinHumanFemale") &&
                               t3dGetPointerFromDictionary(dictionary, "HUFHE04_DMSPRITEDEF");
           UseBarbarianFemaleFix = !ini.getValue<bool>("Defaults", "UseLuclinBarbarianFemale") &&

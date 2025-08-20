@@ -1,10 +1,7 @@
 #pragma once
-#include <stdint.h>
+#include <Windows.h>
 
-#include "game_structures.h"
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <unordered_map>
 
 class Physics {
  public:

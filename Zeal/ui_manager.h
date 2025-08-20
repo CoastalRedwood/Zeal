@@ -1,7 +1,10 @@
 #pragma once
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
 #include "ui_bank.h"
 #include "ui_buff.h"
 #include "ui_group.h"
@@ -16,7 +19,6 @@
 
 class UIManager {
  public:
-  static constexpr const char *ui_path = "uifiles\\zeal\\";
   std::string GetUIIni();
 
   Zeal::GameUI::SliderWnd *GetSlider(std::string name);
@@ -54,11 +56,9 @@ class UIManager {
   void AddListItems(Zeal::GameUI::ListWnd *wnd, const std::vector<std::string> data);
   Zeal::GameUI::SidlWnd *CreateSidlScreenWnd(const std::string &name);
   void DestroySidlScreenWnd(Zeal::GameUI::SidlWnd *sidl_wnd);
-  bool WriteTemporaryUI(const std::string &file_path, std::string ui_path);
-  void RemoveTemporaryUI(const std::string &file_path);
-  void AddXmlInclude(const std::string &name);
+  bool WriteTemporaryUI(const std::filesystem::path &orig_xml_file, const std::filesystem::path &merged_xml_file);
+  void RemoveTemporaryUI(const std::filesystem::path &file_path);
   UIManager(class ZealService *zeal);
-  bool AlreadyLoadedXml(std::string name);
   std::shared_ptr<ui_options> options = nullptr;
   std::shared_ptr<ui_bank> bank = nullptr;
   std::shared_ptr<ui_loot> loot = nullptr;
@@ -71,12 +71,10 @@ class UIManager {
   std::shared_ptr<ui_zoneselect> zoneselect = nullptr;
   std::shared_ptr<ui_inspect> inspect = nullptr;
   std::vector<std::string> included_files;
-  void CreateTmpXML();
 
  private:
   bool handle_uilock(const std::vector<std::string> &args);
 
-  std::vector<std::string> XMLIncludes;
   std::unordered_map<std::string, Zeal::GameUI::BasicWnd *> checkbox_names;
   std::unordered_map<std::string, Zeal::GameUI::BasicWnd *> button_names;
   std::unordered_map<Zeal::GameUI::BasicWnd *, std::function<void(Zeal::GameUI::BasicWnd *)>> checkbox_callbacks;

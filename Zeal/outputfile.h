@@ -1,6 +1,7 @@
 #pragma once
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <string>
+#include <vector>
+
 #include "zeal_settings.h"
 
 class OutputFile {

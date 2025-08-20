@@ -23,13 +23,15 @@ To disable Zeal, just delete the zeal.asi file.
 - Integrated map (see In-game Map section below)
 - Additional ui support (new gauges, bag control & locking, looting, spellsets, targetrings,
   nameplates, right click to equip, skill window sorting, ctrl for context menus/looting, etc)
-- Autostand on move/cast, autosit on camp with export inventory/spellbook option
+- Autostand on move/cast, autosit on camp with export inventory/spellbook option,
+  enhanced autorun behavior option
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
   tab completion, copy and paste)
 - Optional enhanced spell info (spells, scrolls, items) on info displays
 - Notification sounds (tells, group invites)
 - Third party tool support (silent log messages, direct ZealPipes)
 - Various client bug fixes and patches (crash fixes, helm graphical glitches, etc)
+- Native 4k support with bigger font support (requires custom upscaled xml files)
 
 #### Description of zip file contents
 1. `Zeal_README.md`: A copy of this readme file
@@ -472,6 +474,15 @@ ___
 ### Options UI 
 - Separate Zeal options window that opens in parallel with the client window
 
+---
+### High resolution (4k) big fonts mode
+- Primarily designed for running at native 4k resolution
+- The larger fonts requires the use of custom 2x upscaled ui skins
+- The "big fonts" mode is enabled if the active ui skin folder contains a file
+  named `use_zeal_big_fonts.txt` in it (can be empty)
+- Note: Big fonts are activated at boot and requires a client re-start to transition.
+  - Quit and restart client after using /load or /reloadskin to a different mode
+
 ___
 ### Zeal pipes
 - Zeal supports creating a namedpipe for streaming game updates to third party applications
@@ -490,7 +501,7 @@ The tick event is also logged to the Zeal Pipe, in addition to the gauge value:
 ---
 ### Building
 #### Github official release builds
-1. Commit an updated, unique ZEAL_VERSION in Zeal/Zeal.h that will be used as the release tag.
+1. Commit an updated, unique ZEAL_VERSION in Zeal/zeal.h that will be used as the release tag.
 2. Go to the "Actions" tab of the Github workspace
 3. Select the "Create Manual Release" workflow on the left
 4. Click the drop-down menu on the right top side titled "Run workflow"

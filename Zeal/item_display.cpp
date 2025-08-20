@@ -7,8 +7,8 @@
 
 #include "game_addresses.h"
 #include "hook_wrapper.h"
-#include "memory.h"
 #include "string_util.h"
+#include "ui_skin.h"
 #include "zeal.h"
 #undef max
 #undef min
@@ -236,9 +236,10 @@ static void add_value_at_level(std::string &line, int level) {
 
 static std::string get_spell_info(int spell_id) {
   // Could add a memory cache, but the file access seems quick enough.
-  const char *filename = "./uifiles/zeal/spell_info/spell_info.txt";
+  std::filesystem::path full_filename =
+      UISkin::get_zeal_resources_path() / std::filesystem::path("spell_info") / std::filesystem::path("spell_info.txt");
   std::ifstream spell_file;
-  spell_file.open(filename);
+  spell_file.open(full_filename.c_str());
   if (spell_file.fail()) return "";
 
   // Scan through file skipping all lines then get the relevant one.

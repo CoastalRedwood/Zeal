@@ -1,9 +1,22 @@
 #include "game_functions.h"
 
-#include <windows.h>
+#include <Windows.h>
 
+#include "entity_manager.h"
 #include "game_addresses.h"
+#include "hook_wrapper.h"
+#include "memory.h"
+#include "ui_manager.h"
 #include "zeal.h"
+
+#define CON_WHITE ZealService::get_instance()->ui->options->GetColor(15)  // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0)
+#define CON_RED ZealService::get_instance()->ui->options->GetColor(17)    // D3DCOLOR_ARGB(0xff, 0xf0, 0x0, 0x0)
+#define CON_BLUE                                      \
+  ZealService::get_instance()->ui->options->GetColor( \
+      14)  // D3DCOLOR_ARGB(0xff, 0x0, 0x40, 0xf0) Slightly lighter by default
+#define CON_YELLOW ZealService::get_instance()->ui->options->GetColor(16)     // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0x0)
+#define CON_LIGHTBLUE ZealService::get_instance()->ui->options->GetColor(13)  // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0xf0)
+#define CON_GREEN ZealService::get_instance()->ui->options->GetColor(12)      // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0x0)
 
 namespace Zeal {
 namespace Game {
@@ -368,23 +381,6 @@ bool game_wants_input() {
   return chat_input != 0 || focused_window_needs_input;
 }
 
-void get_camera_location() {
-  DWORD addr = *(DWORD *)0x7f99d4;  // game pointer to function
-  DWORD disp = *(int *)Zeal::Game::Display;
-  DWORD a1 = *(int *)(disp + 0x8);
-  DWORD a2 = (disp + 0x1c);
-  __asm
-  {
-				push ecx
-				mov ecx, disp
-				push a2
-				push a1
-				call addr
-				add esp, 0x8
-				pop ecx
-  }
-}
-
 Vec3 get_ent_head_pos(Zeal::GameStructures::Entity *ent) {
   Vec3 head_pos = ent->Position;
   head_pos.z += ent->Height;
@@ -410,7 +406,7 @@ void DoPercentConvert(std::string &data) {
   char temp_buffer[2048];  // Same maximum size as internal DoPercentConvert.
   strncpy_s(temp_buffer, data.c_str(), sizeof(temp_buffer));
   temp_buffer[sizeof(temp_buffer) - 1] = 0;
-  reinterpret_cast<void(__thiscall *)(int game, const char *name, int len)>(0x538110)(*(int *)0x809478, temp_buffer, 1);
+  Zeal::Game::get_game()->DoPercentConvert(temp_buffer, 1);
   data = temp_buffer;
 }
 
@@ -516,7 +512,7 @@ const char *trim_name(const char *name)  // aka trimName in client
   // This function cleans the name (removes numbers, special characters) but retains any suffix.
   // Use for cleaning up name's corpse123 => name's corpse.
   if (name == NULL) return (char *)"";
-  return reinterpret_cast<char *(__thiscall *)(int this_game, const char *spawnName)>(0x537D39)(*(int *)0x809478, name);
+  return Zeal::Game::get_game()->trimName(name);
 }
 
 const char *strip_name(const char *name)  // aka stripName in client
@@ -524,7 +520,7 @@ const char *strip_name(const char *name)  // aka stripName in client
   // Returns a pointer to a modified name stored in a 64-entry global circular buffer. Does not increment buffer index.
   // Strips any numbers and any text after an apostrophe.  Use for name's corpse123 => name.
   if (name == NULL) return (const char *)"";
-  return reinterpret_cast<char *(__thiscall *)(int this_game, const char *spawnName)>(0x537E4B)(*(int *)0x809478, name);
+  return Zeal::Game::get_game()->stripName(name);
 }
 
 void send_message(UINT opcode, int *buffer, UINT size, int unknown) {
@@ -754,8 +750,10 @@ bool is_in_character_select() { return *(int *)0x63d5d8 != 0; }
 
 int get_region_from_pos(Vec3 *pos) {
   static int last_good_region = 0;
-  GameInternal::t3dGetRegionNumberFromWorldAndXYZ = mem::function<int __cdecl(int, Vec3 *)>(*(int *)0x07f9a30);
-  int rval = GameInternal::t3dGetRegionNumberFromWorldAndXYZ(*(int *)((*(int *)Zeal::Game::Display) + 0x4), pos);
+  auto display = Zeal::Game::get_display();
+  auto t3dGetRegionNumberFromWorldAndXYZ = reinterpret_cast<int(__cdecl *)(int *, Vec3 *)>(*(int **)(0x007f9a30));
+
+  int rval = display ? t3dGetRegionNumberFromWorldAndXYZ(display->World, pos) : -1;
   if (rval == -1)
     rval = last_good_region;
   else
@@ -764,10 +762,10 @@ int get_region_from_pos(Vec3 *pos) {
 }
 
 bool collide_with_world(Vec3 start, Vec3 end, Vec3 &result, char collision_type, bool debug) {
-  DWORD disp = *(int *)Zeal::Game::Display;
-  char x = GameInternal::s3dCollideSphereWithWorld(disp, 0, start.x, start.y, start.z, end.x, end.y, end.z,
-                                                   (float *)&result.x, (float *)&result.y, (float *)&result.z,
-                                                   collision_type);
+  auto display = Game::get_display();
+  if (!display) return false;
+  char x = Game::get_display()->GenericSphereColl(start.x, start.y, start.z, end.x, end.y, end.z, (float *)&result.x,
+                                                  (float *)&result.y, (float *)&result.z, collision_type);
 
   if (debug) {
     print_chat("start: %s  end: %s dist: %f result: %i", start.toString().c_str(), end.toString().c_str(),
@@ -1411,33 +1409,32 @@ bool is_view_actor_invisible(Zeal::GameStructures::Entity *entity) {
   return false;
 }
 
+// Triggers an update of the display's camera location state.
+void update_get_camera_location() {
+  auto display = Zeal::Game::get_display();
+  if (!display) return;
+
+  auto t3dGetCameraLocation = reinterpret_cast<int(__cdecl *)(float *, float *)>(*(int **)(0x007f99d4));
+  t3dGetCameraLocation(display->ActiveCamera, display->CameraLocation);
+}
+
+// Updates the display's VisibleReferenceList and returns the number of visible actors.
+int update_get_world_visible_actor_list(float max_distance) {
+  auto display = Zeal::Game::get_display();
+  if (!display) return 0;
+
+  auto s3dGetWorldVisibleActorList =
+      reinterpret_cast<int(__cdecl *)(int *world, float *active_camera, float *position, float distance, int parameter,
+                                      Zeal::GameStructures::Display::ReferenceList *list)>(*(int **)(0x007f9850));
+  return s3dGetWorldVisibleActorList(display->World, display->ActiveCamera, NULL, max_distance, 0x11,
+                                     &display->VisibleReferenceList);
+}
+
 std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float max_dist, bool only_targetable) {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-  get_camera_location();
-  DWORD disp = *(int *)Zeal::Game::Display;
-  int ent_count = 0;
-  DWORD addr = *(DWORD *)0x7f9850;
-  int a1 = *(int *)(disp + 0x4);
-  int a2 = *(int *)(disp + 0x8);
-  int a3 = (disp + 0x2CD0);
-  float mdist = max_dist;
-  __asm
-  {
-				push ecx
-				mov ecx, disp
-				push a3
-				push 0x11
-				push ecx
-				fstp max_dist
-				push 0
-				push a2
-				push a1
-				call addr
-				add esp, 0x18
-				mov ent_count, eax
-				pop ecx
-  }
-  int *cObject = *(int **)(disp + 0x2CDC);
+  update_get_camera_location();
+  int ent_count = update_get_world_visible_actor_list(max_dist);
+  int *cObject = Zeal::Game::get_display()->VisibleReferenceList.list;
   Zeal::GameStructures::Entity *current_ent;
 
   auto char_info = Zeal::Game::get_char_info();
@@ -1451,7 +1448,7 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
           !current_ent->ActorInfo || current_ent->ActorInfo->IsInvisible || is_view_actor_invisible(current_ent))
         continue;  // Skip self, invalid struct or target spawn types, non-visible.
 
-      if (current_ent->Position.Dist2D(self->Position) <= mdist) {
+      if (current_ent->Position.Dist2D(self->Position) <= max_dist) {
         if (only_targetable) {
           Vec3 result;
           Vec3 ent_head = get_ent_head_pos(current_ent);
@@ -1510,7 +1507,7 @@ std::vector<std::string> splitStringByNewLine(const std::string &str) {
 }
 
 void do_say(bool hide_local, const char *format, ...) {
-  byte orig[13] = {0};
+  BYTE orig[13] = {0};
   if (hide_local) mem::set(0x538672, 0x90, 13, orig);
 
   va_list argptr;
@@ -1528,7 +1525,7 @@ void do_say(bool hide_local, const char *format, ...) {
 }
 
 void do_say(bool hide_local, std::string data) {
-  byte orig[13] = {0};
+  BYTE orig[13] = {0};
   if (hide_local) mem::set(0x538672, 0x90, 13, orig);
 
   GameInternal::do_say(get_self(), data.c_str());
@@ -1550,7 +1547,7 @@ void send_raid_chat(std::string data) { GameInternal::send_raid_chat(Zeal::Game:
 
 void print_chat(std::string data) {
   if (!is_in_game()) {
-    ZealService::get_instance()->print_buffer.push_back(data);
+    ZealService::get_instance()->queue_chat_message(data);
     return;
   }
   std::vector<std::string> vd = splitStringByNewLine(data);
@@ -1564,10 +1561,10 @@ void print_chat(const char *format, ...) {
   vsnprintf(buffer, 511, format, argptr);
   va_end(argptr);
   if (!is_in_game()) {
-    ZealService::get_instance()->print_buffer.push_back(buffer);
+    ZealService::get_instance()->queue_chat_message(buffer);
     return;
   }
-  GameInternal::print_chat(*(int *)0x809478, 0, buffer, 0, true);
+  Zeal::Game::get_game()->dsp_chat(buffer, 0, true);
 }
 
 void print_debug(const char *format, ...) {
@@ -1593,10 +1590,10 @@ void print_chat(short color, const char *format, ...) {
   vsnprintf(buffer, 511, format, argptr);
   va_end(argptr);
   if (!is_in_game()) {
-    ZealService::get_instance()->print_buffer.push_back(buffer);
+    ZealService::get_instance()->queue_chat_message(buffer);
     return;
   }
-  GameInternal::print_chat(*(int *)0x809478, 0, buffer, color, true);
+  Zeal::Game::get_game()->dsp_chat(buffer, color, true);
 }
 
 void print_chat_wnd(Zeal::GameUI::ChatWnd *wnd, short color, const char *format, ...) {
@@ -1607,7 +1604,7 @@ void print_chat_wnd(Zeal::GameUI::ChatWnd *wnd, short color, const char *format,
   vsnprintf(buffer, 511, format, argptr);
   va_end(argptr);
   if (!is_in_game()) {
-    ZealService::get_instance()->print_buffer.push_back(buffer);
+    ZealService::get_instance()->queue_chat_message(buffer);
     return;
   }
   // eal::GameUI::ChatWnd* wnd, int u, Zeal::GameUI::CXSTR msg, short channel)
@@ -1630,7 +1627,15 @@ int get_gamestate() {
   return -1;
 }
 
-GameStructures::GameClass *get_game() { return *(GameStructures::GameClass **)0x809478; }
+GameStructures::GameClass *get_game() { return *reinterpret_cast<GameStructures::GameClass **>(0x00809478); }
+
+GameStructures::Display *get_display() { return *reinterpret_cast<GameStructures::Display **>(0x007F9510); }
+
+const char *get_ui_skin() { return reinterpret_cast<const char *>(0x0063D3C0); }
+
+std::filesystem::path get_default_ui_skin_path() {
+  return std::filesystem::current_path() / std::filesystem::path("uifiles") / std::filesystem::path("default");
+}
 
 int get_channel_number(const char *name)  // ChannelServerApi::GetChannelNumber()
 {
@@ -1648,14 +1653,9 @@ void send_to_channel(int chat_channel_zero_based, const char *message) {
   reinterpret_cast<void(__cdecl *)(int, const char *)>(0x00500266)(chat_channel_zero_based + 1, message);
 }
 
-void do_inspect(Zeal::GameStructures::Entity *player) {
-  reinterpret_cast<void(__thiscall *)(GameStructures::GameClass *, Zeal::GameStructures::Entity *)>(0x54390E)(
-      get_game(), player);
-}
+void do_inspect(Zeal::GameStructures::Entity *player) { get_game()->doInspect(player); }
 
-void pet_command(int cmd, short spawn_id) {
-  reinterpret_cast<void(__thiscall *)(GameStructures::GameClass *, int, short)>(0x547749)(get_game(), cmd, spawn_id);
-}
+void pet_command(int cmd, short spawn_id) { get_game()->IssuePetCommand(cmd, spawn_id); }
 
 void execute_cmd(UINT cmd, bool isdown, int unk2) {
   reinterpret_cast<void(__cdecl *)(UINT, bool, int)>(0x54050c)(cmd, isdown, unk2);
@@ -1824,8 +1824,6 @@ Zeal::GameStructures::Entity *get_controlled() {
 }
 
 Zeal::GameStructures::CameraInfo *get_camera() { return *(Zeal::GameStructures::CameraInfo **)Zeal::Game::CameraInfo; }
-
-int *get_display() { return *(int **)Zeal::Game::Display; }
 
 bool is_mouse_hovering_window() { return *Zeal::Game::mouse_hover_window != 0; }
 
@@ -2131,20 +2129,10 @@ int get_index_from_zone_name(const std::string &name) {
       pWorld, name.c_str());
 }
 
-std::string get_class_desc(int class_id) {
-  const int fn_GetClassDesc = 0x0052d5f1;
-  auto pGame = Zeal::Game::get_game();
-  auto desc = reinterpret_cast<const char *(__thiscall *)(Zeal::GameStructures::GameClass *, int)>(fn_GetClassDesc)(
-      pGame, class_id);
-  return std::string(desc);
-}
+std::string get_class_desc(int class_id) { return std::string(Zeal::Game::get_game()->GetClassDesc(class_id)); }
 
 std::string get_title_desc(int class_id, int aa_rank, int gender) {
-  const int fn_GetTitleDesc = 0x0052eb69;
-  auto pGame = Zeal::Game::get_game();
-  auto desc = reinterpret_cast<const char *(__thiscall *)(Zeal::GameStructures::GameClass *, int, int, int)>(
-      fn_GetTitleDesc)(pGame, class_id, aa_rank, gender);
-  return std::string(desc);
+  return std::string(Zeal::Game::get_game()->GetTitleDesc(class_id, aa_rank, gender));
 }
 
 std::string get_player_guild_name(short guild_id) {

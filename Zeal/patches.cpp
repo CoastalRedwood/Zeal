@@ -1,5 +1,9 @@
 #include "patches.h"
 
+#include "commands.h"
+#include "entity_manager.h"
+#include "hook_wrapper.h"
+#include "memory.h"
 #include "string_util.h"
 #include "zeal.h"
 
@@ -79,9 +83,9 @@ void Patches::fonts()  // this was a test function and I later found out these a
 
 void Patches::SetBrownSkeletons() {
   if (BrownSkeletons.get()) {
-    mem::write<byte>(0x49f297, 0xEB);
+    mem::write<BYTE>(0x49f297, 0xEB);
   } else {
-    mem::write<byte>(0x49f297, 0x75);
+    mem::write<BYTE>(0x49f297, 0x75);
   }
 }
 
@@ -153,8 +157,8 @@ Patches::Patches() {
   mem::write<BYTE>(0x40f07d, 0xEB);  // uncheck rotate button defaultly
 
   // the following does not work entirely needs more effort
-  // mem::write<byte>(0x4A594B, 15); //load font sizes 1 to 14 (default is 6)
-  // mem::write<byte>(0X4FDB6A, 15); //allow /chatfontsize to be larger than 5
+  // mem::write<BYTE>(0x4A594B, 15); //load font sizes 1 to 14 (default is 6)
+  // mem::write<BYTE>(0X4FDB6A, 15); //allow /chatfontsize to be larger than 5
 
   mem::write<BYTE>(0x4A14CF,
                    0xEB);  // don't print Your XML files are not compatible with current client files, certain windows

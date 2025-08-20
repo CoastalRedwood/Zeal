@@ -1,11 +1,11 @@
 #include "ui_inputdialog.h"
 
-#include <algorithm>
-
-#include "game_addresses.h"
+#include "commands.h"
 #include "game_functions.h"
-#include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
+#include "ui_manager.h"
+#include "ui_skin.h"
 #include "zeal.h"
 
 bool ui_inputdialog::isVisible() {
@@ -91,11 +91,11 @@ void ui_inputdialog::Deactivate() {
 void ui_inputdialog::InitUI() {
   if (wnd) Zeal::Game::print_chat("Warning: Init out of sync for ui_inputdialog");
 
-  static const char *xml_file = "./uifiles/zeal/EQUI_ZealInputDialog.xml";
+  std::filesystem::path xml_file = UISkin::get_zeal_xml_path() / std::filesystem::path("EQUI_ZealInputDialog.xml");
   if (!wnd && ui && std::filesystem::exists(xml_file)) wnd = ui->CreateSidlScreenWnd("ZealInputDialog");
 
   if (!wnd) {
-    Zeal::Game::print_chat("Error: Failed to load %s", xml_file);
+    Zeal::Game::print_chat("Error: Failed to load %s", xml_file.string().c_str());
     return;
   }
 
@@ -126,8 +126,6 @@ ui_inputdialog::ui_inputdialog(ZealService *zeal, UIManager *mgr) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { Deactivate(); }, callback_type::DeactivateUI);
-
-  ui->AddXmlInclude("EQUI_ZealInputDialog.xml");
 }
 
 ui_inputdialog::~ui_inputdialog() {}

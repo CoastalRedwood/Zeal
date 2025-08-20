@@ -1,4 +1,6 @@
 #pragma once
+#include <Windows.h>
+
 #include <chrono>
 
 #include "game_functions.h"

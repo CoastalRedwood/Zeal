@@ -1,13 +1,23 @@
 #include "binds.h"
 
+#include "autofire.h"
+#include "cycle_target.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
+#include "item_display.h"
+#include "nameplate.h"
+#include "netstat.h"
+#include "player_movement.h"
+#include "tellwindows.h"
+#include "ui_manager.h"
 #include "zeal.h"
+#include "zone_map.h"
 
 Binds::~Binds() {}
 
-bool Binds::execute_cmd(UINT cmd, bool isdown) {
+bool Binds::execute_cmd(unsigned int cmd, bool isdown) {
   ZealService *zeal = ZealService::get_instance();
   // Don't call our binds on keydown when the game wants input except for reply cycling and auto-run.
   bool reply_cycle = (cmd == 0x3c || cmd == 0x3d);
@@ -72,6 +82,84 @@ static void cycle_targets(int key_down, Zeal::GameEnums::EntityTypes type) {
     Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_next_ent(250, type);
     if (ent) Zeal::Game::set_target(ent);
   }
+}
+
+void Binds::basic_binds() {
+  replace_cmd(28, [this](int state) {
+    if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 0);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+    return true;
+  });  // nearest pc
+  replace_cmd(29, [this](int state) {
+    if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 1);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+    return true;
+  });  // nearest npc
+  replace_cmd(3, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(3, state);
+    return false;
+  });  // foward
+
+  replace_cmd(4, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(4, state);
+    return false;
+  });  // back
+
+  replace_cmd(5, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(5, state);
+    return false;
+  });  // turn right
+
+  replace_cmd(6, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(6, state);
+    return false;
+  });  // turn left
+
+  replace_cmd(30, [this](int state) {
+    ZealService::get_instance()->netstat->toggle_netstat(state);
+    return false;
+  });
+
+  for (int bind_index = 51; bind_index < 59; ++bind_index) {
+    replace_cmd(bind_index, [this, bind_index](int state) {
+      ZealService::get_instance()->movement->handle_spellcast_binds(bind_index);
+      return false;
+    });  // spellcasting auto-stand
+  }
+
+  replace_cmd(0xC8, [this](int state) {
+    if (ZealService::get_instance()->ui->inputDialog->isVisible()) {
+      ZealService::get_instance()->ui->inputDialog->hide();
+      return true;
+    }
+    if (Zeal::Game::get_target()) {
+      Zeal::Game::set_target(0);
+      return true;
+    }
+
+    if (!ZealService::get_instance()->ini->getValue<bool>("Zeal", "EscapeRaidLock")) {
+      if (Zeal::Game::Windows && Zeal::Game::Windows->RaidOptions && Zeal::Game::Windows->RaidOptions->IsVisible) {
+        Zeal::Game::Windows->RaidOptions->show(0, false);
+        return true;
+      }
+      if (Zeal::Game::Windows && Zeal::Game::Windows->Raid && Zeal::Game::Windows->Raid->IsVisible) {
+        Zeal::Game::execute_cmd(109, 1, 0);
+        Zeal::Game::execute_cmd(109, 0, 0);
+        return true;
+      }
+    }
+
+    if (ZealService::get_instance()->ini->getValue<bool>("Zeal", "Escape"))  // toggle is set to not close any windows
+      return true;
+
+    if (ZealService::get_instance()->item_displays->close_latest_window()) return true;
+
+    return false;
+  });  // handle escape
 }
 
 void Binds::add_binds() {
@@ -375,4 +463,6 @@ Binds::Binds(ZealService *zeal) {
              (int)(Zeal::Game::ptr_AlternateKeyMap + (256 * 4)));  // fix another for loop to loop through all 256
   zeal->hooks->Add("initbinds", Zeal::Game::GameInternal::fn_initkeyboardassignments, InitKeyboardAssignments,
                    hook_type_detour);
+
+  basic_binds();  // Configure basic binds.
 }

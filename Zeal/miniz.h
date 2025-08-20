@@ -116,6 +116,8 @@
 */
 #pragma once
 
+#pragma warning(push, 0)  // zeal custom
+
 /* Defines to completely disable specific portions of miniz.c:
    If all macros here are defined the only functionality remaining will be CRC-32 and adler-32. */
 
@@ -1537,3 +1539,5 @@ MINIZ_EXPORT void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filen
 #endif
 
 #endif /* MINIZ_NO_ARCHIVE_APIS */
+
+#pragma warning(pop, 0)  // zeal custom

@@ -2,9 +2,10 @@
 
 #include "game_addresses.h"
 #include "game_functions.h"
-#include "game_structures.h"
+#include "game_ui.h"
 #include "looting.h"
-#include "string_util.h"
+#include "memory.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 static int __fastcall LinkAllButtonDown(Zeal::GameUI::LootWnd *pWnd, int unused, Zeal::GameUI::CXPoint pt,
@@ -25,7 +26,7 @@ static int __fastcall LootAllButtonDown(Zeal::GameUI::LootWnd *pWnd, int unused,
   return rval;
 }
 
-static void __fastcall ButtonDestructor(Zeal::GameUI::BasicWnd *pWnd, int unusedEDX, byte delete_me) {
+static void __fastcall ButtonDestructor(Zeal::GameUI::BasicWnd *pWnd, int unusedEDX, BYTE delete_me) {
   // Deletes the custom vtable and swaps back to the CButtonWnd default vtable before calling the Deconstructor.
   // The CButtonWnd default deconstructor basically does the same table swap to the default a few lines in.
   pWnd->DeleteCustomVTable(reinterpret_cast<Zeal::GameUI::BaseVTable *>(0x005eaf00));  // CButtonWnd::vtable

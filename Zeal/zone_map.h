@@ -1,6 +1,5 @@
 #pragma once
-#include <stdint.h>
-#include <windows.h>
+#include <Windows.h>
 
 #include <list>
 #include <string>
@@ -9,9 +8,6 @@
 
 #include "bitmap_font.h"
 #include "directx.h"
-#include "game_structures.h"
-#include "game_ui.h"
-#include "hook_wrapper.h"
 #include "vectors.h"
 #include "zeal_settings.h"
 #include "zone_map_data.h"

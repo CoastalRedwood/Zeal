@@ -1,7 +1,9 @@
 #pragma once
-#include "game_ui.h"
-#include "hook_wrapper.h"
-#include "memory.h"
+#include <Windows.h>
+
+#include <vector>
+
+#include "game_structures.h"
 
 class Melody {
  public:

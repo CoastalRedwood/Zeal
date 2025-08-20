@@ -1,16 +1,20 @@
 #include "zone_map.h"
 
-#include "bitmap_font.h"
-#include "game_addresses.h"
-#include "game_packets.h"
-#include "string_util.h"
-#include "zeal.h"
-#include "zone_map_data.h"
-#define DIRECTINPUT_VERSION 0x0800
 #include <fstream>
-#include <string>
 
-#include "dinput.h"
+#define DIRECTINPUT_VERSION 0x0800
+#include <dinput.h>
+
+#include "commands.h"
+#include "entity_manager.h"
+#include "game_addresses.h"
+#include "game_structures.h"
+#include "game_ui.h"
+#include "hook_wrapper.h"
+#include "string_util.h"
+#include "ui_manager.h"
+#include "ui_skin.h"
+#include "zeal.h"
 
 // Possible enhancements and issues:
 // - Look into intermittent z-depth clipping due to walls or heads/faces
@@ -2240,7 +2244,7 @@ void ZoneMap::load_ini(IO_ini *ini) {
 
 void ZoneMap::save_ini() {
   if (!ZealService::get_instance()) return;
-  std::shared_ptr<IO_ini> ini = ZealService::get_instance()->ini;
+  IO_ini *ini = ZealService::get_instance()->ini.get();  // Temporary raw pointer.
   if (!ini) return;
 
   ini->setValue<bool>("Zeal", "MapEnabled", enabled);
@@ -2640,8 +2644,9 @@ void ZoneMap::parse_font(const std::vector<std::string> &args) {
     Zeal::Game::print_chat("Setting map font to: %s", args[2].c_str());
     return;
   }
-  Zeal::Game::print_chat("Usage: /map font <name> (%s/<name>%s)", BitmapFont::kFontDirectoryPath,
-                         BitmapFont::kFontFileExtension);
+  std::filesystem::path font_path =
+      UISkin::get_zeal_resources_path() / std::filesystem::path(BitmapFont::kFontSubDirectoryPath);
+  Zeal::Game::print_chat("Usage: /map font <name> (%s/<name>%s)", font_path.c_str(), BitmapFont::kFontFileExtension);
   Zeal::Game::print_chat("Available fonts:");
   auto fonts = get_available_fonts();
   for (const auto &font : fonts) Zeal::Game::print_chat("  %s", font.c_str());
@@ -3012,12 +3017,13 @@ static void __fastcall StoreIniInfo(Zeal::GameUI::SidlWnd *wnd, int unusedEDX) {
 // code goes through and allocates memory and then calls the constructor of each sidl window. The
 // ui CreateSidlScreen function handles that by creating a base SidlScreenWnd.
 void ZoneMap::callback_init_ui() {
-  static const char *xml_file = "./uifiles/zeal/EQUI_ZealMap.xml";
+  std::filesystem::path xml_file = UISkin::get_zeal_xml_path();
+  xml_file /= "EQUI_ZealMap.xml";
   if (!wnd && std::filesystem::exists(xml_file) && ZealService::get_instance()->ui)
     wnd = ZealService::get_instance()->ui->CreateSidlScreenWnd("ZealMap");
 
   if (!wnd) {
-    Zeal::Game::print_chat("Error: Failed to load %s", xml_file);
+    Zeal::Game::print_chat("Error: Failed to load %s", xml_file.string().c_str());
     return;
   }
 
@@ -3112,8 +3118,6 @@ ZoneMap::ZoneMap(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_clean_ui(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { callback_init_ui(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { callback_deactivate_ui(); }, callback_type::DeactivateUI);
-
-  zeal->ui->AddXmlInclude("EQUI_ZealMap.xml");  // Required for the SIDL values to load properly.
 }
 
 ZoneMap::~ZoneMap() {
