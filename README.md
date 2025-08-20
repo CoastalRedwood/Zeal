@@ -479,7 +479,7 @@ ___
 - Primarily designed for running at native 4k resolution
 - The larger fonts requires the use of custom 2x upscaled ui skins
 - The "big fonts" mode is enabled if the active ui skin folder contains a file
-  named `use_zeal_big_fonts.txt` in it (can be empty)
+  named `zeal_ui_skin.ini` in it (can be empty)
 - Note: Big fonts are activated at boot and requires a client re-start to transition.
   - Quit and restart client after using /load or /reloadskin to a different mode
 
