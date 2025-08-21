@@ -386,6 +386,8 @@ char *__fastcall serverGetString(int stringtable, int unused, int string_id, boo
 }
 
 chatfilter::chatfilter(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->hooks->Add("DamageOutputText", 0x52A8C1, CChatManager, hook_type_replace_call);
   zeal->callbacks->AddReportSuccessfulHit([this](Zeal::GameStructures::Entity *source,
                                                  Zeal::GameStructures::Entity *target, WORD type, short spell_id,

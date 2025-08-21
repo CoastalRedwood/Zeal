@@ -94,8 +94,9 @@ void Looting::link_all(const char *channel) const {
 
 void Looting::set_hide_looted(bool val) {
   hide_looted = val;
-  ZealService::get_instance()->ini->setValue<bool>("Zeal", "HideLooted", hide_looted);
-  ZealService::get_instance()->ui->options->UpdateOptions();
+  auto zeal = ZealService::get_instance();
+  zeal->ini->setValue<bool>("Zeal", "HideLooted", hide_looted);
+  if (zeal->ui && zeal->ui->options) ZealService::get_instance()->ui->options->UpdateOptions();
   if (hide_looted)
     Zeal::Game::print_chat("Corpses will be hidden after looting.");
   else

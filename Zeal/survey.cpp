@@ -50,6 +50,8 @@ std::string extract_quoted_string(const std::string &input) {
 }  // namespace
 
 Survey::Survey(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   // Hook incoming text messages (raid, chat channels) to intercept survey messages.
   zeal->hooks->Add("MsgNewText", 0x004e25a1, msg_new_text, hook_type_detour);
   zeal->hooks->Add("chatPrintChat", 0x00524ca2, chatPrintChat, hook_type_replace_call);

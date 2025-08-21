@@ -92,8 +92,12 @@ std::string replaceUnderscores(const std::smatch &match) {
 }
 
 UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
-  ui_options *options = ZealService::get_instance()->ui->options.get();
-  Chat *c = ZealService::get_instance()->chat_hook.get();
+  auto zeal = ZealService::get_instance();
+  if (!zeal->ui || !zeal->ui->options)
+    return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
+
+  ui_options *options = zeal->ui->options.get();
+  Chat *c = zeal->chat_hook.get();
 
   switch (index) {
     case 4:
@@ -115,7 +119,7 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
     case CHANNEL_OTHERMELEESPECIAL:
       return options->GetColor(24);
   }
-  return ZealService::get_instance()->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
+  return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
 }
 
 // Note that the client PrintChat does modify the data parameter (percent converts) so it is not

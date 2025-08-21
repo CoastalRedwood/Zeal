@@ -209,7 +209,10 @@ bool CameraMods::handle_proc_mouse() {
 // This callback is invoked when the enabled setting is changed. It synchronizes the state.
 void CameraMods::synchronize_set_enable() {
   set_zeal_cam_active(get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
-  ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
+
+  auto zeal = ZealService::get_instance();
+  if (zeal->ui && zeal->ui->options)
+    ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
 }
 
 // Interpolate zoom is called repeatedly in main_callback(). The alpha coefficient below acts as a
@@ -336,9 +339,19 @@ void CameraMods::callback_zone() {
   }
 }
 
+void CameraMods::synchronize_old_ui() {
+  if (Zeal::Game::is_new_ui()) return;
+
+  // Old UI doesn't have the init or cleans to synchronize the active state.
+  auto display = Zeal::Game::get_display();
+  if (display && ui_active != (display->WorldDisplayStarted != 0))
+    ui_active = display->WorldDisplayStarted;  // Sync with display global state.
+}
+
 // Called periodically to keep the camera synced and compensate for fps rates.
 void CameraMods::callback_main() {
   static int prev_view = get_camera_view();
+  synchronize_old_ui();
   if (!ui_active || !enabled.get()) return;
   update_fps_sensitivity();
   process_time_tick();
@@ -432,6 +445,35 @@ static int __fastcall GetClickedActor(int this_display, int unused_edx, int mous
   return rval;
 }
 
+void CameraMods::handle_toggle_cam() {
+  // The camera view is going to be incremented in the CDisplay::ToggleView() call. If the next slot has
+  // been disabled, we adjust it so it will increment to an enabled slot.
+  int next_view = get_camera_view();
+  int view_update = -1;
+  while (view_update < 0) {
+    next_view++;  // Peek ahead at next slot.
+    switch (next_view) {
+      case 1:
+        if (setting_toggle_overhead_view.get()) view_update = 0;
+        break;
+      case 2:
+        if (setting_toggle_zeal_view.get()) view_update = 1;
+        break;
+      case 3:
+        if (setting_toggle_free1_view.get()) view_update = 2;
+        break;
+      case 4:
+        if (setting_toggle_free2_view.get()) view_update = 3;
+        break;
+      default:
+        view_update = 4;  // Will toggle to first-person, always enabled.
+        break;
+    }
+  }
+
+  set_camera_view(view_update);
+}
+
 CameraMods::CameraMods(ZealService *zeal) {
   mem::write<BYTE>(0x4db8d9, 0xEB);  // Unconditional jump to skip an optional bad camera position debug message.
 
@@ -445,6 +487,11 @@ CameraMods::CameraMods(ZealService *zeal) {
 
   zeal->binds_hook->replace_cmd(CMD_CENTER_VIEW, [](int state) {
     if (!state) kKeyDownStates[CMD_CENTER_VIEW] = state;  // Client is not clearing this state.
+    return false;
+  });
+  zeal->binds_hook->replace_cmd(CMD_TOGGLE_CAM, [this](int state) {
+    if (state)  // Only key down.
+      handle_toggle_cam();
     return false;
   });
 

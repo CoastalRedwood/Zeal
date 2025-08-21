@@ -23,6 +23,10 @@ class CameraMods {
                             }};
   ZealSetting<int> pan_delay = {0, "Zeal", "PanDelay", false};
   ZealSetting<bool> setting_selfclickthru = {false, "Zeal", "SelfClickThru", false};
+  ZealSetting<bool> setting_toggle_overhead_view = {true, "Camera", "ToggleOverheadView", false};
+  ZealSetting<bool> setting_toggle_zeal_view = {true, "Camera", "ToggleZealView", false};
+  ZealSetting<bool> setting_toggle_free1_view = {true, "Camera", "ToggleFree1View", false};
+  ZealSetting<bool> setting_toggle_free2_view = {true, "Camera", "ToggleFree2View", false};
 
   const float max_zoom_out = 100;
   const float min_zoom_in = 5.f;  // Transitions to first person below this.
@@ -50,6 +54,8 @@ class CameraMods {
   bool ui_active = false;
 
   void synchronize_set_enable();
+  void synchronize_old_ui();
+  void handle_toggle_cam();
   void callback_zone();
   void callback_main();
   void update_desired_zoom(float zoom);

@@ -25,9 +25,9 @@ class UISkin {
   static bool is_ui_skin_big_fonts_mode(const char* ui_skin);  // Checks if a specific UISkin is a big fonts version.
 
  private:
-  static constexpr char kDefaultZealFileSubfolder[] = "zeal";                   // In uifiles/zeal.
-  static constexpr char kBigFontsXmlSubfolder[] = "big_xml";                    // In uifiles/zeal/big_fonts.
-  static constexpr char kBigFontsTriggerFilename[] = "use_zeal_big_fonts.txt";  // In ui skin folder.
+  static constexpr char kDefaultZealFileSubfolder[] = "zeal";             // In uifiles/zeal.
+  static constexpr char kBigFontsXmlSubfolder[] = "big_xml";              // In uifiles/zeal/big_fonts.
+  static constexpr char kBigFontsTriggerFilename[] = "zeal_ui_skin.ini";  // In ui skin folder.
 
   inline static std::filesystem::path zeal_xml_path;        // Default xml or to big_fonts subfolder.
   inline static std::filesystem::path zeal_resources_path;  // Same as default xml path.

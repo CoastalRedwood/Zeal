@@ -448,6 +448,8 @@ static int __fastcall CastSpellWnd_WndNotification(Zeal::GameUI::CastSpellWnd *w
 }
 
 SpellSets::SpellSets(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::Render);
   zeal->callbacks->AddGeneric([this]() { callback_init_ui(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { callback_clean_ui(); }, callback_type::CleanUI);
@@ -456,9 +458,6 @@ SpellSets::SpellSets(ZealService *zeal) {
   zeal->hooks->Add("FinishScribing", 0x43501f, FinishScribing, hook_type_detour);
   zeal->hooks->Add("SpellGemRbutton", 0x5A67B0, SpellGemWnd_HandleRButtonUp, hook_type_detour);
   zeal->hooks->Add("CastSpellWnd_WndNotification", 0x0040a32a, CastSpellWnd_WndNotification, hook_type_detour);
-
-  // Block registering new command with old UI (not supported)
-  if (!Zeal::Game::is_new_ui()) return;
 
   zeal->commands_hook->Add("/spellset", {"/ss"}, "Load, save, delete or list your spellsets.",
                            [this, zeal](std::vector<std::string> &args) {

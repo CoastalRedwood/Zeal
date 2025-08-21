@@ -572,6 +572,8 @@ static int __fastcall SpellBookWnd_WndNotification(Zeal::GameUI::SpellBookWnd *w
 }
 
 ItemDisplay::ItemDisplay(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   windows.clear();
   zeal->hooks->Add("SetItem", 0x423640, SetItem, hook_type_detour);    // CItemDisplayWnd::SetItem
   zeal->hooks->Add("SetSpell", 0x425957, SetSpell, hook_type_detour);  // CItemDisplayWnd::SetSpell
