@@ -311,7 +311,7 @@ void UIManager::RemoveTemporaryUI(const std::filesystem::path &zeal_equi_file) {
   }
 }
 
-static void show_big_fonts_error_dialog(bool is_current_ui_big_fonts_mode) {
+static void show_big_fonts_error_text(bool is_current_ui_big_fonts_mode) {
   std::string global_skin = UISkin::get_global_default_ui_skin_name();
   bool is_global_big_fonts_mode = UISkin::is_ui_skin_big_fonts_mode(global_skin.c_str());
 
@@ -328,7 +328,7 @@ static void show_big_fonts_error_dialog(bool is_current_ui_big_fonts_mode) {
         "options UI Loadskin or the /loadskin command with your desired ui, which will update both your "
         "global default and character setting, and then restart the client.",
         Zeal::Game::get_ui_skin(), UISkin::get_global_default_ui_skin_name());
-  MessageBoxA(NULL, message.c_str(), "Zeal big fonts mode error", MB_OK | MB_ICONERROR | MB_TOPMOST);
+  ZealService::get_instance()->queue_chat_message(message);  // Queued in order to defer print to after UI loaded.
 }
 
 void __fastcall LoadSidlHk(void *t, int unused, Zeal::GameUI::CXSTR path1, Zeal::GameUI::CXSTR path2,
@@ -342,7 +342,7 @@ void __fastcall LoadSidlHk(void *t, int unused, Zeal::GameUI::CXSTR path1, Zeal:
   // Check that the current ui skin big font mode matches the currently active mode.
   bool is_current_ui_big_fonts_mode = UISkin::is_ui_skin_big_fonts_mode(Zeal::Game::get_ui_skin());
   if (is_current_ui_big_fonts_mode != UISkin::is_big_fonts_mode())
-    show_big_fonts_error_dialog(is_current_ui_big_fonts_mode);
+    show_big_fonts_error_text(is_current_ui_big_fonts_mode);
 
   UIManager *ui = ZealService::get_instance()->ui.get();
   std::filesystem::path active_ui_path = std::string(path1);

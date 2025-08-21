@@ -103,7 +103,7 @@
     <Style_VScroll>false</Style_VScroll>
     <Style_HScroll>false</Style_HScroll>
     <Style_Transparent>false</Style_Transparent>
-    <DrawTemplate>WDT_Def2</DrawTemplate>
+    <DrawTemplate>WDT_Def</DrawTemplate>
     <Style_Titlebar>true</Style_Titlebar>
     <Style_Closebox>false</Style_Closebox>
     <Style_Minimizebox>false</Style_Minimizebox>
