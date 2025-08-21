@@ -606,6 +606,18 @@ void ui_options::InitFloatingDamage() {
 
 void ui_options::InitCamera() {
   if (!wnd) return;
+  ui->AddCheckboxCallback(wnd, "Zeal_Cam_ToggleOverheadView", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->camera_mods->setting_toggle_overhead_view.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_Cam_ToggleZealView", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->camera_mods->setting_toggle_zeal_view.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_Cam_ToggleFree1View", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->camera_mods->setting_toggle_free1_view.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_Cam_ToggleFree2View", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->camera_mods->setting_toggle_free2_view.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_Cam_TurnLocked", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->camera_mods->cam_lock.set(wnd->Checked);
   });
@@ -1003,6 +1015,11 @@ void ui_options::UpdateOptionsGeneral() {
 void ui_options::UpdateOptionsCamera() {
   if (!wnd) return;
 
+  ui->SetChecked("Zeal_Cam_ToggleOverheadView",
+                 ZealService::get_instance()->camera_mods->setting_toggle_overhead_view.get());
+  ui->SetChecked("Zeal_Cam_ToggleZealView", ZealService::get_instance()->camera_mods->setting_toggle_zeal_view.get());
+  ui->SetChecked("Zeal_Cam_ToggleFree1View", ZealService::get_instance()->camera_mods->setting_toggle_free1_view.get());
+  ui->SetChecked("Zeal_Cam_ToggleFree2View", ZealService::get_instance()->camera_mods->setting_toggle_free2_view.get());
   ui->SetChecked("Zeal_Cam_TurnLocked", ZealService::get_instance()->camera_mods->cam_lock.get());
   ui->SetSliderValue("Zeal_PanDelaySlider", ZealService::get_instance()->camera_mods->pan_delay.get() > 0.f
                                                 ? ZealService::get_instance()->camera_mods->pan_delay.get() / 4

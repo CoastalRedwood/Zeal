@@ -432,6 +432,35 @@ static int __fastcall GetClickedActor(int this_display, int unused_edx, int mous
   return rval;
 }
 
+void CameraMods::handle_toggle_cam() {
+  // The camera view is going to be incremented in the CDisplay::ToggleView() call. If the next slot has
+  // been disabled, we adjust it so it will increment to an enabled slot.
+  int next_view = get_camera_view();
+  int view_update = -1;
+  while (view_update < 0) {
+    next_view++;  // Peek ahead at next slot.
+    switch (next_view) {
+      case 1:
+        if (setting_toggle_overhead_view.get()) view_update = 0;
+        break;
+      case 2:
+        if (setting_toggle_zeal_view.get()) view_update = 1;
+        break;
+      case 3:
+        if (setting_toggle_free1_view.get()) view_update = 2;
+        break;
+      case 4:
+        if (setting_toggle_free2_view.get()) view_update = 3;
+        break;
+      default:
+        view_update = 4;  // Will toggle to first-person, always enabled.
+        break;
+    }
+  }
+
+  set_camera_view(view_update);
+}
+
 CameraMods::CameraMods(ZealService *zeal) {
   mem::write<BYTE>(0x4db8d9, 0xEB);  // Unconditional jump to skip an optional bad camera position debug message.
 
@@ -445,6 +474,11 @@ CameraMods::CameraMods(ZealService *zeal) {
 
   zeal->binds_hook->replace_cmd(CMD_CENTER_VIEW, [](int state) {
     if (!state) kKeyDownStates[CMD_CENTER_VIEW] = state;  // Client is not clearing this state.
+    return false;
+  });
+  zeal->binds_hook->replace_cmd(CMD_TOGGLE_CAM, [this](int state) {
+    if (state)  // Only key down.
+      handle_toggle_cam();
     return false;
   });
 
