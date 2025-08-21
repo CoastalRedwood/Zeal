@@ -452,7 +452,8 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
   auto color = D3DCOLOR_XRGB(128, 255, 255);  // Approximately the default nameplate color.
   if (color_index == ColorIndex::UseConsider)
     color = Zeal::Game::GetLevelCon(entity);
-  else if (color_index != ColorIndex::UseClient)
+  else if (color_index != ColorIndex::UseClient && ZealService::get_instance()->ui &&
+           ZealService::get_instance()->ui->options)
     color = ZealService::get_instance()->ui->options->GetColor(static_cast<int>(color_index));
 
   if (entity == Zeal::Game::get_target() && setting_target_blink.get()) {

@@ -209,7 +209,10 @@ bool CameraMods::handle_proc_mouse() {
 // This callback is invoked when the enabled setting is changed. It synchronizes the state.
 void CameraMods::synchronize_set_enable() {
   set_zeal_cam_active(get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
-  ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
+
+  auto zeal = ZealService::get_instance();
+  if (zeal->ui && zeal->ui->options)
+    ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
 }
 
 // Interpolate zoom is called repeatedly in main_callback(). The alpha coefficient below acts as a
@@ -336,9 +339,19 @@ void CameraMods::callback_zone() {
   }
 }
 
+void CameraMods::synchronize_old_ui() {
+  if (Zeal::Game::is_new_ui()) return;
+
+  // Old UI doesn't have the init or cleans to synchronize the active state.
+  auto display = Zeal::Game::get_display();
+  if (display && ui_active != (display->WorldDisplayStarted != 0))
+    ui_active = display->WorldDisplayStarted;  // Sync with display global state.
+}
+
 // Called periodically to keep the camera synced and compensate for fps rates.
 void CameraMods::callback_main() {
   static int prev_view = get_camera_view();
+  synchronize_old_ui();
   if (!ui_active || !enabled.get()) return;
   update_fps_sensitivity();
   process_time_tick();

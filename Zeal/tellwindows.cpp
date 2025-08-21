@@ -300,6 +300,8 @@ int __fastcall ChatWndNotification(Zeal::GameUI::BasicWnd *wnd, int unused, Zeal
 }
 
 TellWindows::TellWindows(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->hooks->Add(
       "GetActiveChatWindow", 0x425D27, GetActiveChatWindow,
       hook_type_replace_call);  // hook to fix item linking to tell windows if always chat here is selected anywhere

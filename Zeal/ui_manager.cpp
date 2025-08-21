@@ -457,6 +457,8 @@ bool UIManager::handle_uilock(const std::vector<std::string> &args) {
 }
 
 UIManager::UIManager(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   // zeal->callbacks->AddGeneric([this]() { init_ui(); }, callback_type::InitUI);
 

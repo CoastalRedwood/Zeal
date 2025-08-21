@@ -247,13 +247,15 @@ ChatCommands::ChatCommands(ZealService *zeal) {
     return true;  // return true to stop the game from processing any further on this command, false if you want to
                   // just add features to an existing cmd
   });
-  Add("/autobank", {"/autoba", "/ab"},
-      "Changes your money into its highest denomination in bank and inventory (requires bank to be open).",
-      [](std::vector<std::string> &args) {
-        ZealService::get_instance()->ui->bank->change();
-        return true;  // return true to stop the game from processing any further on this command, false if you want to
-                      // just add features to an existing cmd
-      });
+  if (Zeal::Game::is_new_ui()) {
+    Add("/autobank", {"/autoba", "/ab"},
+        "Changes your money into its highest denomination in bank and inventory (requires bank to be open).",
+        [](std::vector<std::string> &args) {
+          ZealService::get_instance()->ui->bank->change();
+          return true;  // return true to stop the game from processing any further on this command, false if you want
+                        // to just add features to an existing cmd
+        });
+  }
   Add("/aspectratio", {"/ar"}, "Change your aspect ratio.", [](std::vector<std::string> &args) {
     Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
     if (ci) {

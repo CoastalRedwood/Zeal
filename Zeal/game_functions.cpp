@@ -9,14 +9,24 @@
 #include "ui_manager.h"
 #include "zeal.h"
 
-#define CON_WHITE ZealService::get_instance()->ui->options->GetColor(15)  // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0)
-#define CON_RED ZealService::get_instance()->ui->options->GetColor(17)    // D3DCOLOR_ARGB(0xff, 0xf0, 0x0, 0x0)
-#define CON_BLUE                                      \
-  ZealService::get_instance()->ui->options->GetColor( \
-      14)  // D3DCOLOR_ARGB(0xff, 0x0, 0x40, 0xf0) Slightly lighter by default
-#define CON_YELLOW ZealService::get_instance()->ui->options->GetColor(16)     // D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0x0)
-#define CON_LIGHTBLUE ZealService::get_instance()->ui->options->GetColor(13)  // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0xf0)
-#define CON_GREEN ZealService::get_instance()->ui->options->GetColor(12)      // D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0x0)
+static DWORD get_color_index_option(int index, DWORD defacto) {
+  auto zeal = ZealService::get_instance();
+  if (zeal->ui && zeal->ui->options) return zeal->ui->options->GetColor(index);
+  if (defacto != 0) return defacto;
+  return Zeal::Game::get_user_color(index);  // TODO: Verify index mapping.
+}
+
+static DWORD get_con_white() { return get_color_index_option(15, 0xfff0f0f0); }
+
+static DWORD get_con_red() { return get_color_index_option(17, 0xfff00000); }
+
+static DWORD get_con_blue() { return get_color_index_option(14, 0xff0040f0); }  // Slightly lightened.
+
+static DWORD get_con_yellow() { return get_color_index_option(16, 0xfff0f000); }
+
+static DWORD get_con_light_blue() { return get_color_index_option(13, 0xff00f0f0); }
+
+static DWORD get_con_green() { return get_color_index_option(12, 0xff00f000); }
 
 namespace Zeal {
 namespace Game {
@@ -32,153 +42,153 @@ DWORD GetLevelCon(Zeal::GameStructures::Entity *ent) {
   DWORD conlevel = 0;
 
   if (diff == 0)
-    return CON_WHITE;
+    return get_con_white();
   else if (diff >= 1 && diff <= 2)
-    return CON_YELLOW;
+    return get_con_yellow();
   else if (diff >= 3)
-    return CON_RED;
+    return get_con_red();
 
   if (mylevel <= 7) {
     if (diff <= -4)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else
-      conlevel = CON_BLUE;  // Zeal::Game::get_user_color(70);
+      conlevel = get_con_blue();  // Zeal::Game::get_user_color(70);
   } else if (mylevel <= 8) {
     if (diff <= -5)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -4)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 12) {
     if (diff <= -6)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -4)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 16) {
     if (diff <= -7)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -5)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 20) {
     if (diff <= -8)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -6)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 24) {
     if (diff <= -9)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -7)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 28) {
     if (diff <= -10)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -8)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 30) {
     if (diff <= -11)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -9)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 32) {
     if (diff <= -12)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -9)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 36) {
     if (diff <= -13)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -10)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 40) {
     if (diff <= -14)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -11)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 44) {
     if (diff <= -16)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -12)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 48) {
     if (diff <= -17)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -13)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 52) {
     if (diff <= -18)
 
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -14)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 54) {
     if (diff <= -19)
 
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -15)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 56) {
     if (diff <= -20)
 
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -15)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 60) {
     if (diff <= -21)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -16)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 61) {
     if (diff <= -19)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -14)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else if (mylevel <= 62) {
     if (diff <= -17)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -12)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   } else {
     if (diff <= -16)
-      conlevel = CON_GREEN;
+      conlevel = get_con_green();
     else if (diff <= -11)
-      conlevel = CON_LIGHTBLUE;
+      conlevel = get_con_light_blue();
     else
-      conlevel = CON_BLUE;
+      conlevel = get_con_blue();
   }
 
   return conlevel;

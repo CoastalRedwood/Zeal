@@ -54,6 +54,7 @@ class CameraMods {
   bool ui_active = false;
 
   void synchronize_set_enable();
+  void synchronize_old_ui();
   void handle_toggle_cam();
   void callback_zone();
   void callback_main();

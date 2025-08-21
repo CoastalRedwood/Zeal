@@ -3109,6 +3109,8 @@ void ZoneMap::callback_deactivate_ui() {
 }
 
 ZoneMap::ZoneMap(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->callbacks->AddGeneric([this]() { callback_render(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { callback_dx_reset(); }, callback_type::DXReset);
   zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);

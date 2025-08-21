@@ -230,6 +230,9 @@ void FloatingDamage::render_text() {
 }
 
 static D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell) {
+  auto zeal = ZealService::get_instance();
+  if (!zeal->ui || !zeal->ui->options) return 0xffffffff;  // Defaults to white.
+
   int color_index = 0;
   if (is_my_damage)
     color_index = is_spell ? 33 : 32;  // Me creating damage.
@@ -240,7 +243,7 @@ static D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damag
   else
     color_index = is_spell ? 39 : 38;  // NPC being hit.
 
-  return ZealService::get_instance()->ui->options->GetColor(static_cast<int>(color_index));
+  return zeal->ui->options->GetColor(static_cast<int>(color_index));
 }
 
 void FloatingDamage::handle_hp_update_packet(const Zeal::Packets::SpawnHPUpdate_Struct *packet) {
@@ -465,7 +468,7 @@ FloatingDamage::FloatingDamage(ZealService *zeal) {
                    new_size > 0) {
           big_hit_threshold.set(new_size);
           Zeal::Game::print_chat("Floating combat big hit threshold is now %i", new_size);
-        } else if (args.size() == 2 && Zeal::String::tryParse(args[1], &new_size)) {
+        } else if (args.size() == 2 && Zeal::String::tryParse(args[1], &new_size) && Zeal::Game::is_new_ui()) {
           font_size = new_size;
           Zeal::Game::print_chat("Floating combat font size is now %i", font_size);
           bitmap_font_filename.set(kUseClientFontString);  // Releases and disables bitmap font path.
@@ -474,7 +477,8 @@ FloatingDamage::FloatingDamage(ZealService *zeal) {
           Zeal::Game::print_chat("Floating combat text is %s", enabled.get() ? "Enabled" : "Disabled");
         } else {
           Zeal::Game::print_chat("Usage: `/fcd` toggles the enable on and off");
-          Zeal::Game::print_chat("Usage: `/fcd <#>` selects the client font size (1 to 6)");
+          if (Zeal::Game::is_new_ui())
+            Zeal::Game::print_chat("Usage: `/fcd <#>` selects the client font size (1 to 6)");
           Zeal::Game::print_chat("Usage: `/fcd font` prints the available fonts");
           Zeal::Game::print_chat("Usage: `/fcd font <fontname>` selects the zeal font <fontname>");
           Zeal::Game::print_chat("Usage: `/fcd bighit <threshold>` sets the big hit threshold");

@@ -304,6 +304,8 @@ void Melody::handle_deactivate_ui() {
 }
 
 Melody::Melody(ZealService *zeal) {
+  if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
+
   zeal->callbacks->AddGeneric([this]() { tick(); });
   zeal->callbacks->AddGeneric([this]() { end(); }, callback_type::CharacterSelect);
   zeal->callbacks->AddGeneric([this]() { handle_deactivate_ui(); }, callback_type::DeactivateUI);

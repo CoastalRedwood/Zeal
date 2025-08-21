@@ -132,8 +132,9 @@ void Binds::basic_binds() {
   }
 
   replace_cmd(0xC8, [this](int state) {
-    if (ZealService::get_instance()->ui->inputDialog->isVisible()) {
-      ZealService::get_instance()->ui->inputDialog->hide();
+    auto zeal = ZealService::get_instance();
+    if (zeal->ui && zeal->ui->inputDialog && zeal->ui->inputDialog->isVisible()) {
+      zeal->ui->inputDialog->hide();
       return true;
     }
     if (Zeal::Game::get_target()) {
@@ -141,7 +142,7 @@ void Binds::basic_binds() {
       return true;
     }
 
-    if (!ZealService::get_instance()->ini->getValue<bool>("Zeal", "EscapeRaidLock")) {
+    if (!zeal->ini->getValue<bool>("Zeal", "EscapeRaidLock")) {
       if (Zeal::Game::Windows && Zeal::Game::Windows->RaidOptions && Zeal::Game::Windows->RaidOptions->IsVisible) {
         Zeal::Game::Windows->RaidOptions->show(0, false);
         return true;
@@ -153,10 +154,10 @@ void Binds::basic_binds() {
       }
     }
 
-    if (ZealService::get_instance()->ini->getValue<bool>("Zeal", "Escape"))  // toggle is set to not close any windows
+    if (zeal->ini->getValue<bool>("Zeal", "Escape"))  // toggle is set to not close any windows
       return true;
 
-    if (ZealService::get_instance()->item_displays->close_latest_window()) return true;
+    if (zeal->item_displays && zeal->item_displays->close_latest_window()) return true;
 
     return false;
   });  // handle escape
