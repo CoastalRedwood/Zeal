@@ -206,7 +206,7 @@ static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
     reasonStream << "Zone ID: " << zone_id << std::endl;
     reasonStream << "Game state: " << Zeal::Game::get_gamestate() << std::endl;
     if (ZealService::get_instance() && ZealService::get_instance()->callbacks)
-      reasonStream << "Callbacks: " << ZealService::get_instance()->callbacks->get_trace();
+      reasonStream << "Callbacks: " << ZealService::get_instance()->callbacks->get_trace() << std::endl;
     if (!char_info) reasonStream << "GAMECHARINFO: 0x" << std::hex << (uint32_t)(char_info) << std::endl;
     if (!self || !spawn_info || self != spawn_info) {
       reasonStream << "SpawnInfo: 0x" << std::hex << (uint32_t)(spawn_info) << std::endl;

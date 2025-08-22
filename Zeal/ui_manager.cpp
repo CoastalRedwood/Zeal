@@ -349,6 +349,44 @@ static void show_big_fonts_error_text(bool is_current_ui_big_fonts_mode) {
   ZealService::get_instance()->queue_chat_message(message);  // Queued in order to defer print to after UI loaded.
 }
 
+static bool is_message_an_error(const char* error_message) {
+  if (!error_message) return false;
+  std::string message = error_message;
+
+  // Ignore all except errors (like Warnings).
+  if (!message.starts_with("Error:")) return false;
+
+  // Ignore known spam from the song buff window.
+  if (message.starts_with("Error: Could not find child Buff")) return false;
+
+  // Ignore some optional missing buttons that don't cause crashes.
+  if (message.starts_with("Error: Could not find child Zeal_ZoneSelect in window CharacterSelectWindow")) return false;
+  if (message.starts_with("Error: Could not find child ChangeButton in window BankWnd")) return false;
+  if (message.starts_with("Error: Could not find child LinkAllButton in window LootWnd")) return false;
+  if (message.starts_with("Error: Could not find child LootAllButton in window LootWnd")) return false;
+
+  return true;
+}
+
+static void LogUIError(const char* error_message)
+{
+  if (is_message_an_error(error_message))
+    MessageBoxA(NULL, error_message, "UI XML parsing error", MB_ICONWARNING);
+  ZealService::get_instance()->hooks->hook_map["LogUIError"]->original(LogUIError)(error_message);
+}
+
+// Make parsing errors more obvious w/out having to find the uierrors.txt.
+static Zeal::GameUI::CXSTR* __fastcall SidlManager__GetParsingErrorMsg(Zeal::GameUI::SidlManager* sidl_manager, int unused_edx,
+                                                       Zeal::GameUI::CXSTR *msg_result) {
+  if (sidl_manager->ErrorMsg.Data) {
+    std::string error = std::string(sidl_manager->ErrorMsg);
+    if (!error.empty())
+      MessageBoxA(NULL, error.c_str(), "Severe UI XML parsing error", MB_ICONWARNING);
+  }
+  return ZealService::get_instance()->hooks->hook_map["SidlManager__GetParsingErrorMsg"]->original(
+      SidlManager__GetParsingErrorMsg)(sidl_manager, unused_edx, msg_result);
+}
+
 void __fastcall LoadSidlHk(void *t, int unused, Zeal::GameUI::CXSTR path1, Zeal::GameUI::CXSTR path2,
                            Zeal::GameUI::CXSTR filename) {
   std::string str_filename = filename;
@@ -501,6 +539,8 @@ UIManager::UIManager(ZealService *zeal) {
   zeal->hooks->Add("SetSliderValue", 0x5a6c70, SetSliderValue_hook, hook_type_detour);
   zeal->hooks->Add("SetComboValue", 0x579af0, SetComboValue_hook, hook_type_detour);
   zeal->hooks->Add("LoadSidl", 0x5992c0, LoadSidlHk, hook_type_detour);
+  zeal->hooks->Add("SidlManager__GetParsingErrorMsg", 0x0058e300, SidlManager__GetParsingErrorMsg, hook_type_detour);
+  zeal->hooks->Add("LogUIError", 0x00435eae, LogUIError, hook_type_detour);
   zeal->hooks->Add("XMLRead", 0x58D640, XMLRead, hook_type_detour);
   zeal->hooks->Add("XMLReadNoValidate", 0x58DA10, XMLReadNoValidate, hook_type_detour);
 

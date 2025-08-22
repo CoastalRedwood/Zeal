@@ -70,7 +70,6 @@ class UIManager {
   std::shared_ptr<ui_buff> buffs = nullptr;
   std::shared_ptr<ui_zoneselect> zoneselect = nullptr;
   std::shared_ptr<ui_inspect> inspect = nullptr;
-  std::vector<std::string> included_files;
 
  private:
   bool handle_uilock(const std::vector<std::string> &args);
