@@ -25,18 +25,18 @@
     <TopAnchorToTop>true</TopAnchorToTop>
     <LeftAnchorToLeft>true</LeftAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
-	<TopAnchorOffset>4</TopAnchorOffset>
-    <BottomAnchorOffset>4</BottomAnchorOffset>
+	<TopAnchorOffset>8</TopAnchorOffset>
+    <BottomAnchorOffset>8</BottomAnchorOffset>
   </Label>
   <Listbox item="Zeal_ZoneSelect_ListBox">
     <ScreenID>Zeal_ZoneSelect_ListBox</ScreenID>
     <DrawTemplate>WDT_Inner</DrawTemplate>
     <TooltipReference>List of Zones.</TooltipReference>
     <AutoStretch>true</AutoStretch>
-    <LeftAnchorOffset>4</LeftAnchorOffset>
-    <TopAnchorOffset>24</TopAnchorOffset>
-    <RightAnchorOffset>4</RightAnchorOffset>
-    <BottomAnchorOffset>44</BottomAnchorOffset>
+    <LeftAnchorOffset>8</LeftAnchorOffset>
+    <TopAnchorOffset>48</TopAnchorOffset>
+    <RightAnchorOffset>8</RightAnchorOffset>
+    <BottomAnchorOffset>88</BottomAnchorOffset>
     <TopAnchorToTop>true</TopAnchorToTop>
     <BottomAnchorToTop>false</BottomAnchorToTop>
     <LeftAnchorToLeft>true</LeftAnchorToLeft>
@@ -49,15 +49,15 @@
     <Style_Border>true</Style_Border>
     <Style_VScroll>true</Style_VScroll>
     <Columns>
-      <Width>45</Width>
+      <Width>90</Width>
       <Heading>ID</Heading>
     </Columns>
     <Columns>
-      <Width>100</Width>
+      <Width>200</Width>
       <Heading>Short Name</Heading>
     </Columns>
     <Columns>
-      <Width>160</Width>
+      <Width>320</Width>
       <Heading>Long Name</Heading>
     </Columns>
    </Listbox>
@@ -65,10 +65,10 @@
     <ScreenID>Zeal_ZoneSelect_Apply</ScreenID>
     <RelativePosition>true</RelativePosition>
     <AutoStretch>true</AutoStretch>
-    <LeftAnchorOffset>4</LeftAnchorOffset>
-    <TopAnchorOffset>40</TopAnchorOffset>
-    <RightAnchorOffset>100</RightAnchorOffset>
-    <BottomAnchorOffset>4</BottomAnchorOffset>
+    <LeftAnchorOffset>8</LeftAnchorOffset>
+    <TopAnchorOffset>80</TopAnchorOffset>
+    <RightAnchorOffset>200</RightAnchorOffset>
+    <BottomAnchorOffset>8</BottomAnchorOffset>
     <TopAnchorToTop>false</TopAnchorToTop>
     <BottomAnchorToTop>false</BottomAnchorToTop>
     <LeftAnchorToLeft>true</LeftAnchorToLeft>

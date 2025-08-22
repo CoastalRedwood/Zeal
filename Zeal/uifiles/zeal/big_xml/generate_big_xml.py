@@ -33,6 +33,11 @@ def process_file(orig_xml_path: str) -> str:
                 "*/Location/Y",
                 "*/Size/CX",
                 "*/Size/CY",
+                "*/TopAnchorOffset",
+                "*/LeftAnchorOffset",
+                "*/BottomAnchorOffset",
+                "*/RightAnchorOffset",
+                "*/Columns/Width",
     ]
 
     for xpath in upscale_elements:

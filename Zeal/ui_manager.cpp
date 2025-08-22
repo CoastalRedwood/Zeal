@@ -275,12 +275,31 @@ bool UIManager::WriteTemporaryUI(const std::filesystem::path &orig_file, const s
   bool compositeFound = false;
   std::string modifiedContent;
 
+  const auto zealXmlFiles = UISkin::get_zeal_ui_xml_files();
+
   // Read file line by line
   while (std::getline(infile, line)) {
-    // Search for the closing </composite> tag (case insensitive)
+    // Make comparisons case insensitive.
     std::string loweredLine = line;
     std::transform(loweredLine.begin(), loweredLine.end(), loweredLine.begin(), ::tolower);
 
+    // Exclude xml files that are provided by Zeal. Specifically this is the OptionsWindow.xml.
+    bool duplicate = false;
+    const std::string startTag = "<include>";
+    size_t startPos = loweredLine.find(startTag);
+    size_t endPos = loweredLine.find("</include>");
+    if (startPos != std::string::npos && endPos != std::string::npos) {
+      startPos += startTag.length();
+      std::string xml_file_name = loweredLine.substr(startPos, endPos - startPos);
+      for (const auto &file : zealXmlFiles) {
+        std::string zeal_file = file;
+        std::transform(zeal_file.begin(), zeal_file.end(), zeal_file.begin(), ::tolower);
+        if (zeal_file == xml_file_name) duplicate = true;
+      }
+    }
+    if (duplicate) continue;  // Skip adding file.
+
+    // Search for the closing </composite> tag (case insensitive)
     if (!compositeFound && loweredLine.find("</composite>") != std::string::npos) {
       compositeFound = true;
 
@@ -319,14 +338,13 @@ static void show_big_fonts_error_text(bool is_current_ui_big_fonts_mode) {
   if (is_current_ui_big_fonts_mode == is_global_big_fonts_mode)
     message = std::format(
         "Your new skin '{0}' does not match the active big fonts mode. You must restart the client"
-        " for the proper appearance.",
+        " and then run '/load <ui_skin> 0' again to reset to the proper appearance.",
         Zeal::Game::get_ui_skin());
   else
     message = std::format(
         "Your character skin '{0}' does not match the Zeal big fonts mode of your global default skin '{1}'. To fix, "
-        "use "
-        "options UI Loadskin or the /loadskin command with your desired ui, which will update both your "
-        "global default and character setting, and then restart the client.",
+        "use options UI Loadskin or the /load <ui_skin> command with your desired ui, which will update both your "
+        "global default and character setting, and then restart the client and run '/load <ui_skin> 0' again.",
         Zeal::Game::get_ui_skin(), UISkin::get_global_default_ui_skin_name());
   ZealService::get_instance()->queue_chat_message(message);  // Queued in order to defer print to after UI loaded.
 }
@@ -354,7 +372,7 @@ void __fastcall LoadSidlHk(void *t, int unused, Zeal::GameUI::CXSTR path1, Zeal:
   const char *zeal_equi_filename = "EQUI_Zeal.xml";
   std::filesystem::path zeal_equi_file = active_ui_path / std::filesystem::path(zeal_equi_filename);
   if (ui->WriteTemporaryUI(equi_file, zeal_equi_file))
-    filename.Set("EQUI_Zeal.xml");
+    filename.Set(zeal_equi_filename);
   else {
     std::string message =
         std::format("Zeal failed to generate {0} from {1}", zeal_equi_file.string(), equi_file.string());

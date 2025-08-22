@@ -13,9 +13,10 @@
 
 // List of required Zeal XML Files.  Must be manually kept up to date for config check and loading them.
 // These files need to be included in the UI.xml by UIManager.
-static constexpr std::array<const char *, 5> kZealXmlUiFiles = {"EQUI_ZealButtonWnd.xml", "EQUI_ZealInputDialog.xml",
-                                                                "EQUI_ZealMap.xml", "EQUI_ZealOptions.xml",
-                                                                "EQUI_ZoneSelect.xml"};
+// Note: The EQUI_OptionsWindow.xml is included just to avoid conflicts with legacy modified files in /default/.
+static constexpr std::array<const char *, 6> kZealXmlUiFiles = {"EQUI_ZealButtonWnd.xml", "EQUI_ZealInputDialog.xml",
+                                                                "EQUI_ZealMap.xml",       "EQUI_ZealOptions.xml",
+                                                                "EQUI_ZoneSelect.xml",    "EQUI_OptionsWindow.xml"};
 // These tab files are part of the Zeal Options and do not need to be the UI.xml file.
 static constexpr std::array<const char *, 7> kZealXmlTabFiles = {
     "EQUI_Tab_Cam.xml", "EQUI_Tab_Colors.xml",    "EQUI_Tab_FloatingDamage.xml", "EQUI_Tab_General.xml",

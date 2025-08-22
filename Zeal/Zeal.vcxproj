@@ -221,11 +221,13 @@
     <None Include="..\CHANGELOG.md" />
     <None Include="..\README.md" />
     <None Include="uifiles\zeal\big_xml\generate_big_xml.py" />
+    <None Include="uifiles\zeal\big_xml\README.md" />
     <None Include="uifiles\zeal\optional\README.md" />
     <None Include="uifiles\zeal\spell_info\fetch_spell_info.py" />
     <None Include="uifiles\zeal\spell_info\README.md" />
   </ItemGroup>
   <ItemGroup>
+    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_Cam.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_Colors.xml" />
     <Xml Include="uifiles\zeal\EQUI_Tab_FloatingDamage.xml" />
