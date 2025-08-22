@@ -443,9 +443,6 @@
     <ClCompile Include="chatfilter.cpp">
       <Filter>Source Files\hooks</Filter>
     </ClCompile>
-    <ClCompile Include="default_spritefont.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ui_inputdialog.cpp">
       <Filter>Source Files\ui</Filter>
     </ClCompile>
@@ -489,7 +486,10 @@
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="ui_skin.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="default_spritefont.cpp">
+      <Filter>Source Files\other</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -509,7 +509,12 @@
     <None Include="uifiles\zeal\optional\README.md">
       <Filter>UI Files</Filter>
     </None>
-    <None Include="uifiles\zeal\big_xml\generate_big_xml.py" />
+    <None Include="uifiles\zeal\big_xml\README.md">
+      <Filter>UI Files</Filter>
+    </None>
+    <None Include="uifiles\zeal\big_xml\generate_big_xml.py">
+      <Filter>UI Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="uifiles\zeal\optional\EQUI_CharacterSelect.xml">
@@ -549,6 +554,9 @@
       <Filter>UI Files</Filter>
     </Xml>
     <Xml Include="uifiles\zeal\EQUI_ZoneSelect.xml">
+      <Filter>UI Files</Filter>
+    </Xml>
+    <Xml Include="uifiles\zeal\EQUI_OptionsWindow.xml">
       <Filter>UI Files</Filter>
     </Xml>
   </ItemGroup>

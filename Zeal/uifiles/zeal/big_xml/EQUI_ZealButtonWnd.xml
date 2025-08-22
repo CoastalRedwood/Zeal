@@ -34,7 +34,7 @@
     <RightAnchorToLeft>false</RightAnchorToLeft>
     <LeftAnchorToLeft>false</LeftAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
-    <BottomAnchorOffset>1</BottomAnchorOffset>
+    <BottomAnchorOffset>2</BottomAnchorOffset>
   </Button>
   <Screen item="ZealButtonWnd">
     <RelativePosition>false</RelativePosition>

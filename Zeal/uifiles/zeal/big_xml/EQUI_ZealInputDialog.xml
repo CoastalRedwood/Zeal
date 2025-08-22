@@ -34,7 +34,7 @@
     <RightAnchorToLeft>false</RightAnchorToLeft>
     <LeftAnchorToLeft>false</LeftAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
-    <BottomAnchorOffset>1</BottomAnchorOffset>
+    <BottomAnchorOffset>2</BottomAnchorOffset>
   </Button>
   <Button item="ZealDialogButton1">
     <ScreenID>ZealDialogButton1</ScreenID>
@@ -69,7 +69,7 @@
     <RightAnchorToLeft>false</RightAnchorToLeft>
     <LeftAnchorToLeft>false</LeftAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
-    <BottomAnchorOffset>1</BottomAnchorOffset>
+    <BottomAnchorOffset>2</BottomAnchorOffset>
   </Button>
   <Label item="ZealDialogMessage">
     <ScreenID>ZealDialogMessage</ScreenID>
@@ -95,18 +95,18 @@
     <TopAnchorToTop>true</TopAnchorToTop>
     <LeftAnchorToLeft>true</LeftAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
-	<TopAnchorOffset>20</TopAnchorOffset>
-    <BottomAnchorOffset>60</BottomAnchorOffset>
+	<TopAnchorOffset>40</TopAnchorOffset>
+    <BottomAnchorOffset>120</BottomAnchorOffset>
   </Label>
   <Editbox item="ZealDialogInput">
     <ScreenID>ZealDialogInput</ScreenID>
     <DrawTemplate>WDT_Inner</DrawTemplate>
     <RelativePosition>true</RelativePosition>
     <AutoStretch>true</AutoStretch>
-    <LeftAnchorOffset>10</LeftAnchorOffset>
-    <TopAnchorOffset>51</TopAnchorOffset>
-    <RightAnchorOffset>10</RightAnchorOffset>
-    <BottomAnchorOffset>30</BottomAnchorOffset>
+    <LeftAnchorOffset>20</LeftAnchorOffset>
+    <TopAnchorOffset>102</TopAnchorOffset>
+    <RightAnchorOffset>20</RightAnchorOffset>
+    <BottomAnchorOffset>60</BottomAnchorOffset>
     <TopAnchorToTop>false</TopAnchorToTop>
     <RightAnchorToLeft>false</RightAnchorToLeft>
     <BottomAnchorToTop>false</BottomAnchorToTop>
