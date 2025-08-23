@@ -16,6 +16,7 @@
 #include "ui_options.h"
 #include "ui_raid.h"
 #include "ui_zoneselect.h"
+#include "zeal_settings.h"
 
 class UIManager {
  public:
@@ -70,6 +71,8 @@ class UIManager {
   std::shared_ptr<ui_buff> buffs = nullptr;
   std::shared_ptr<ui_zoneselect> zoneselect = nullptr;
   std::shared_ptr<ui_inspect> inspect = nullptr;
+
+  ZealSetting<bool> setting_show_ui_errors = {true, "Zeal", "ShowUIErrors", false};
 
  private:
   bool handle_uilock(const std::vector<std::string> &args);

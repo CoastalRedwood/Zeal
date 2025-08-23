@@ -345,6 +345,16 @@ ChatCommands::ChatCommands(ZealService *zeal) {
       Zeal::Game::print_chat(ss.str());
       return true;
     }
+    if (args.size() >= 2 && args[1] == "show_ui_errors" && Zeal::Game::is_new_ui()) {
+      if (args.size() != 3) {
+        Zeal::Game::print_chat("Usage: /zeal show_ui_errors <on | off>");
+      } else {
+        bool enable = (args[2] == "1" || args[2] == "on");
+        ZealService::get_instance()->ui->setting_show_ui_errors.set(enable);
+        Zeal::Game::print_chat("Showing UI errors is %s.", enable ? "enabled" : "disabled");
+      }
+      return true;
+    }
     if (args.size() == 2 && args[1] == "era") {  // TODO: Remove, temporary testing.
       auto char_info = Zeal::Game::get_char_info();
       BYTE char_expansions = char_info ? char_info->Expansions : 0;

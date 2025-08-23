@@ -349,7 +349,7 @@ static void show_big_fonts_error_text(bool is_current_ui_big_fonts_mode) {
   ZealService::get_instance()->queue_chat_message(message);  // Queued in order to defer print to after UI loaded.
 }
 
-static bool is_message_an_error(const char* error_message) {
+static bool is_message_an_error(const char *error_message) {
   if (!error_message) return false;
   std::string message = error_message;
 
@@ -368,20 +368,21 @@ static bool is_message_an_error(const char* error_message) {
   return true;
 }
 
-static void LogUIError(const char* error_message)
-{
-  if (is_message_an_error(error_message))
+// Report errors as they are detected. This has an off setting option in case of future incompatibilities.
+static void LogUIError(const char *error_message) {
+  auto zeal = ZealService::get_instance();
+  if (zeal->ui->setting_show_ui_errors.get() && is_message_an_error(error_message))
     MessageBoxA(NULL, error_message, "UI XML parsing error", MB_ICONWARNING);
-  ZealService::get_instance()->hooks->hook_map["LogUIError"]->original(LogUIError)(error_message);
+  zeal->hooks->hook_map["LogUIError"]->original(LogUIError)(error_message);
 }
 
-// Make parsing errors more obvious w/out having to find the uierrors.txt.
-static Zeal::GameUI::CXSTR* __fastcall SidlManager__GetParsingErrorMsg(Zeal::GameUI::SidlManager* sidl_manager, int unused_edx,
-                                                       Zeal::GameUI::CXSTR *msg_result) {
+// This handles severe parsing errors that are likely to cause an abort. Show in dialog vs hunting for uierrors.txt.
+static Zeal::GameUI::CXSTR *__fastcall SidlManager__GetParsingErrorMsg(Zeal::GameUI::SidlManager *sidl_manager,
+                                                                       int unused_edx,
+                                                                       Zeal::GameUI::CXSTR *msg_result) {
   if (sidl_manager->ErrorMsg.Data) {
     std::string error = std::string(sidl_manager->ErrorMsg);
-    if (!error.empty())
-      MessageBoxA(NULL, error.c_str(), "Severe UI XML parsing error", MB_ICONWARNING);
+    if (!error.empty()) MessageBoxA(NULL, error.c_str(), "Severe UI XML parsing error", MB_ICONWARNING);
   }
   return ZealService::get_instance()->hooks->hook_map["SidlManager__GetParsingErrorMsg"]->original(
       SidlManager__GetParsingErrorMsg)(sidl_manager, unused_edx, msg_result);

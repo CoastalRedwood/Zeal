@@ -325,7 +325,7 @@ void FloatingDamage::add_damage(Zeal::GameStructures::Entity *source, Zeal::Game
 void FloatingDamage::draw_icon(int texture_index, float y, float x, float opacity) {
   IDirect3DDevice8 *device = ZealService::get_instance()->dx->GetDevice();
   DWORD sheet_index = texture_index / 100;
-  if (sheet_index > textures.size()) return;
+  if (sheet_index >= textures.size()) return;
   IDirect3DTexture8 *texture = textures.at(sheet_index);
   texture_index = texture_index % 99;
   const int image_size = 24;         // Width and height of each image in pixels
@@ -440,8 +440,13 @@ FloatingDamage::FloatingDamage(ZealService *zeal) {
   zeal->callbacks->AddReportSuccessfulHit(
       [this](Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type, short spell_id,
              short damage, char out_text) { add_damage(source, target, type, spell_id, damage, out_text); });
-  zeal->callbacks->AddGeneric([this]() { init_ui(); }, callback_type::InitUI);
-  zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
+
+  // Note: The if check is here just to make it explicit that these aren't called with the old UI, which means
+  // that the textures don't get loaded (no spell icons). The DXReset is still there to release bitmapfonts.
+  if (Zeal::Game::is_new_ui()) {
+    zeal->callbacks->AddGeneric([this]() { init_ui(); }, callback_type::InitUI);
+    zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
+  }
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
 
   zeal->callbacks->AddPacket(
