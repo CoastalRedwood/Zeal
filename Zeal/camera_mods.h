@@ -52,12 +52,14 @@ class CameraMods {
   float sensitivity_y = 0.4f;
   std::chrono::steady_clock::time_point lastTime;
   bool ui_active = false;
+  bool reset_camera = false;  // Allows for a deferred reset of zeal cam.
 
   void synchronize_set_enable();
   void synchronize_old_ui();
   void handle_toggle_cam();
   void callback_zone();
   void callback_main();
+  bool callback_packet(UINT opcode, char *buffer, UINT len);
   void update_desired_zoom(float zoom);
   void set_zeal_cam_active(bool activate);
   bool is_zeal_cam_active() const;

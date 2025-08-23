@@ -8,6 +8,7 @@
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
+#include "game_packets.h"
 #include "game_structures.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
@@ -258,6 +259,9 @@ void CameraMods::update_left_pan(DWORD camera_view) {
 
 // Called repeatedly by main_callback() to handle periodic calls and process held down keys.
 void CameraMods::process_time_tick() {
+  if (reset_camera) callback_zone();
+  reset_camera = false;
+
   DWORD camera_view = get_camera_view();
   bool zoom_out = kKeyDownStates[CMD_ZOOM_OUT];
   if (zoom_out && camera_view == Zeal::GameEnums::CameraView::FirstPerson) {
@@ -474,6 +478,13 @@ void CameraMods::handle_toggle_cam() {
   set_camera_view(view_update);
 }
 
+// Reset camera on summons. Post a reset_camera pending flag to first let the client packet get processed
+// and update the characters position and heading.
+bool CameraMods::callback_packet(UINT opcode, char *buffer, UINT len) {
+  if (opcode == Zeal::Packets::RequestClientZoneChange) reset_camera = true;
+  return false;
+}
+
 CameraMods::CameraMods(ZealService *zeal) {
   mem::write<BYTE>(0x4db8d9, 0xEB);  // Unconditional jump to skip an optional bad camera position debug message.
 
@@ -484,6 +495,9 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);  // Also covers char select.
   zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);
+  zeal->callbacks->AddPacket(
+      [this](UINT opcode, char *buffer, UINT len) { return callback_packet(opcode, buffer, len); },
+      callback_type::WorldMessage);
 
   zeal->binds_hook->replace_cmd(CMD_CENTER_VIEW, [](int state) {
     if (!state) kKeyDownStates[CMD_CENTER_VIEW] = state;  // Client is not clearing this state.

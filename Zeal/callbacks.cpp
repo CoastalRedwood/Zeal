@@ -266,7 +266,7 @@ void CallbackManager::invoke_ReportSuccessfulHit(Zeal::Packets::Damage_Struct *d
   Zeal::GameStructures::Entity *target = em->Get(dmg->target);
   Zeal::GameStructures::Entity *source = em->Get(dmg->source);
   if (target && source) {
-    for (auto &fn : ReportSuccessfulHit_functions)
+    for (const auto &fn : ReportSuccessfulHit_functions)
       fn(source, target, dmg->type, dmg->spellid, dmg->damage, output_text);
   }
 }
