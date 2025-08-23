@@ -285,7 +285,7 @@ static bool compareBySpellLevel(const Zeal::GameStructures::SPELL *a, const Zeal
   int aLevel = a->ClassLevel[char_info->Class];
   int bLevel = b->ClassLevel[char_info->Class];
   if (aLevel != bLevel) return aLevel > bLevel;
-  return a->Name > b->Name;
+  return std::string(a->Name) < std::string(b->Name);  // Alphabetize as second priority.
 }
 
 // Assembles all spells in the spellbook and returns a categorized structure for the menus.

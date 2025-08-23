@@ -35,7 +35,7 @@ class FloatingDamage {
   void handle_hp_update_packet(const Zeal::Packets::SpawnHPUpdate_Struct *packet);
   void callback_deferred();
   void callback_render();
-  ZealSetting<bool> enabled = {true, "FloatingDamage", "Enabled", true};
+  ZealSetting<bool> enabled = {false, "FloatingDamage", "Enabled", true};
   ZealSetting<bool> hide_with_gui = {false, "FloatingDamage", "HideWithGui", true};
   ZealSetting<bool> spell_icons = {true, "FloatingDamage", "Icons", true};
   ZealSetting<bool> show_spells = {true, "FloatingDamage", "Spells", true};
