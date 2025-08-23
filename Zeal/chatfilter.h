@@ -43,6 +43,8 @@ class chatfilter {
   void AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string msg, short &channel);
   void LoadSettings(Zeal::GameUI::CChatManager *cm);
   void callback_clean_ui();
+  void callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type,
+                    short spell_id, short damage, char output_text);
   ZealSetting<bool> setting_suppress_missed_notes = {false, "Zeal", "SuppressMissedNotes", false};
   ZealSetting<bool> setting_suppress_other_fizzles = {false, "Zeal", "SupressOtherFizzles", false};
   bool isExtendedCM(int channelMap, int applyOffset = 0);

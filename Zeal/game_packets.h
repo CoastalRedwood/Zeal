@@ -17,6 +17,7 @@ enum opcodes {
   Animation = 0x40a1,
   Assist = 0x4200,
   Stamina = 0x4157,
+  RequestClientZoneChange = 0x414d,
   ItemLinkResponse = 0x4264
 };
 

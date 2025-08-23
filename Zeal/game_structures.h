@@ -1104,7 +1104,7 @@ struct GameClass {
   }
 
   char *stripName(const char *spawn_name) {
-    return reinterpret_cast<char *(__thiscall *)(GameClass *, const char *)>(0x00537f99)(this, spawn_name);
+    return reinterpret_cast<char *(__thiscall *)(GameClass *, const char *)>(0x00537E4B)(this, spawn_name);
   }
 
   char *trimName(const char *spawn_name) {

@@ -385,37 +385,38 @@ char *__fastcall serverGetString(int stringtable, int unused, int string_id, boo
                                                                                                     string_id, valid);
 }
 
+void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type,
+                              short spell_id, short damage, char output_text) {
+  bool other_non_melee =
+      (spell_id > 0 && source && source != Zeal::Game::get_self() && target != Zeal::Game::get_self());
+  if (output_text || (other_non_melee && damage > 0)) {
+    isDamage = true;
+    damageData = {source, target, type, spell_id, damage};
+  }
+
+  if (!other_non_melee || (damage == 0)) return;
+
+  bool is_ds_damage_to_non_pet_npcs =
+      (damage < 0 && type >= 244 && type <= 249 && target->Type == Zeal::GameEnums::EntityTypes::NPC &&
+       target->PetOwnerSpawnId == 0);
+  if (damage > 0 || is_ds_damage_to_non_pet_npcs) {
+    if (damage < 0) damage = -damage;
+    if (source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
+        target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500)
+      Zeal::Game::print_chat(USERCOLOR_NON_MELEE, "%s hit %s for %i points of non-melee damage.",
+                             Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
+  }
+}
+
 chatfilter::chatfilter(ZealService *zeal) {
   if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
 
   zeal->hooks->Add("DamageOutputText", 0x52A8C1, CChatManager, hook_type_replace_call);
-  zeal->callbacks->AddReportSuccessfulHit([this](Zeal::GameStructures::Entity *source,
-                                                 Zeal::GameStructures::Entity *target, WORD type, short spell_id,
-                                                 short damage, char output_text) {
-    if (output_text) {
-      isDamage = true;
-      damageData = {source, target, type, spell_id, damage};
-    }
-    if (spell_id > 0 && source != Zeal::Game::get_self() && target != Zeal::Game::get_self()) {
-      if (damage > 0) {
-        isDamage = true;
-        damageData = {source, target, type, spell_id, damage};
-        if (source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
-            target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500)
-          Zeal::Game::print_chat(USERCOLOR_NON_MELEE, "%s hit %s for %i points of non-melee damage.",
-                                 Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
-      } else if (damage < 0) {
-        if (type >= 244 && type <= 249 && target->Type == Zeal::GameEnums::EntityTypes::NPC &&
-            target->PetOwnerSpawnId == 0)  // Show DS Damage to NPCs (non-pets)
-        {
-          if (source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
-              target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500)
-            Zeal::Game::print_chat(USERCOLOR_NON_MELEE, "%s hit %s for %i points of non-melee damage.",
-                                   Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), -damage);
-        }
-      }
-    }
-  });
+
+  zeal->callbacks->AddReportSuccessfulHit(
+      [this](Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type, short spell_id,
+             short damage, char out_text) { callback_hit(source, target, type, spell_id, damage, out_text); });
+
   Extended_ChannelMaps.push_back(
       CustomFilter("Random", 0x10000, [this](short &color, std::string data) { return color == USERCOLOR_RANDOM; }));
   Extended_ChannelMaps.push_back(
