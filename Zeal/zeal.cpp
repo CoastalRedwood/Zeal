@@ -82,6 +82,8 @@ std::unique_ptr<T> MakeCheckedUniqueImpl(const char *file, int line, Parent *par
   if (HasBeenNotified) return ptr;
   heap_failed_line = line;
   std::stringstream ss;
+  ss << "Note: This is known issue so not worth reporting. Unknown if Zeal can fix. Just abort and retry until it "
+        "works.\n";
   ss << "Heap corruption detected after allocating " << typeid(T).name() << " at " << file << ":" << line << "\n";
   ss << "This may be a false positive or it may be real and the game *might* crash later.\n";
   ss << "You can choose to either abort so you can restart the game, retry the check, or ignore this and continue..\n";

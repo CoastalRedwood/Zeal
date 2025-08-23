@@ -376,6 +376,12 @@ struct BasicWnd  // Equivalent to CXWnd in client.
   /*0x110*/ CXSTR InputText;
 };
 
+struct SidlManager {
+  /*0x000*/ BYTE Unknown0x0000[0x7c];
+  /*0x07c*/ CXSTR ErrorMsg;
+  // Unknown size.
+};
+
 struct SidlWnd : BasicWnd {
   ~SidlWnd(){};
   SidlWnd(){};
