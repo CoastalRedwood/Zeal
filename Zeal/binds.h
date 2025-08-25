@@ -23,20 +23,19 @@ class Binds {
  public:
   Binds(class ZealService *zeal);
   ~Binds();
-  char *KeyMapNames[256] = {0};
-  int ptr_binds = 0;
+
+  static constexpr int kNumBinds = 256;
+  static constexpr int kNameBufferSize = 64;
+  char *KeyMapNames[kNumBinds] = {0};
+  char KeyMapNamesBuffer[kNumBinds][kNameBufferSize] = {0};
+  int KeyMapCategories[kNumBinds] = {0};
   std::unordered_map<int, std::function<void(int state)>> KeyMapFunctions;
   std::unordered_map<int, std::vector<std::function<bool(int state)>>> ReplacementFunctions;
-  std::pair<int, int> last_targets;
+
   void read_ini();
-  void add_binds();
+  void initialize_options_with_keybinds(void *options_window);
   void add_bind(int index, const char *name, const char *short_name, key_category category,
                 std::function<void(int state)> callback);
   void replace_cmd(int cmd, std::function<bool(int state)> callback);
-  void main_loop();
-  void on_zone();
   bool execute_cmd(unsigned int opcode, bool state);
-
- private:
-  void basic_binds();
 };

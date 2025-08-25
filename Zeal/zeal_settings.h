@@ -13,11 +13,9 @@ class ZealService;
 template <typename T>
 class ZealSetting {
  public:
-  static constexpr char kIniFilename[] = ".\\zeal.ini";
-
   void set(T val, bool store = true) {
     if (store && section.length() && key.length()) {
-      IO_ini ini(kIniFilename);
+      IO_ini ini(IO_ini::kZealIniFilename);
       ini.setValue<T>(get_section_name(), key, val);
     }
     value = val;
@@ -93,7 +91,7 @@ class ZealSetting {
 
   void init() {
     if (section.length() && key.length()) {
-      IO_ini ini(kIniFilename);
+      IO_ini ini(IO_ini::kZealIniFilename);
       std::string section_name = get_section_name();
       if (ini.exists(section_name, key)) value = ini.getValue<T>(section_name, key);
     }

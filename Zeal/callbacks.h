@@ -29,7 +29,8 @@ enum class callback_type {
   EntitySpawn,
   EntityDespawn,
   AddOutputText,
-  ReportSuccessfulHit,
+  ReportSuccessfulHit,      // Generic not implemented. Use AddReportSuccessfulHit().
+  ReportSuccessfulHitPost,  // Generic notification after client hooked call executes.
   DeactivateUI,
   CharacterSelectLoop,
   InitCharSelectUI

@@ -12,7 +12,6 @@
 #include "game_structures.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 // #define debug_cam
@@ -212,8 +211,7 @@ void CameraMods::synchronize_set_enable() {
   set_zeal_cam_active(get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
 
   auto zeal = ZealService::get_instance();
-  if (zeal->ui && zeal->ui->options)
-    ZealService::get_instance()->ui->options->UpdateOptions();  // Can be called by command line.
+  if (update_options_ui_callback) update_options_ui_callback();  // Handle command line updates.
 }
 
 // Interpolate zoom is called repeatedly in main_callback(). The alpha coefficient below acts as a

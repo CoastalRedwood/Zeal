@@ -7,7 +7,6 @@
 #include "game_structures.h"
 #include "string_util.h"
 #include "target_ring.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 #if 0  // Not currently used.
@@ -229,9 +228,8 @@ void FloatingDamage::render_text() {
   }
 }
 
-static D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell) {
-  auto zeal = ZealService::get_instance();
-  if (!zeal->ui || !zeal->ui->options) return 0xffffffff;  // Defaults to white.
+D3DCOLOR FloatingDamage::get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell) {
+  if (!get_color_callback) return 0xffffffff;  // Defaults to white.
 
   int color_index = 0;
   if (is_my_damage)
@@ -243,7 +241,7 @@ static D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damag
   else
     color_index = is_spell ? 39 : 38;  // NPC being hit.
 
-  return zeal->ui->options->GetColor(static_cast<int>(color_index));
+  return get_color_callback(static_cast<int>(color_index));
 }
 
 void FloatingDamage::handle_hp_update_packet(const Zeal::Packets::SpawnHPUpdate_Struct *packet) {
@@ -488,7 +486,7 @@ FloatingDamage::FloatingDamage(ZealService *zeal) {
           Zeal::Game::print_chat("Usage: `/fcd font <fontname>` selects the zeal font <fontname>");
           Zeal::Game::print_chat("Usage: `/fcd bighit <threshold>` sets the big hit threshold");
         }
-
+        if (update_options_ui_callback) update_options_ui_callback();
         return true;
       });
 }

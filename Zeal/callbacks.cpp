@@ -1,7 +1,5 @@
 #include "callbacks.h"
 
-#include "chatfilter.h"
-#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
@@ -263,8 +261,8 @@ void CallbackManager::AddReportSuccessfulHit(
 
 void CallbackManager::invoke_ReportSuccessfulHit(Zeal::Packets::Damage_Struct *dmg, char output_text) {
   auto em = ZealService::get_instance()->entity_manager.get();
-  Zeal::GameStructures::Entity *target = em->Get(dmg->target);
-  Zeal::GameStructures::Entity *source = em->Get(dmg->source);
+  Zeal::GameStructures::Entity *target = Zeal::Game::get_entity_by_id(dmg->target);
+  Zeal::GameStructures::Entity *source = Zeal::Game::get_entity_by_id(dmg->source);
   if (target && source) {
     for (const auto &fn : ReportSuccessfulHit_functions)
       fn(source, target, dmg->type, dmg->spellid, dmg->damage, output_text);
@@ -276,10 +274,7 @@ static void __fastcall ReportSuccessfulHit(int t, int u, Zeal::Packets::Damage_S
   ZealService::get_instance()->callbacks->invoke_ReportSuccessfulHit(dmg, output_text);
   ZealService::get_instance()->hooks->hook_map["ReportSuccessfulHit"]->original(ReportSuccessfulHit)(
       t, u, dmg, output_text, always_zero);
-  chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
-  if (cf) {
-    cf->isDamage = false;
-  }
+  ZealService::get_instance()->callbacks->invoke_generic(callback_type::ReportSuccessfulHitPost);
 }
 
 void DeactivateMainUI() {

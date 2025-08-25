@@ -435,19 +435,6 @@ int __fastcall XMLReadNoValidate(void *t, int unused, Zeal::GameUI::CXSTR path1,
       t, unused, path1, path2, filename);
 }
 
-std::string UIManager::GetUIIni() {
-  // First try to use client's function (GetUIIniFilename) to retrieve it.
-  const char *ui_ini_file = reinterpret_cast<const char *(__cdecl *)(void)>(0x00437481)();
-  if (ui_ini_file && ui_ini_file[0]) return ui_ini_file;
-
-  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
-  if (c) {
-    std::string char_name = c->Name;
-    return ".\\UI_" + char_name + "_pq.proj.ini";
-  }
-  return "";
-}
-
 // Instead of a full ui_SkillsWnd class just patch things here for sorting with left clicks.
 static int __fastcall SkillsWnd_WndNotification(Zeal::GameUI::SidlWnd *wnd, int unused_edx,
                                                 Zeal::GameUI::BasicWnd *src_wnd, int param_2, int param_3) {
@@ -462,6 +449,22 @@ static int __fastcall SkillsWnd_WndNotification(Zeal::GameUI::SidlWnd *wnd, int 
   reinterpret_cast<int(__thiscall *)(Zeal::GameUI::SidlWnd * wnd, Zeal::GameUI::BasicWnd * src_wnd, int param_2,
                                      int param_3)>(0x00432943)(wnd, src_wnd, param_2, param_3);
   return 0;
+}
+
+bool UIManager::handle_uierrors(const std::vector<std::string> &args) {
+  if (args.size() != 2 || (args[1] != "on" && args[1] != "off")) {
+    Zeal::Game::print_chat("Usage: /uierrors <on | off>");
+  } else {
+    bool enable = (args[2] == "on");
+    ZealService::get_instance()->ui->setting_show_ui_errors.set(enable);
+    Zeal::Game::print_chat("Showing UI errors is %s.", enable ? "enabled" : "disabled");
+  }
+  return true;
+}
+
+bool UIManager::handle_autobank(const std::vector<std::string> &args) {
+  ZealService::get_instance()->ui->bank->change();
+  return true;  // return true to stop the game from processing any further on this command, false if you want
 }
 
 // Supports batch locking or unlocking of primary UI windows.
@@ -519,8 +522,16 @@ UIManager::UIManager(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   // zeal->callbacks->AddGeneric([this]() { init_ui(); }, callback_type::InitUI);
 
+  zeal->commands_hook->Add(
+      "/autobank", {"/autoba", "/ab"},
+      "Changes your money into its highest denomination in bank and inventory(requires bank to be open).",
+      [this](const std::vector<std::string> &args) { return handle_autobank(args); });
+
+  zeal->commands_hook->Add("/uierrors", {}, "Sets (on) or clears (off) the reporting of xml ui errors.",
+                           [this](const std::vector<std::string> &args) { return handle_uierrors(args); });
+
   zeal->commands_hook->Add("/uilock", {}, "Sets (on) or clears (off) the Lock value in primary ui windows.",
-                           [this](std::vector<std::string> &args) { return handle_uilock(args); });
+                           [this](const std::vector<std::string> &args) { return handle_uilock(args); });
 
   bank = std::make_shared<ui_bank>(zeal, this);
   options = std::make_shared<ui_options>(zeal, this);

@@ -2,6 +2,7 @@
 #include <Windows.h>
 
 #include <chrono>
+#include <functional>
 
 #include "game_functions.h"
 #include "memory.h"
@@ -39,6 +40,8 @@ class CameraMods {
   void handle_proc_rmousedown(int x, int y);
   void handle_do_cam_ai();
 
+  void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
  private:
   float fps = 60.f;
   float zeal_cam_pitch = 0.f;
@@ -53,6 +56,7 @@ class CameraMods {
   std::chrono::steady_clock::time_point lastTime;
   bool ui_active = false;
   bool reset_camera = false;  // Allows for a deferred reset of zeal cam.
+  std::function<void()> update_options_ui_callback;
 
   void synchronize_set_enable();
   void synchronize_old_ui();

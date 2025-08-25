@@ -20,8 +20,6 @@
 
 class UIManager {
  public:
-  std::string GetUIIni();
-
   Zeal::GameUI::SliderWnd *GetSlider(std::string name);
   Zeal::GameUI::BasicWnd *GetCheckbox(std::string name);
   Zeal::GameUI::BasicWnd *GetButton(std::string name);
@@ -75,6 +73,8 @@ class UIManager {
   ZealSetting<bool> setting_show_ui_errors = {true, "Zeal", "ShowUIErrors", false};
 
  private:
+  bool handle_autobank(const std::vector<std::string> &args);
+  bool handle_uierrors(const std::vector<std::string> &args);
   bool handle_uilock(const std::vector<std::string> &args);
 
   std::unordered_map<std::string, Zeal::GameUI::BasicWnd *> checkbox_names;

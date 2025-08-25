@@ -55,6 +55,11 @@ class TargetRing {
   std::vector<std::string> get_available_textures() const;
   void load_texture(const std::string &filename);
   void render_ring(Vec3 pos, float size, DWORD color, IDirect3DTexture8 *texture, float rotationAngle);
+
+  void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
+  void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
+
   TargetRing(class ZealService *zeal);
   ~TargetRing();
 
@@ -82,6 +87,11 @@ class TargetRing {
  private:
   void drawVertices(Vec3 pos, DWORD vertex_count, IDirect3DTexture8 *texture, D3DXMATRIX worldMatrix,
                     SolidVertex *solid_vertices, TexturedVertex *texture_vertices);
+  D3DCOLOR get_target_color() const;
+
   std::vector<RenderState> render_states;
   IDirect3DTexture8 *targetRingTexture = nullptr;
+
+  std::function<void()> update_options_ui_callback;
+  std::function<unsigned int(int)> get_color_callback;
 };

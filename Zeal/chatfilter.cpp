@@ -5,7 +5,6 @@
 #include "game_ui.h"
 #include "hook_wrapper.h"
 #include "memory.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 // Standard ChannelMaps and filter offset
@@ -142,7 +141,7 @@ int32_t __fastcall AddMenu(int this_, int u, Zeal::GameUI::ContextMenu *menu) {
 }
 
 void chatfilter::LoadSettings(Zeal::GameUI::CChatManager *cman) {
-  std::string ini_name = ZealService::get_instance()->ui->GetUIIni();
+  std::string ini_name = Zeal::Game::get_ui_ini_filename();
   if (ini_name.length()) {
     IO_ini ui_ini(ini_name);
     std::string cmap = "ChannelMap";
@@ -183,7 +182,7 @@ void __fastcall UpdateContextMenus(Zeal::GameUI::CChatManager *cman, int u, Zeal
 }
 
 void __fastcall Deactivate(Zeal::GameUI::CChatManager *cman, int u) {
-  std::string ini_name = ZealService::get_instance()->ui->GetUIIni();
+  std::string ini_name = Zeal::Game::get_ui_ini_filename();
   if (ini_name.length()) {
     IO_ini ui_ini(ini_name);
     chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
@@ -416,6 +415,8 @@ chatfilter::chatfilter(ZealService *zeal) {
   zeal->callbacks->AddReportSuccessfulHit(
       [this](Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type, short spell_id,
              short damage, char out_text) { callback_hit(source, target, type, spell_id, damage, out_text); });
+
+  zeal->callbacks->AddGeneric([this]() { isDamage = false; }, callback_type::ReportSuccessfulHitPost);
 
   Extended_ChannelMaps.push_back(
       CustomFilter("Random", 0x10000, [this](short &color, std::string data) { return color == USERCOLOR_RANDOM; }));

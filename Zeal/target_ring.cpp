@@ -4,7 +4,6 @@
 #include "commands.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
-#include "ui_manager.h"
 #include "ui_skin.h"
 #include "zeal.h"
 
@@ -12,12 +11,9 @@
 
 static constexpr char const *kTextureSubDirectoryPath = "targetrings";
 
-static D3DCOLOR get_target_color() {
-  auto zeal = ZealService::get_instance();
-  if (zeal && zeal->ui && zeal->ui->options) {
-    const int kTargetColorIndex = 18;  // NamePlate::ColorIndex::Target
-    return ZealService::get_instance()->ui->options->GetColor(kTargetColorIndex);
-  }
+D3DCOLOR TargetRing::get_target_color() const {
+  const int kTargetColorIndex = 18;  // NamePlate::ColorIndex::Target
+  if (get_color_callback) return get_color_callback(kTargetColorIndex);
   return 0xFFFFFFFF;  // Default to solid white.
 }
 
@@ -471,14 +467,13 @@ TargetRing::TargetRing(ZealService *zeal) {
     if (args.size() == 2) {
       if (args[1] == "indicator") {
         attack_indicator.toggle();
-        return true;
+      } else {
+        float pct = 0;
+        if (Zeal::String::tryParse(args[1], &pct)) inner_percent.set(pct);
       }
-      float pct = 0;
-      if (!Zeal::String::tryParse(args[1], &pct)) return true;
-      inner_percent.set(pct);
-      return true;
-    }
-    enabled.toggle();
+    } else
+      enabled.toggle();
+    if (update_options_ui_callback) update_options_ui_callback();
     return true;
   });
 }

@@ -10,8 +10,8 @@
 class TellWindows {
  public:
   bool HandleKeyPress(int key, bool down, int modifier);
-  bool HandleTell(std::string &cmd_data);
-  bool IsTellWindow(struct Zeal::GameUI::ChatWnd *wnd);
+  std::string GetTellWindowName() const;
+  bool IsTellWindow(struct Zeal::GameUI::ChatWnd *wnd) const;
   TellWindows(class ZealService *zeal);
   ~TellWindows();
   void SetEnabled(bool val);
@@ -19,6 +19,9 @@ class TellWindows {
   Zeal::GameUI::ChatWnd *FindTellWnd(std::string &name);
   void AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short channel);
   void CloseAllWindows();
+
+  void AddOptionsCallback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
   bool enabled = false;
   bool hist_enabled = true;
 
@@ -26,6 +29,7 @@ class TellWindows {
   Zeal::GameUI::ChatWnd *FindPreviousTellWnd();
   Zeal::GameUI::ChatWnd *FindNextTellWnd();
   std::unordered_map<std::string, std::vector<std::pair<short, std::string>>> tell_cache;
+  std::function<void()> update_options_ui_callback;
   void CleanUI();
   void LoadUI();
 };

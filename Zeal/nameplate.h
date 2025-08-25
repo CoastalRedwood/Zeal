@@ -1,6 +1,10 @@
 #pragma once
 #include <Windows.h>
 
+#include <functional>
+#include <string>
+#include <vector>
+
 #include "bitmap_font.h"
 #include "game_structures.h"
 #include "zeal_settings.h"
@@ -30,6 +34,10 @@ class NamePlate {
 
   NamePlate(class ZealService *zeal);
   ~NamePlate();
+
+  void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
+  void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
 
   // Tint (color) settings.
   ZealSetting<bool> setting_colors = {false, "Zeal", "NameplateColors", false};
@@ -119,4 +127,6 @@ class NamePlate {
 
   std::unique_ptr<SpriteFont> sprite_font;
   std::unordered_map<struct Zeal::GameStructures::Entity *, NamePlateInfo> nameplate_info_map;
+  std::function<void()> update_options_ui_callback;
+  std::function<unsigned int(int)> get_color_callback;
 };

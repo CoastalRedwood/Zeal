@@ -4,13 +4,10 @@
 #include "game_structures.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
-#include "named_pipe.h"
 #include "zeal.h"
 
 constexpr DWORD kAverageTickDuration = 6010;
 constexpr DWORD kGaugeScale = 1000;
-
-constexpr const char *TICK_MESSAGE = "Tick";
 
 UINT64 LastKnownServerTick = 0;
 
@@ -43,9 +40,9 @@ DWORD Tick::GetTickGauge(Zeal::GameUI::CXSTR *str) {
   return value;
 }
 
-void OnServerTick() {
+void Tick::OnServerTick() {
   LastKnownServerTick = GetTickCount64();
-  ZealService::get_instance()->pipe->chat_msg(TICK_MESSAGE, 0);  // Send 'Tick' to ZealPipe
+  for (const auto &callback : tick_callbacks) callback();
 }
 
 void __cdecl Handle_OP_Stamina(Zeal::Packets::Stamina_Struct *packet) {
@@ -53,7 +50,8 @@ void __cdecl Handle_OP_Stamina(Zeal::Packets::Stamina_Struct *packet) {
 
   // Fatigue packet is the first thing sent on a Server Tick. If Food/Water are unchanged, then we know this is sent via
   // Server Tick.
-  if (char_info && char_info->Hunger == packet->food && char_info->Thirst == packet->water) OnServerTick();
+  if (char_info && char_info->Hunger == packet->food && char_info->Thirst == packet->water)
+    ZealService::get_instance()->tick->OnServerTick();
 
   ZealService::get_instance()->hooks->hook_map["Handle_OP_Stamina"]->original(Handle_OP_Stamina)(packet);
 }

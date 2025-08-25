@@ -175,6 +175,7 @@ void execute_cmd(UINT cmd, bool isdown, int unk2);
 GameStructures::GameClass *get_game();
 GameStructures::Display *get_display();
 const char *get_ui_skin();
+std::string get_ui_ini_filename();
 std::filesystem::path get_default_ui_skin_path();
 int get_gamestate();
 int get_channel_number(const char *name);  // Zero-based channel number.

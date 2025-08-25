@@ -9,7 +9,6 @@
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "string_util.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 // void __fastcall finalize_loot(int uk, int lootwnd_ptr)
@@ -96,7 +95,7 @@ void Looting::set_hide_looted(bool val) {
   hide_looted = val;
   auto zeal = ZealService::get_instance();
   zeal->ini->setValue<bool>("Zeal", "HideLooted", hide_looted);
-  if (zeal->ui && zeal->ui->options) ZealService::get_instance()->ui->options->UpdateOptions();
+  if (update_options_ui_callback) update_options_ui_callback();
   if (hide_looted)
     Zeal::Game::print_chat("Corpses will be hidden after looting.");
   else

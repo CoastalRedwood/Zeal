@@ -53,10 +53,16 @@ class FloatingDamage {
   void clean_ui();
   void draw_icon(int index, float x, float y, float opacity);
   int get_active_damage_count(Zeal::GameStructures::Entity *ent);
+
+  void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
+  void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
+
   FloatingDamage(class ZealService *zeal);
   ~FloatingDamage();
 
  private:
+  D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell);
   bool is_visible() const;
   bool add_texture(std::string path);
   std::vector<IDirect3DTexture8 *> textures;
@@ -67,4 +73,6 @@ class FloatingDamage {
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
   int font_size = 5;
   std::unordered_map<Zeal::GameStructures::Entity *, std::vector<DamageData>> damage_numbers;
+  std::function<void()> update_options_ui_callback;
+  std::function<unsigned int(int)> get_color_callback;
 };
