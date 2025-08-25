@@ -1533,7 +1533,7 @@ static constexpr std::array<SpellCatEntry, 2151> spell_cat_lut = {{
     {2536, {69, 42}},                             // Transon's Elemental Infusion,
     {2537, {125, 51}},                            // Veil of Elements,
     {2538, {18, 109}},                            // Mass Mystical Transvergance,
-    {2539, {45, 44}},                             // Transon's Phantasmal Protection,
+    {2539, {79, 44}},                             // Transon's Phantasmal Protection,
     {2540, {25, 38}},                             // Shock of Fiery Blades,
     {2541, {69, 70}},                             // Focus Death,
     {2542, {126, 124}},                           // Shackle of Bone,

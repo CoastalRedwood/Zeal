@@ -1,9 +1,11 @@
 #include "ui_manager.h"
 
 #include <algorithm>
+#include <array>
 #include <fstream>
 
 #include "commands.h"
+#include "crash_handler.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
@@ -349,30 +351,71 @@ static void show_big_fonts_error_text(bool is_current_ui_big_fonts_mode) {
   ZealService::get_instance()->queue_chat_message(message);  // Queued in order to defer print to after UI loaded.
 }
 
-static bool is_message_an_error(const char *error_message) {
-  if (!error_message) return false;
-  std::string message = error_message;
-
+static bool is_message_an_error(const std::string &message) {
   // Ignore all except errors (like Warnings).
   if (!message.starts_with("Error:")) return false;
 
-  // Ignore known spam from the song buff window.
-  if (message.starts_with("Error: Could not find child Buff")) return false;
+  // Ignore some optional missing buttons in the XML that don't cause crashes. We could use some
+  // regexp pattern matching here, but just brute force it for clarity.
+  static constexpr std::array<const char *, 13> optionals = {
+      // Zeal extra buttons.
+      "Error: Could not find child Zeal_ZoneSelect in window CharacterSelectWindow",
+      "Error: Could not find child ChangeButton in window BankWnd",
+      "Error: Could not find child LinkAllButton in window LootWnd",
+      "Error: Could not find child LootAllButton in window LootWnd",
 
-  // Ignore some optional missing buttons that don't cause crashes.
-  if (message.starts_with("Error: Could not find child Zeal_ZoneSelect in window CharacterSelectWindow")) return false;
-  if (message.starts_with("Error: Could not find child ChangeButton in window BankWnd")) return false;
-  if (message.starts_with("Error: Could not find child LinkAllButton in window LootWnd")) return false;
-  if (message.starts_with("Error: Could not find child LootAllButton in window LootWnd")) return false;
+      // UI skins with simplified bag windows.
+      "Error: Could not find child Container_Icon in window ContainerWindow",
+      "Error: Could not find child DoneButton in window ContainerWindow",
+
+      // UI skins with simplified druid / bard tracking window.
+      "Error: Could not find child TRW_TrackSortCombobox in window TrackingWnd",
+      "Error: Could not find child TRW_FilterRedButton in window TrackingWnd",
+      "Error: Could not find child TRW_FilterYellowButton in window TrackingWnd",
+      "Error: Could not find child TRW_FilterWhiteButton in window TrackingWnd",
+      "Error: Could not find child TRW_FilterBlueButton in window TrackingWnd",
+      "Error: Could not find child TRW_FilterLightBlueButton in window TrackingWnd",
+      "Error: Could not find child TRW_FilterGreenButton in window TrackingWnd"};
+
+  for (const auto &optional : optionals)
+    if (message == optional) return false;
 
   return true;
 }
 
+// Intercept error messages going to the uierrors.txt file to clarify the messages written out, report the
+// unexpected error to the crash handler, and optionally show a dialog message.
+//
 // Report errors as they are detected. This has an off setting option in case of future incompatibilities.
 static void LogUIError(const char *error_message) {
+  if (!error_message) return;
+
+  std::string message = error_message;
+  static constexpr std::string warning_str = "Warning: ";
+  static constexpr std::string error_str = "Error: ";
+
+  if (message.back() == '\n') message.pop_back();  // Strip trailing \n which is already added by the client call.
+
+  // Change the typical "fallback to default files" from a scary warning to an info message. Also modify
+  // the expected errors from the short duration song buff window to be less concerning/confusing.
+  if (message.starts_with(warning_str) && message.ends_with("Attempting to use file from Default skin."))
+    message = "Info: " + message.substr(warning_str.length());
+  else if (message.starts_with("Error: Could not find child Buff") && message.ends_with("ShortDurationBuffWindow"))
+    message = "Info: " + message.substr(error_str.length());
+
+  bool is_error = is_message_an_error(message);
+
   auto zeal = ZealService::get_instance();
-  if (zeal->ui->setting_show_ui_errors.get() && is_message_an_error(error_message))
-    MessageBoxA(NULL, error_message, "UI XML parsing error", MB_ICONWARNING);
+  if (is_error) zeal->crash_handler->increment_xml_error_count();
+  if (is_error && zeal->ui->setting_show_ui_errors.get()) {
+    std::string dialog_msg = message;
+    dialog_msg += "\n\nTo prevent showing future UI error messages, select Cancel which executes '/uierrors off'.";
+    int result_id = MessageBoxA(GetForegroundWindow(), dialog_msg.c_str(), "Info: Unknown UI XML skin error",
+                                MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST);
+    if (result_id == IDCANCEL) zeal->ui->setting_show_ui_errors.set(false);
+  }
+
+  error_message = message.c_str();
   zeal->hooks->hook_map["LogUIError"]->original(LogUIError)(error_message);
 }
 
@@ -382,7 +425,8 @@ static Zeal::GameUI::CXSTR *__fastcall SidlManager__GetParsingErrorMsg(Zeal::Gam
                                                                        Zeal::GameUI::CXSTR *msg_result) {
   if (sidl_manager->ErrorMsg.Data) {
     std::string error = std::string(sidl_manager->ErrorMsg);
-    if (!error.empty()) MessageBoxA(NULL, error.c_str(), "Severe UI XML parsing error", MB_ICONWARNING);
+    if (!error.empty())
+      MessageBoxA(GetForegroundWindow(), error.c_str(), "Severe UI XML parsing error", MB_ICONWARNING);
   }
   return ZealService::get_instance()->hooks->hook_map["SidlManager__GetParsingErrorMsg"]->original(
       SidlManager__GetParsingErrorMsg)(sidl_manager, unused_edx, msg_result);
@@ -455,7 +499,7 @@ bool UIManager::handle_uierrors(const std::vector<std::string> &args) {
   if (args.size() != 2 || (args[1] != "on" && args[1] != "off")) {
     Zeal::Game::print_chat("Usage: /uierrors <on | off>");
   } else {
-    bool enable = (args[2] == "on");
+    bool enable = (args[1] == "on");
     ZealService::get_instance()->ui->setting_show_ui_errors.set(enable);
     Zeal::Game::print_chat("Showing UI errors is %s.", enable ? "enabled" : "disabled");
   }
