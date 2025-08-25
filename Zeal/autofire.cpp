@@ -69,7 +69,9 @@ void AutoFire::Main() {
         SetAutoFire(false);
       }
 
+      // Suppress spam messages to only a 1 Hz rate.
       if (GetTickCount64() - last_print_time < 1000) {
+        ZealService::get_instance()->gamestr_hook->str_noprint[123] = true;
         ZealService::get_instance()->gamestr_hook->str_noprint[124] = true;
         ZealService::get_instance()->gamestr_hook->str_noprint[108] = true;
         ZealService::get_instance()->gamestr_hook->str_noprint[12695] = true;
@@ -85,6 +87,7 @@ void AutoFire::Main() {
         Zeal::Game::do_attack(11, 0);
       }
 
+      ZealService::get_instance()->gamestr_hook->str_noprint[123] = false;
       ZealService::get_instance()->gamestr_hook->str_noprint[124] = false;
       ZealService::get_instance()->gamestr_hook->str_noprint[108] = false;
       ZealService::get_instance()->gamestr_hook->str_noprint[12695] = false;
