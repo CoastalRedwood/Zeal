@@ -315,6 +315,10 @@ ___
   - **Aliases:** `/opentrade`, `/ot`
   - **Description:** Opens a trade window with your current target.
 
+- `/uierrors`
+  - **Arguments:** `on`, `off`
+  - **Description:** Sets (on) or clears (off) the enable for showing dialog messages for unknown xml errors.
+ 
 - `/uilock`
   - **Arguments:** `on`, `off`
   - **Description:** Sets (on) or clears (off) the UI Lock value on primary game windows. Bag windows must be open to take effect.

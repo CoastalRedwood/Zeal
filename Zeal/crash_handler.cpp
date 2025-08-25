@@ -216,6 +216,8 @@ static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
     if (show_spell_effects) reasonStream << "ShowSpellEffects: " << show_spell_effects << std::endl;
     if (ZealService::get_heap_failed_line())
       reasonStream << "BootHeapCheck: " << ZealService::get_heap_failed_line() << std::endl;
+    int error_count = ZealService::get_instance()->crash_handler->get_xml_error_count();
+    if (error_count) reasonStream << "Unknown uierrors.txt error count: " << error_count << std::endl;
   }
   return reasonStream.str();
 }
