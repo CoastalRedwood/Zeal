@@ -2824,7 +2824,7 @@ int get_anti_twink_damage(int base_damage) {
   return base_damage;
 }
 
-static int get_offense(const Zeal::GameEnums::SkillType skill, bool verbose = false) {
+static int get_offense(const Zeal::GameEnums::SkillType skill, bool verbose = false, short color = USERCOLOR_DEFAULT) {
   auto char_info = Zeal::Game::get_char_info();
   if (!char_info) return 0;
 
@@ -2851,12 +2851,13 @@ static int get_offense(const Zeal::GameEnums::SkillType skill, bool verbose = fa
   offense = max(1, offense);
 
   if (verbose)
-    Zeal::Game::print_chat("Offense: %d (Skill %d + Stat %d + SpellAtk %d + ItemAtk %d + Class %d)", offense,
+    Zeal::Game::print_chat(color, "Offense: %d (Skill %d + Stat %d + SpellAtk %d + ItemAtk %d + Class %d)", offense,
                            skill_value, stat_bonus, spell_atk, item_atk, class_bonus);
 
   int client_offense = char_info->offense(skill);
   if (client_offense != offense)
-    Zeal::Game::print_chat("--- Issue: Client offense %d does not match Zeal offense %d ----", client_offense, offense);
+    Zeal::Game::print_chat(color, "--- Issue: Client offense %d does not match Zeal offense %d ----", client_offense,
+                           offense);
 
   return offense;
 }
@@ -2951,7 +2952,7 @@ int get_hand_to_hand_delay() {
   return default_delay;
 }
 
-void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon) {
+void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon, short color) {
   auto char_info = Zeal::Game::get_char_info();
   if (!char_info)  // Unlikely so just bail to prevent corner-case crash.
     return;
@@ -2964,11 +2965,11 @@ void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEM
 
   if (!weapon) weapon = char_info->InventoryItem[slot];
 
-  Zeal::Game::print_chat("---- Melee %s: %s ----", primary ? "Primary" : "Secondary",
+  Zeal::Game::print_chat(color, "---- Melee %s: %s ----", primary ? "Primary" : "Secondary",
                          weapon ? weapon->Name : "HandToHand");
 
   if (weapon && !Zeal::Game::can_item_equip_in_slot(char_info, weapon, slot + 1)) {
-    Zeal::Game::print_chat("Can not use weapon in this slot.");
+    Zeal::Game::print_chat(color, "Can not use weapon in this slot.");
     return;
   }
 
@@ -2976,14 +2977,14 @@ void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEM
   int base_damage_raw = get_base_damage(slot, weapon);
   int base_damage = get_anti_twink_damage(base_damage_raw);
   if (base_damage != base_damage_raw)
-    Zeal::Game::print_chat("Anti-twink: base_damage reduced from %d to %d", base_damage_raw, base_damage);
+    Zeal::Game::print_chat(color, "Anti-twink: base_damage reduced from %d to %d", base_damage_raw, base_damage);
 
   int bonus_damage = primary ? get_damage_bonus(weapon) : 0;
 
   Zeal::GameEnums::SkillType skill = get_weapon_skill(weapon);
   int to_hit = char_info->compute_to_hit(skill);
-  int offense = get_offense(skill, true);  // Print out offense.
-  Zeal::Game::print_chat("To Hit: %d", to_hit);
+  int offense = get_offense(skill, true, color);  // Print out offense.
+  Zeal::Game::print_chat(color, "To Hit: %d", to_hit);
   float dmg_multiplier_max = get_damage_multiplier(offense, skill, true);
   float dmg_multiplier_ave = get_damage_multiplier(offense, skill, false);
   float min_damage = bonus_damage + base_damage * 0.1f * 1;
@@ -2992,14 +2993,14 @@ void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEM
   float ave_damage = bonus_damage + base_damage * 1.0f * dmg_multiplier_ave;
   int delay = weapon ? weapon->Common.AttackDelay : get_hand_to_hand_delay();
   if (primary) {  // Reduce log spam.
-    Zeal::Game::print_chat("Display ATK: %d = (offense + to hit) * 1000 / 744", (offense + to_hit) * 1000 / 744);
-    Zeal::Game::print_chat("Dmg = BonusDmg + BaseDmg * MitFactor * DmgMultiplier");
+    Zeal::Game::print_chat(color, "Display ATK: %d = (offense + to hit) * 1000 / 744", (offense + to_hit) * 1000 / 744);
+    Zeal::Game::print_chat(color, "Dmg = BonusDmg + BaseDmg * MitFactor * DmgMultiplier");
   }
-  Zeal::Game::print_chat("Dmg = %d + %d * (0.1 to 2.0x) * (1 to %.2f, ave = %.2f)", bonus_damage, base_damage,
+  Zeal::Game::print_chat(color, "Dmg = %d + %d * (0.1 to 2.0x) * (1 to %.2f, ave = %.2f)", bonus_damage, base_damage,
                          dmg_multiplier_max, dmg_multiplier_ave);
-  Zeal::Game::print_chat("Dmg = %.2f to %.2f, ave = %.2f", min_damage, max_damage, ave_damage);
+  Zeal::Game::print_chat(color, "Dmg = %.2f to %.2f, ave = %.2f", min_damage, max_damage, ave_damage);
   if (delay > 0) {
-    Zeal::Game::print_chat("DPS = %.2f to %.2f, ave = %.2f", 10 * min_damage / delay, 10 * max_damage / delay,
+    Zeal::Game::print_chat(color, "DPS = %.2f to %.2f, ave = %.2f", 10 * min_damage / delay, 10 * max_damage / delay,
                            10 * ave_damage / delay);
     const int SE_AttackSpeed = 11;  // Spell Effect ID for haste (> 100).
     int haste = char_info->total_spell_affects(SE_AttackSpeed, true, nullptr);
@@ -3007,7 +3008,7 @@ void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEM
     if (self && haste > 100) {
       int haste_delay = self->ModifyAttackSpeed(delay, false);
       if (haste_delay > 0)
-        Zeal::Game::print_chat("DPS = %.2f to %.2f, ave = %.2f (%d%% haste)", 10 * min_damage / haste_delay,
+        Zeal::Game::print_chat(color, "DPS = %.2f to %.2f, ave = %.2f (%d%% haste)", 10 * min_damage / haste_delay,
                                10 * max_damage / haste_delay, 10 * ave_damage / haste_delay, haste - 100);
     }
   }

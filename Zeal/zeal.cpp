@@ -420,30 +420,34 @@ void ZealService::AddCommands() {
         const char kMarker = 0x12;  // Link marker.
         int item_id = 0;
         if (args.size() == 2 && args[1] == "info") {
-          print_chat("---- mystats Beta info ----");
-          print_chat("Known simplifications:");
-          print_chat("  - Anti-twink defensive logic may not be accurate");
-          print_chat("  - All disciplines (offensive, defensive) are ignored");
-          print_chat("  - Range weapons, duel wield, double-attack will be in future update");
-          print_chat("Stat descriptions (all values include current spell effects):");
-          print_chat("Mitigation: modifies incoming damage based on offense vs mitigation (0.1x to 2.0x factor)");
-          print_chat("Mitigation (melee) ~= item_ac*4/3 + defense_skill/3 + agility/20 + spell_ac/4 + class_ac");
-          print_chat(
-              "Note: The spell_ac value is an internal calc from the database. Sites like pqdi already include "
-              "the /4.");
-          print_chat("Avoidance: modifies probability of taking zero damage");
-          print_chat("Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct)");
-          print_chat("To Hit: sets probability of hitting based on to hit vs avoidance");
-          print_chat("To Hit ~= 7 + offense_skill + weap_skill + bonuses (item, spell, AA)");
-          print_chat("Offense: impacts both mitigation factor and damage multiplier");
-          print_chat("Offense ~= weap_skill_value + spell_atk + item_atk + max(0, (str-75)*2/3)");
-          print_chat("Damage multiplier: Chance for bonus damage factor based on level, weapon skill, and offense");
-          print_chat("Average damage: Mitigation factor = 1, damage multiplier = average after both rolls");
+          print_chat(CHANNEL_MYSTATS, "---- mystats Beta info ----");
+          print_chat(CHANNEL_MYSTATS, "Known simplifications:");
+          print_chat(CHANNEL_MYSTATS, "  - Anti-twink defensive logic may not be accurate");
+          print_chat(CHANNEL_MYSTATS, "  - All disciplines (offensive, defensive) are ignored");
+          print_chat(CHANNEL_MYSTATS, "  - Range weapons, duel wield, double-attack will be in future update");
+          print_chat(CHANNEL_MYSTATS, "Stat descriptions (all values include current spell effects):");
+          print_chat(CHANNEL_MYSTATS,
+                     "Mitigation: modifies incoming damage based on offense vs mitigation (0.1x to 2.0x factor)");
+          print_chat(CHANNEL_MYSTATS,
+                     "Mitigation (melee) ~= item_ac*4/3 + defense_skill/3 + agility/20 + spell_ac/4 + class_ac");
+          print_chat(CHANNEL_MYSTATS,
+                     "Note: The spell_ac value is an internal calc from the database. Sites like pqdi already include "
+                     "the /4.");
+          print_chat(CHANNEL_MYSTATS, "Avoidance: modifies probability of taking zero damage");
+          print_chat(CHANNEL_MYSTATS, "Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct)");
+          print_chat(CHANNEL_MYSTATS, "To Hit: sets probability of hitting based on to hit vs avoidance");
+          print_chat(CHANNEL_MYSTATS, "To Hit ~= 7 + offense_skill + weap_skill + bonuses (item, spell, AA)");
+          print_chat(CHANNEL_MYSTATS, "Offense: impacts both mitigation factor and damage multiplier");
+          print_chat(CHANNEL_MYSTATS, "Offense ~= weap_skill_value + spell_atk + item_atk + max(0, (str-75)*2/3)");
+          print_chat(CHANNEL_MYSTATS,
+                     "Damage multiplier: Chance for bonus damage factor based on level, weapon skill, and offense");
+          print_chat(CHANNEL_MYSTATS,
+                     "Average damage: Mitigation factor = 1, damage multiplier = average after both rolls");
         } else if (args.size() == 2 && args[1] == "affects") {
           auto char_info = Zeal::Game::get_char_info();
           if (char_info) {
             const int SE_ArmorClass = 1;
-            print_chat("TotalSpellAffects: AC: %d",
+            print_chat(CHANNEL_MYSTATS, "TotalSpellAffects: AC: %d",
                        Zeal::Game::total_spell_affects(char_info, SE_ArmorClass, true, nullptr));
           }
         } else if (args.size() >= 2 && args[1].size() >= 8 && args[1].front() == kMarker) {
@@ -454,34 +458,35 @@ void ZealService::AddCommands() {
             const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr;
             if (zeal && zeal->item_displays && zeal->item_displays->get_cached_item(item_id)) {
               const auto weapon = zeal->item_displays->get_cached_item(item_id);
-              Zeal::Game::print_melee_attack_stats(true, weapon);
-              Zeal::Game::print_melee_attack_stats(false, weapon);
+              Zeal::Game::print_melee_attack_stats(true, weapon, CHANNEL_MYSTATS);
+              Zeal::Game::print_melee_attack_stats(false, weapon, CHANNEL_MYSTATS);
             } else
-              print_chat("Unable to locate a local copy of information for item %d", item_id);
+              print_chat(CHANNEL_MYSTATS, "Unable to locate a local copy of information for item %d", item_id);
           } else
-            print_chat("Failed to parse item link.");
+            print_chat(CHANNEL_MYSTATS, "Failed to parse item link.");
         } else if (args.size() == 1) {
           bool is_luclin_enabled = (Zeal::Game::get_era() >= Zeal::Game::Era::Luclin);
           auto self = Zeal::Game::get_self();
           if (self) {
-            Zeal::Game::print_chat("---- Misc stats ----");
+            Zeal::Game::print_chat(CHANNEL_MYSTATS, "---- Misc stats ----");
             auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
             float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
-            print_chat("Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
+            print_chat(CHANNEL_MYSTATS, "Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
             if (!horse && self->ActorInfo)
-              print_chat("Movement modifier: %+d%%", (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
+              print_chat(CHANNEL_MYSTATS, "Movement modifier: %+d%%",
+                         (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
           }
-          Zeal::Game::print_chat("---- Defensive stats ----");
-          print_chat("AC (display): %i = (Mit: %i  + Avoidance: %i) * 1000/847", Zeal::Game::get_display_AC(),
-                     Zeal::Game::get_mitigation(), Zeal::Game::get_avoidance());
-          print_chat("Mitigation: %i (%s: %i)", Zeal::Game::get_mitigation(true),
+          Zeal::Game::print_chat(CHANNEL_MYSTATS, "---- Defensive stats ----");
+          print_chat(CHANNEL_MYSTATS, "AC (display): %i = (Mit: %i  + Avoidance: %i) * 1000/847",
+                     Zeal::Game::get_display_AC(), Zeal::Game::get_mitigation(), Zeal::Game::get_avoidance());
+          print_chat(CHANNEL_MYSTATS, "Mitigation: %i (%s: %i)", Zeal::Game::get_mitigation(true),
                      is_luclin_enabled ? "softcap" : "hardcap", Zeal::Game::get_mitigation_softcap());
-          print_chat("Avoidance: %i (with AAs)",
+          print_chat(CHANNEL_MYSTATS, "Avoidance: %i (with AAs)",
                      Zeal::Game::get_avoidance(true));  // Includes combat_agility.
-          Zeal::Game::print_melee_attack_stats(true);
-          Zeal::Game::print_melee_attack_stats(false);
+          Zeal::Game::print_melee_attack_stats(true, nullptr, CHANNEL_MYSTATS);
+          Zeal::Game::print_melee_attack_stats(false, nullptr, CHANNEL_MYSTATS);
         } else
-          print_chat("Usage: /mystats, /mystats info, /mystats <item_id>, /mystats <item_link>");
+          print_chat(CHANNEL_MYSTATS, "Usage: /mystats, /mystats info, /mystats <item_id>, /mystats <item_link>");
 
         return true;
       });

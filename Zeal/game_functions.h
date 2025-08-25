@@ -304,6 +304,7 @@ int get_mitigation_softcap();
 int get_display_AC();
 Zeal::GameEnums::SkillType get_weapon_skill(const Zeal::GameStructures::GAMEITEMINFO *weapon);
 int get_hand_to_hand_delay();
-void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr);
+void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr,
+                              short color = USERCOLOR_DEFAULT);
 }  // namespace Game
 }  // namespace Zeal
