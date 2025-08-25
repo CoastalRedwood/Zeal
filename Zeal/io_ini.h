@@ -17,8 +17,9 @@ class IO_ini {
 
  public:
   static constexpr char kClientFilename[] = ".\\eqclient.ini";
+  static constexpr char kZealIniFilename[] = ".\\zeal.ini";
 
-  IO_ini(const std::string &filename, bool import_check = false) : filename(filename){};
+  IO_ini(const std::string &filename) : filename(filename){};
 
   void set(std::string path) { filename = path; }
 

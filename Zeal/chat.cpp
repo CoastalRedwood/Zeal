@@ -14,10 +14,7 @@
 #include "hook_wrapper.h"
 #include "labels.h"
 #include "memory.h"
-#include "named_pipe.h"
 #include "string_util.h"
-#include "tellwindows.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 std::string ReadFromClipboard() {
@@ -93,33 +90,34 @@ std::string replaceUnderscores(const std::smatch &match) {
 
 UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
   auto zeal = ZealService::get_instance();
-  if (!zeal->ui || !zeal->ui->options)
-    return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
-
-  ui_options *options = zeal->ui->options.get();
   Chat *c = zeal->chat_hook.get();
+  if (!c->get_color_callback) return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
 
   switch (index) {
     case 4:
     case 0x10:
       if (c->UseBlueCon.get()) {
-        return options->GetColor(14);
+        return c->get_color_callback(14);
       }
       break;
     case CHANNEL_MYPETDMG:
-      return options->GetColor(19);
+      return c->get_color_callback(19);
     case CHANNEL_OTHERPETDMG:
-      return options->GetColor(20);
+      return c->get_color_callback(20);
     case CHANNEL_MYPETSAY:
-      return options->GetColor(21);
+      return c->get_color_callback(21);
     case CHANNEL_OTHERPETSAY:
-      return options->GetColor(22);
+      return c->get_color_callback(22);
     case CHANNEL_MYMELEESPECIAL:
-      return options->GetColor(23);
+      return c->get_color_callback(23);
     case CHANNEL_OTHERMELEESPECIAL:
-      return options->GetColor(24);
+      return c->get_color_callback(24);
   }
   return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
+}
+
+void Chat::handle_print_chat(const char *data, int color_index) {
+  for (const auto &callback : print_chat_callbacks) callback(data, color_index);
 }
 
 // Note that the client PrintChat does modify the data parameter (percent converts) so it is not
@@ -128,7 +126,8 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
 static void __fastcall PrintChat(int t, int unused, char *data, short color_index, bool add_log) {
   if (!data || strlen(data) == 0)  // Skip phantom prints like the client does.
     return;
-  ZealService::get_instance()->pipe->chat_msg(data, color_index);
+
+  ZealService::get_instance()->chat_hook->handle_print_chat(data, color_index);
 
   // Perform extra copies to protect unwary callers against the potential buffer size growth.
   char buffer[2048];  // Client maximum buffer size for print chat calls.
@@ -404,12 +403,17 @@ static bool check_for_tab_completion(Zeal::GameUI::EditWnd *active_edit, UINT32 
   return false;
 }
 
+bool Chat::handle_key_press(int key, bool down, int modifier) {
+  if (key_press_callback) return key_press_callback(key, down, modifier);
+  return false;
+}
+
 int __fastcall EditWndHandleKey(Zeal::GameUI::EditWnd *active_edit, int u, UINT32 key, int modifier, char keydown) {
   if (!ZealService::get_instance()->chat_hook->UseZealInput.get())
     return ZealService::get_instance()->hooks->hook_map["EditWndHandleKey"]->original(EditWndHandleKey)(
         active_edit, u, key, modifier, keydown);
   // Zeal::Game::print_chat("EditWnd: 0x%x key: %x modifier: %i state: %i", active_edit, key, modifier, keydown);
-  if (ZealService::get_instance()->tells->HandleKeyPress(key, keydown, modifier)) return 0;
+  if (ZealService::get_instance()->chat_hook->handle_key_press(key, keydown, modifier)) return 0;
   if (check_for_tab_completion(active_edit, key, modifier, keydown)) {
     return 0;
   }

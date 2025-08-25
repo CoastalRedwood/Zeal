@@ -7,7 +7,6 @@
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "target_ring.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 // Test cases:
@@ -81,9 +80,7 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   // later so the update options call below works correctly.
   if (valid_value) *reinterpret_cast<int32_t *>(0x007d01e4) = value;  // Update the current shownames level.
   *reinterpret_cast<int *>(0x00798af4) = valid_value;  // Update the depressed button Show PC Names button state.
-  if (ZealService::get_instance()->ui && ZealService::get_instance()->ui->options) {
-    ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
-  }
+  if (update_options_ui_callback) update_options_ui_callback();
 
   return false;  // Let the original command run fully update (beyond shortcuts above).
 }
@@ -107,6 +104,7 @@ NamePlate::NamePlate(ZealService *zeal) {
   zeal->commands_hook->Add("/nameplate", {}, "Toggles nameplate options on/off.",
                            [this](std::vector<std::string> &args) {
                              parse_args(args);
+                             if (update_options_ui_callback) update_options_ui_callback();
                              return true;
                            });
 
@@ -179,8 +177,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
     auto setting = command_map[args[1]];
     setting->toggle();
     Zeal::Game::print_chat("Nameplate option %s set to %s", args[1].c_str(), setting->get() ? "Enabled" : "Disabled");
-    if (ZealService::get_instance() && ZealService::get_instance()->ui && ZealService::get_instance()->ui->options)
-      ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
+    if (update_options_ui_callback) update_options_ui_callback();
     return;
   }
 
@@ -270,8 +267,7 @@ void NamePlate::render_ui() {
   if (!sprite_font) {
     Zeal::Game::print_chat("Nameplate: Failed to load zeal fonts, disabling");
     setting_zeal_fonts.set(false, false);  // Fallback to native nameplates.
-    if (ZealService::get_instance() && ZealService::get_instance()->ui && ZealService::get_instance()->ui->options)
-      ZealService::get_instance()->ui->options->UpdateOptionsNameplate();
+    if (update_options_ui_callback) update_options_ui_callback();
     return;
   }
 
@@ -452,9 +448,8 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
   auto color = D3DCOLOR_XRGB(128, 255, 255);  // Approximately the default nameplate color.
   if (color_index == ColorIndex::UseConsider)
     color = Zeal::Game::GetLevelCon(entity);
-  else if (color_index != ColorIndex::UseClient && ZealService::get_instance()->ui &&
-           ZealService::get_instance()->ui->options)
-    color = ZealService::get_instance()->ui->options->GetColor(static_cast<int>(color_index));
+  else if (color_index != ColorIndex::UseClient && ZealService::get_instance()->ui && get_color_callback)
+    color = get_color_callback(static_cast<int>(color_index));
 
   if (entity == Zeal::Game::get_target() && setting_target_blink.get()) {
     // Share the flash speed slider with the target_ring so they aren't beating.

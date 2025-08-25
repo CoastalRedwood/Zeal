@@ -562,6 +562,25 @@ void HelmManager::DetectInstalledFixes() {
   return;
 }
 
+bool HelmManager::Handle_Showhelm(const std::vector<std::string> &args) {
+  if (args.size() == 1) {
+    ZealService::get_instance()->helm->ShowHelmEnabled.toggle();
+    return true;
+  }
+  if (args.size() == 2) {
+    if (Zeal::String::compare_insensitive(args[1], "on")) {
+      ZealService::get_instance()->helm->ShowHelmEnabled.set(true);
+      return true;
+    }
+    if (Zeal::String::compare_insensitive(args[1], "off")) {
+      ZealService::get_instance()->helm->ShowHelmEnabled.set(false);
+      return true;
+    }
+  }
+  Zeal::Game::print_chat("Usage: /showhelm or /showhelm <on|off>");
+  return true;
+}
+
 HelmManager::HelmManager(ZealService *zeal) {
   zeal->hooks->Add(SwapHeadHook, 0x004a1735, SwapHead_hk, hook_type_detour);
   zeal->hooks->Add("EntityChangeForm", 0x005074FA, EntityChangeForm_hk, hook_type_detour);
@@ -586,6 +605,9 @@ HelmManager::HelmManager(ZealService *zeal) {
         return false;  // continue processing
       },
       callback_type::WorldMessage);
+
+  zeal->commands_hook->Add("/showhelm", {"/helm"}, "Toggles your show helm setting on/off.",
+                           [this](const std::vector<std::string> &args) { return Handle_Showhelm(args); });
 
   if (HELM_MANAGER_LOG_DEBUG) {
     zeal->commands_hook->Add("/helmconfig", {}, "Prints/Toggles HelmManager configuration (for testing).",

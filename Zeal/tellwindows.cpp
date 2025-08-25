@@ -4,6 +4,7 @@
 
 #include "binds.h"
 #include "callbacks.h"
+#include "chat.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
@@ -11,7 +12,6 @@
 #include "io_ini.h"
 #include "memory.h"
 #include "string_util.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 // people will see this commit and be like OMG, then they will see this comment and message the discord channel.
@@ -120,18 +120,17 @@ bool TellWindows::HandleKeyPress(int key, bool down, int modifier) {
   return false;
 }
 
-bool TellWindows::HandleTell(std::string &cmd_data) {
-  if (!enabled) return false;
+std::string TellWindows::GetTellWindowName() const {
+  if (!enabled) return "";
   if (Zeal::Game::Windows && Zeal::Game::Windows->ChatManager) {
     Zeal::GameUI::ChatWnd *wnd =
         Zeal::Game::Windows->ChatManager->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
     if (IsTellWindow(wnd)) {
       std::string window_title = std::string(wnd->Text);
-      cmd_data = "/tell " + window_title.substr(1, window_title.length() - 1) + " " + cmd_data;
-      return true;
+      return window_title.substr(1, window_title.length() - 1);
     }
   }
-  return false;
+  return "";
 }
 
 Zeal::GameUI::ChatWnd *TellWindows::FindTellWnd(std::string &name) {
@@ -197,7 +196,7 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
       Zeal::GameUI::ChatWnd *tell_window = ZealService::get_instance()->tells->FindTellWnd(name);
       if (!tell_window) {
         std::string WinName = TellWindowIdentifier + name;
-        std::string ini_name = ZealService::get_instance()->ui->GetUIIni();
+        std::string ini_name = Zeal::Game::get_ui_ini_filename();
         int font_size = 3;
         if (ini_name.length()) {
           IO_ini ui_ini(ini_name);
@@ -221,7 +220,7 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
   }
 }
 
-bool TellWindows::IsTellWindow(Zeal::GameUI::ChatWnd *wnd) {
+bool TellWindows::IsTellWindow(Zeal::GameUI::ChatWnd *wnd) const {
   if (wnd && wnd->Text.Data) {
     std::string title = std::string(wnd->Text);
     if (title.substr(0, 1) == TellWindowIdentifier) {
@@ -252,14 +251,14 @@ void TellWindows::SetEnabled(bool val) {
   enabled = val;
   if (Zeal::Game::get_char_info() && ZealService::get_instance()->ini)
     ZealService::get_instance()->ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindows", val);
-  ZealService::get_instance()->ui->options->UpdateOptions();
+  if (update_options_ui_callback) update_options_ui_callback();
 }
 
 void TellWindows::SetHist(bool val) {
   hist_enabled = val;
   if (Zeal::Game::get_char_info() && ZealService::get_instance()->ini)
     ZealService::get_instance()->ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist", val);
-  ZealService::get_instance()->ui->options->UpdateOptions();
+  if (update_options_ui_callback) update_options_ui_callback();
 }
 
 void TellWindows::LoadUI() {
@@ -270,13 +269,13 @@ void TellWindows::LoadUI() {
     ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist", true);
   enabled = ini->getValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindows");
   hist_enabled = ini->getValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist");
-  ZealService::get_instance()->ui->options->UpdateOptions();
+  if (update_options_ui_callback) update_options_ui_callback();
 }
 
 void __fastcall DeactivateChatManager(Zeal::GameUI::CChatManager *t, int u) {
   // toggle the tell windows to not load on next game load
   ZealService::get_instance()->hooks->hook_map["DeactivateChatManager"]->original(DeactivateChatManager)(t, u);
-  std::string ini_name = ZealService::get_instance()->ui->GetUIIni();
+  std::string ini_name = Zeal::Game::get_ui_ini_filename();
   if (ini_name.length()) {
     IO_ini ini(ini_name);
     for (int i = 0; i < t->MaxChatWindows; i++) {
@@ -313,6 +312,8 @@ TellWindows::TellWindows(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { LoadUI(); }, callback_type::InitUI);
   zeal->callbacks->AddOutputText(
       [this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short channel) { this->AddOutputText(wnd, msg, channel); });
+  zeal->chat_hook->add_key_press_callback(
+      [this](int key, bool down, int modifier) { return HandleKeyPress(key, down, modifier); });
   zeal->commands_hook->Add(
       "/rt", {}, "Target the last tell or active tell window player", [this](std::vector<std::string> &args) {
         if (Zeal::Game::Windows && Zeal::Game::Windows->Raid) {
@@ -391,6 +392,8 @@ TellWindows::TellWindows(ZealService *zeal) {
     }
     return false;
   });  // chat hotkey
+
+  zeal->commands_hook->add_get_tell_name_callback([this]() { return GetTellWindowName(); });
 }
 
 TellWindows::~TellWindows() {}

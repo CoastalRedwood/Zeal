@@ -5,6 +5,7 @@
 
 #include <thread>
 
+#include "chat.h"
 #include "commands.h"
 #include "entity_manager.h"
 #include "game_addresses.h"
@@ -13,7 +14,10 @@
 #include "hook_wrapper.h"
 #include "labels.h"
 #include "string_util.h"
+#include "tick.h"
 #include "zeal.h"
+
+static constexpr const char *TICK_MESSAGE = "Tick";
 
 const std::map<int, std::string> LabelNames = {
     {1, "Name"},
@@ -424,6 +428,8 @@ void NamedPipe::update_pipe_handles() {
 }
 
 NamedPipe::NamedPipe(ZealService *zeal) {
+  zeal->tick->AddTickCallback([this]() { chat_msg(TICK_MESSAGE, 0); });
+  zeal->chat_hook->add_print_chat_callback([this](const char *data, int color_index) { chat_msg(data, color_index); });
   zeal->callbacks->AddGeneric([this]() { main_loop(); });
   zeal->commands_hook->Add("/pipedelay", {}, "delay between the pipe loop output in milliseconds",
                            [this](std::vector<std::string> &args) {

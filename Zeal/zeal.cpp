@@ -47,6 +47,7 @@
 #include "player_movement.h"
 #include "raid.h"
 #include "spellsets.h"
+#include "string_util.h"
 #include "survey.h"
 #include "target_ring.h"
 #include "tellwindows.h"
@@ -98,58 +99,70 @@ int ZealService::get_heap_failed_line() { return heap_failed_line; }
 ZealService *ZealService::ptr_service = nullptr;
 
 ZealService::ZealService() {
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // since the hooked functions are called back via a different thread, make sure the service ptr is available
-  // immediately
-  ZealService::ptr_service = this;  // this setup makes it not unit testable but since the caller functions of the hooks
-                                    // don't know the pointers I had to make a method to retrieve the base atleast
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_ALWAYS_DF | _CRTDBG_LEAK_CHECK_DF);
+
+  // Make sure the service pointer is populated immediately in case some submodule makes use of it.
+  // Making the core framework classes would reduce much of the need for this.
+  ZealService::ptr_service = this;
+
+  // Install crash handler first in case of an initialization error.
   crash_handler = MakeCheckedUnique(CrashHandler);
+
+  // Core framework classes (minimal internal dependencies).
+  ini = MakeCheckedUnique(IO_ini, IO_ini::kZealIniFilename);
   hooks = MakeCheckedUnique(HookWrapper);
-  ini = MakeCheckedUnique(IO_ini, ZealSetting<bool>::kIniFilename, true);  // other functions rely on this hook
-  UISkin::initialize_mode(this);  // Configure font size (patches client and impacts path for Zeal UI xml files).
+  callbacks = MakeCheckedUnique(CallbackManager);     // Uses hooks.
+  commands_hook = MakeCheckedUnique(ChatCommands);    // Uses hooks.
+  entity_manager = MakeCheckedUnique(EntityManager);  // Uses hooks.
+  binds_hook = MakeCheckedUnique(Binds);              // Uses hooks and callbacks.
+
+  // Configure font size (which impacts Zeal xml paths) early.
+  UISkin::initialize_mode(this);  // Dependent on hooks and ini.
   UISkin::configuration_check();  // First order check that the required uifiles exist.
-  dx = MakeCheckedUnique(DirectX);
-  // initialize the hooked function classes
-  commands_hook = MakeCheckedUnique(ChatCommands);  // other classes below rely on this class on initialize
-  callbacks = MakeCheckedUnique(CallbackManager);   // other functions rely on this hook
-  looting_hook = MakeCheckedUnique(Looting);
-  labels_hook = MakeCheckedUnique(Labels);
-  pipe = MakeCheckedUnique(NamedPipe);  // other classes below rely on this class on initialize
-  binds_hook = MakeCheckedUnique(Binds);
-  raid_hook = MakeCheckedUnique(Raid);
-  gamestr_hook = MakeCheckedUnique(GameStr);
-  equip_item_hook = MakeCheckedUnique(EquipItem);
-  spell_sets = MakeCheckedUnique(SpellSets);
-  item_displays = MakeCheckedUnique(ItemDisplay);
-  tooltips = MakeCheckedUnique(Tooltip);
-  floating_damage = MakeCheckedUnique(FloatingDamage);
-  give = MakeCheckedUnique(NPCGive);
+
+  // Create classes that use core framework and game client specific classes only.
   game_patches = MakeCheckedUnique(Patches);
-  nameplate = MakeCheckedUnique(NamePlate);
-  tells = MakeCheckedUnique(TellWindows);
-  helm = MakeCheckedUnique(HelmManager);
-  music = MakeCheckedUnique(MusicManager);
-  charselect = MakeCheckedUnique(CharacterSelect);
-  entity_manager = MakeCheckedUnique(EntityManager);
-  camera_mods = MakeCheckedUnique(CameraMods);
+  physics = MakeCheckedUnique(Physics);
+  dx = MakeCheckedUnique(DirectX);
+  gamestr_hook = MakeCheckedUnique(GameStr);
   cycle_target = MakeCheckedUnique(CycleTarget);
+  camera_mods = MakeCheckedUnique(CameraMods);
+  raid_hook = MakeCheckedUnique(Raid);
+  tooltips = MakeCheckedUnique(Tooltip);
   assist = MakeCheckedUnique(Assist);
-  experience = MakeCheckedUnique(Experience);
-  chat_hook = MakeCheckedUnique(Chat);
-  chatfilter_hook = MakeCheckedUnique(chatfilter);
   outputfile = MakeCheckedUnique(OutputFile);
-  buff_timers = MakeCheckedUnique(BuffTimers);
   movement = MakeCheckedUnique(PlayerMovement);
+  music = MakeCheckedUnique(MusicManager);
   alarm = MakeCheckedUnique(Alarm);
-  netstat = MakeCheckedUnique(Netstat);
-  ui = MakeCheckedUnique(UIManager);
   melody = MakeCheckedUnique(Melody);
   autofire = MakeCheckedUnique(AutoFire);
-  physics = MakeCheckedUnique(Physics);
-  target_ring = MakeCheckedUnique(TargetRing);
-  zone_map = MakeCheckedUnique(ZoneMap);
+  netstat = MakeCheckedUnique(Netstat);
   tick = MakeCheckedUnique(Tick);
-  survey = MakeCheckedUnique(Survey);
+  buff_timers = MakeCheckedUnique(BuffTimers);
+  helm = MakeCheckedUnique(HelmManager);
+
+  // Adds DirectX (and UISkin for resource file paths) dependencies.
+  target_ring = MakeCheckedUnique(TargetRing);
+  nameplate = MakeCheckedUnique(NamePlate);             // Uses target ring blink rate setting.
+  floating_damage = MakeCheckedUnique(FloatingDamage);  // Uses target ring method.
+
+  // Classes that add more explicit dependencies on the new UI.
+  experience = MakeCheckedUnique(Experience);       // Uses new UI AA window calcs.
+  labels_hook = MakeCheckedUnique(Labels);          // Uses tick and experience.
+  item_displays = MakeCheckedUnique(ItemDisplay);   // Uses new UI ItemDisplayWnd.
+  equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
+  chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
+  chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
+  tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
+  looting_hook = MakeCheckedUnique(Looting);        // Uses new UI Loot window (and ChatManager).
+  give = MakeCheckedUnique(NPCGive);                // Uses new Ui Trade & Give and also looting.
+
+  // More complex new UI classes.
+  zone_map = MakeCheckedUnique(ZoneMap);            // Uses ui and ui->options (post construction).
+  ui = MakeCheckedUnique(UIManager);                // Has many dependencies (especially ui->options).
+  charselect = MakeCheckedUnique(CharacterSelect);  // Uses ui->zoneselect.
+  spell_sets = MakeCheckedUnique(SpellSets);        // Uses ui->inputDialog.
+  survey = MakeCheckedUnique(Survey);               // Uses UI manager and input dialog.
 
   callbacks->AddGeneric([this]() {
     if (Zeal::Game::is_in_game() && print_buffer.size()) {
@@ -157,6 +170,645 @@ ZealService::ZealService() {
       print_buffer.clear();
     }
   });
+
+  AddCommands();  // Add more chat /commands with more dependencies.
+  AddBinds();     // Register custom keybinds.
+
+  // Connect up the pipe last since it spawns another thread (paranoia).
+  pipe = MakeCheckedUnique(NamedPipe);  // Modify so it registers callbacks with labels, ticks, chat.
 }
 
 ZealService::~ZealService() { ZealService::ptr_service = nullptr; }
+
+void ZealService::AddCommands() {
+  commands_hook->Add(
+      "/alarm", {}, "Open the alarm ui and gives alarm functionality on old ui.",
+      [this](std::vector<std::string> &args) {
+        if (Zeal::Game::is_new_ui()) {
+          if (Zeal::Game::Windows->Alarm)
+            Zeal::Game::Windows->Alarm->IsVisible = true;
+          else
+            Zeal::Game::print_chat("Alarm window not found");
+
+          return true;
+        } else {
+          if (args.size() == 1) {
+            std::ostringstream oss;
+            oss << "-- ALARM COMMANDS --" << std::endl << "/alarm set #m#s" << std::endl << "/alarm halt" << std::endl;
+            Zeal::Game::print_chat(oss.str());
+            return true;
+          }
+          if (args.size() > 1 && args.size() < 4) {
+            if (Zeal::String::compare_insensitive(args[1], "set")) {
+              int minutes = 0;
+              int seconds = 0;
+              size_t delim[2] = {args[2].find("m"), args[2].find("s")};
+              if (Zeal::String::tryParse(args[2].substr(0, delim[0]), &minutes) &&
+                  Zeal::String::tryParse(args[2].substr(delim[0] + 1, delim[1]), &seconds)) {
+                alarm->Set(minutes, seconds);
+                return true;
+              } else {
+                Zeal::Game::print_chat("[Alarm] Failed to parse the specified duration.");
+                return true;
+              }
+            } else if (Zeal::String::compare_insensitive(args[1], "halt")) {
+              alarm->Halt();
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+
+  commands_hook->Add(
+      "/corpsedrag", {"/drag"}, "Attempts to corpse drag your current target. Use /corpsedrag nearest to auto-target.",
+      [](std::vector<std::string> &args) {
+        bool nearest = (args.size() == 2 && args[1] == "nearest");
+        if (args.size() == 1 || nearest) {
+          if (nearest) {
+            auto *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, Zeal::GameEnums::PlayerCorpse);
+            if (ent) Zeal::Game::set_target(ent);
+          }
+
+          if (Zeal::Game::get_target() && (Zeal::Game::get_target()->Type == Zeal::GameEnums::PlayerCorpse)) {
+            Zeal::Packets::CorpseDrag_Struct tmp;
+            memset(&tmp, 0, sizeof(tmp));
+            strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
+            strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
+            Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrag, (int *)&tmp, sizeof(tmp), 0);
+          } else if (nearest)
+            Zeal::Game::print_chat("No corpse found nearby to drag.");
+          else
+            Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Need to target a corpse to /drag (or use /drag nearest)");
+
+          return true;  // return true to stop the game from processing any further on this command, false if you want
+                        // to just add features to an existing cmd
+        }
+        return false;
+      });
+  commands_hook->Add("/corpsedrop", {"/drop"},
+                     "Attempts to drop a corpse (your current target). To drop all use /corpsedrop all",
+                     [](std::vector<std::string> &args) {
+                       if (args.size() == 1) {
+                         if (Zeal::Game::get_target()) {
+                           Zeal::Packets::CorpseDrag_Struct tmp;
+                           memset(&tmp, 0, sizeof(tmp));
+                           strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
+                           strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
+                           Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, (int *)&tmp, sizeof(tmp), 0);
+                         } else
+                           Zeal::Game::print_chat("Need to target a corpse to /drop (or use /drop all)");
+                         return true;  // return true to stop the game from processing any further on this command,
+                                       // false if you want to just add features to an existing cmd
+                       } else if (Zeal::String::compare_insensitive(args[1], "all")) {
+                         Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, 0, 0, 0);
+                         return true;
+                       }
+                       return false;
+                     });
+  commands_hook->Add("/trade", {"/opentrade", "/ot"}, "Opens a trade window with your current target.",
+                     [](std::vector<std::string> &args) {
+                       if (args.size() == 1) {
+                         if (Zeal::Game::Windows->Trade->IsVisible || Zeal::Game::Windows->Give->IsVisible) {
+                           // Disabled the auto-drop from the cursor since it needs more work (see /singlegive notes).
+                           Zeal::Game::print_chat("Trade window already open");
+                         } else {
+                           if (Zeal::Game::get_target()) {
+                             Zeal::Packets::TradeRequest_Struct tmp;
+                             memset(&tmp, 0, sizeof(tmp));
+                             tmp.from_id = Zeal::Game::get_self()->SpawnId;
+                             tmp.to_id = Zeal::Game::get_target()->SpawnId;
+                             Zeal::Game::send_message(Zeal::Packets::opcodes::RequestTrade, (int *)&tmp, sizeof(tmp),
+                                                      0);
+                           }
+                         }
+                         return true;  // return true to stop the game from processing any further on this command,
+                                       // false if you want to just add features to an existing cmd
+                       }
+                       return false;
+                     });
+  commands_hook->Add(
+      "/useitem", {}, "Use an item's right click function arugment is 0-29 which indicates the slot",
+      [](std::vector<std::string> &args) {
+        Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+        Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+        if (!char_info || !self || !self->ActorInfo) {
+          Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
+          return true;
+        }
+        int item_index = 0;
+        if (args.size() > 1 && Zeal::String::tryParse(args[1], &item_index)) {
+          if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
+              ZealService::get_instance()->melody->use_item(item_index))
+            return true;
+          bool quiet = args.size() > 2 && args[2] == "quiet";
+          Zeal::Game::use_item(item_index, quiet);
+        } else {
+          Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "useitem requires an item slot between 0 and 29");
+          Zeal::Game::print_chat("0: Left ear, 1: Head, 2: Face, 3: Right Ear, 4: Neck, 5: Shoulders");
+          Zeal::Game::print_chat("6: Arms, 7: Back, 8: Left Wrist, 9: Right Wrist, 10: Ranged");
+          Zeal::Game::print_chat("11: Hands, 12: Primary, 13: Secondary, 14: Left Finger, 15: Right Finger");
+          Zeal::Game::print_chat("16: Chest, 17: Legs, 18: Feet, 19: Waist, 20: Ammo");
+          Zeal::Game::print_chat("Inventory: 22: Top Left, 25: Bottom left, 26: Top Right, 29: Bottom Right");
+        }
+        return true;  // return true to stop the game from processing any further on this command, false if you want to
+                      // just add features to an existing cmd
+      });
+
+  commands_hook->Add("/zeal", {"/zea"}, "Help and version information.", [this](std::vector<std::string> &args) {
+    if (args.size() == 1) {
+      Zeal::Game::print_chat("Available args: version, help");  // leave room for more args on this command for later
+      return true;
+    }
+    if (args.size() > 1 && Zeal::String::compare_insensitive(args[1], "version")) {
+      std::stringstream ss;
+      ss << "Zeal version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
+      Zeal::Game::print_chat(ss.str());
+      return true;
+    }
+    if (args.size() == 2 && args[1] == "era") {  // TODO: Remove, temporary testing.
+      auto char_info = Zeal::Game::get_char_info();
+      BYTE char_expansions = char_info ? char_info->Expansions : 0;
+
+      // OP_ExpansionInfo values:
+      BYTE op_expansions = 0;
+      if (*reinterpret_cast<DWORD *>(0x007cf1e8))  // gKunarkEnabled_007cf1e8
+        op_expansions = op_expansions | 0x01;
+      if (*reinterpret_cast<DWORD *>(0x007cf1ec))  // gVeliousEnabled_007cf1ec
+        op_expansions = op_expansions | 0x02;
+      if (*reinterpret_cast<DWORD *>(0x007cf1f0))  // gLuclinEnabled_007cf1f0
+        op_expansions = op_expansions | 0x04;
+      if (*reinterpret_cast<DWORD *>(0x007cf1f4))  // gPlanesOfPowerEnabled_007cf1f4
+        op_expansions = op_expansions | 0x08;
+
+      Zeal::Game::print_chat("Era bits: Character: 0x%02x, Op_ExpansionInfo: 0x%02x", char_expansions, op_expansions);
+    }
+    if (args.size() == 2 && args[1] == "bank")  // Temporary for bank patch testing.
+    {
+      Zeal::Game::print_chat("total: %i, personal: %i, shared: %i, size: 0x%x", Zeal::Game::get_num_total_bank_slots(),
+                             Zeal::Game::get_num_personal_bank_slots(), Zeal::Game::get_num_shared_bank_slots(),
+                             sizeof(Zeal::GameStructures::GAMECHARINFO));
+      return true;
+    }
+    if (args.size() == 2 && args[1] == "check")  // Report state and do basic debug integrity checks.
+    {
+      ZealService::get_instance()->entity_manager.get()->Dump();
+      int heap_valid1 = HeapValidate(GetProcessHeap(), 0, NULL);
+      Zeal::Game::print_chat("Process HeapValidate: %s", heap_valid1 ? "Pass" : "Fail");
+      int heap_valid2 = HeapValidate(*Zeal::Game::Heap, 0, NULL);
+      Zeal::Game::print_chat("Game HeapValidate: %s", heap_valid2 ? "Pass" : "Fail");
+
+      HEAP_SUMMARY heap_summary;
+      memset(&heap_summary, 0, sizeof(heap_summary));
+      heap_summary.cb = sizeof(heap_summary);
+      HeapSummary(*Zeal::Game::Heap, 0, &heap_summary);
+      Zeal::Game::print_chat("Game Heap: Alloc: 0x%08x, Commit: 0x%08x", heap_summary.cbAllocated,
+                             heap_summary.cbCommitted);
+
+      return true;
+    }
+    if (args.size() == 3 && args[1] == "get_command") {
+      auto command = Zeal::Game::get_command_struct(args[2]);
+      if (command)
+        Zeal::Game::print_chat("%s: id: %i, name: %s, localized: %s, gm: %i, category: %i, fn: 0x%08x", args[2].c_str(),
+                               command->string_id, command->name ? command->name : "null",
+                               command->localized_name ? command->localized_name : "null", command->gm_command,
+                               command->category, command->fn);
+      else
+        Zeal::Game::print_chat("no matches");
+
+      return true;
+    }
+    if (args.size() == 2 && args[1] == "list_keybinds")  // Just a utility to check native keybind mapping.
+    {
+      const char **cmd = reinterpret_cast<const char **>(0x00611220);
+      for (int i = 0; cmd[i] != nullptr; ++i) Zeal::Game::print_chat("[%d]: %s", i, cmd[i]);
+      return true;
+    }
+    if (args.size() == 2 && args[1] == "target_name")  // Report name parsing of current target.
+    {
+      Zeal::GameStructures::Entity *target = Zeal::Game::get_target();
+      if (target) {
+        std::string original = target->Name;
+        std::string trimmed = Zeal::Game::trim_name(target->Name);
+        std::string stripped = Zeal::Game::strip_name(target->Name);
+        Zeal::Game::print_chat("Raw: %s, Trim: %s, Strip: %s, Equal: %s", original.c_str(), trimmed.c_str(),
+                               stripped.c_str(), trimmed == stripped ? "true" : "false");
+        if (target->ActorInfo && target->ActorInfo->DagHeadPoint && target->ActorInfo->DagHeadPoint->StringSprite) {
+          auto &sprite = *target->ActorInfo->DagHeadPoint->StringSprite;
+          if (sprite.MagicValue == sprite.kMagicValidValue)
+            Zeal::Game::print_chat("Sprite: %s, len: %i", sprite.Text, sprite.TextLength);
+        }
+      }
+      return true;
+    }
+    int sound_index = 0;
+    if (args.size() == 3 && args[1] == "wave_play" && Zeal::String::tryParse(args[2], &sound_index)) {
+      Zeal::Game::WavePlay(sound_index);
+      return true;
+    }
+    if (args.size() > 1 && Zeal::String::compare_insensitive(args[1], "help")) {
+      commands_hook->print_commands();
+      return true;
+    }
+    return false;
+  });
+
+  commands_hook->Add(
+      "/mystats", {}, "Calculate and report your current stats.", [this](std::vector<std::string> &args) {
+        using Zeal::Game::print_chat;
+        const char kMarker = 0x12;  // Link marker.
+        int item_id = 0;
+        if (args.size() == 2 && args[1] == "info") {
+          print_chat("---- mystats Beta info ----");
+          print_chat("Known simplifications:");
+          print_chat("  - Anti-twink defensive logic may not be accurate");
+          print_chat("  - All disciplines (offensive, defensive) are ignored");
+          print_chat("  - Range weapons, duel wield, double-attack will be in future update");
+          print_chat("Stat descriptions (all values include current spell effects):");
+          print_chat("Mitigation: modifies incoming damage based on offense vs mitigation (0.1x to 2.0x factor)");
+          print_chat("Mitigation (melee) ~= item_ac*4/3 + defense_skill/3 + agility/20 + spell_ac/4 + class_ac");
+          print_chat(
+              "Note: The spell_ac value is an internal calc from the database. Sites like pqdi already include "
+              "the /4.");
+          print_chat("Avoidance: modifies probability of taking zero damage");
+          print_chat("Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct)");
+          print_chat("To Hit: sets probability of hitting based on to hit vs avoidance");
+          print_chat("To Hit ~= 7 + offense_skill + weap_skill + bonuses (item, spell, AA)");
+          print_chat("Offense: impacts both mitigation factor and damage multiplier");
+          print_chat("Offense ~= weap_skill_value + spell_atk + item_atk + max(0, (str-75)*2/3)");
+          print_chat("Damage multiplier: Chance for bonus damage factor based on level, weapon skill, and offense");
+          print_chat("Average damage: Mitigation factor = 1, damage multiplier = average after both rolls");
+        } else if (args.size() == 2 && args[1] == "affects") {
+          auto char_info = Zeal::Game::get_char_info();
+          if (char_info) {
+            const int SE_ArmorClass = 1;
+            print_chat("TotalSpellAffects: AC: %d",
+                       Zeal::Game::total_spell_affects(char_info, SE_ArmorClass, true, nullptr));
+          }
+        } else if (args.size() >= 2 && args[1].size() >= 8 && args[1].front() == kMarker) {
+          std::string link = args[1];  // Only need the first item ID part of the link (name doesn't matter).
+          std::string item_id_str = link.substr(2, 6);
+          if (link.front() == kMarker && Zeal::String::tryParse(item_id_str, &item_id) && item_id > 0) {
+            auto zeal = this;
+            const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr;
+            if (zeal && zeal->item_displays && zeal->item_displays->get_cached_item(item_id)) {
+              const auto weapon = zeal->item_displays->get_cached_item(item_id);
+              Zeal::Game::print_melee_attack_stats(true, weapon);
+              Zeal::Game::print_melee_attack_stats(false, weapon);
+            } else
+              print_chat("Unable to locate a local copy of information for item %d", item_id);
+          } else
+            print_chat("Failed to parse item link.");
+        } else if (args.size() == 1) {
+          bool is_luclin_enabled = (Zeal::Game::get_era() >= Zeal::Game::Era::Luclin);
+          auto self = Zeal::Game::get_self();
+          if (self) {
+            Zeal::Game::print_chat("---- Misc stats ----");
+            auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
+            float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
+            print_chat("Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
+            if (!horse && self->ActorInfo)
+              print_chat("Movement modifier: %+d%%", (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
+          }
+          Zeal::Game::print_chat("---- Defensive stats ----");
+          print_chat("AC (display): %i = (Mit: %i  + Avoidance: %i) * 1000/847", Zeal::Game::get_display_AC(),
+                     Zeal::Game::get_mitigation(), Zeal::Game::get_avoidance());
+          print_chat("Mitigation: %i (%s: %i)", Zeal::Game::get_mitigation(true),
+                     is_luclin_enabled ? "softcap" : "hardcap", Zeal::Game::get_mitigation_softcap());
+          print_chat("Avoidance: %i (with AAs)",
+                     Zeal::Game::get_avoidance(true));  // Includes combat_agility.
+          Zeal::Game::print_melee_attack_stats(true);
+          Zeal::Game::print_melee_attack_stats(false);
+        } else
+          print_chat("Usage: /mystats, /mystats info, /mystats <item_id>, /mystats <item_link>");
+
+        return true;
+      });
+}
+
+void ZealService::AddBinds() {
+  binds_hook->replace_cmd(28, [this](int state) {
+    if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 0);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+    return true;
+  });  // nearest pc
+  binds_hook->replace_cmd(29, [this](int state) {
+    if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 1);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+    return true;
+  });  // nearest npc
+  binds_hook->replace_cmd(3, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(3, state);
+    return false;
+  });  // foward
+
+  binds_hook->replace_cmd(4, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(4, state);
+    return false;
+  });  // back
+
+  binds_hook->replace_cmd(5, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(5, state);
+    return false;
+  });  // turn right
+
+  binds_hook->replace_cmd(6, [this](int state) {
+    ZealService::get_instance()->movement->handle_movement_binds(6, state);
+    return false;
+  });  // turn left
+
+  binds_hook->replace_cmd(30, [this](int state) {
+    ZealService::get_instance()->netstat->toggle_netstat(state);
+    return false;
+  });
+
+  for (int bind_index = 51; bind_index < 59; ++bind_index) {
+    binds_hook->replace_cmd(bind_index, [this, bind_index](int state) {
+      ZealService::get_instance()->movement->handle_spellcast_binds(bind_index);
+      return false;
+    });  // spellcasting auto-stand
+  }
+
+  binds_hook->replace_cmd(0xC8, [this](int state) {
+    auto zeal = ZealService::get_instance();
+    if (zeal->ui && zeal->ui->inputDialog && zeal->ui->inputDialog->isVisible()) {
+      zeal->ui->inputDialog->hide();
+      return true;
+    }
+    if (Zeal::Game::get_target()) {
+      Zeal::Game::set_target(0);
+      return true;
+    }
+
+    if (!zeal->ini->getValue<bool>("Zeal", "EscapeRaidLock")) {
+      if (Zeal::Game::Windows && Zeal::Game::Windows->RaidOptions && Zeal::Game::Windows->RaidOptions->IsVisible) {
+        Zeal::Game::Windows->RaidOptions->show(0, false);
+        return true;
+      }
+      if (Zeal::Game::Windows && Zeal::Game::Windows->Raid && Zeal::Game::Windows->Raid->IsVisible) {
+        Zeal::Game::execute_cmd(109, 1, 0);
+        Zeal::Game::execute_cmd(109, 0, 0);
+        return true;
+      }
+    }
+
+    if (zeal->ini->getValue<bool>("Zeal", "Escape"))  // toggle is set to not close any windows
+      return true;
+
+    if (zeal->item_displays && zeal->item_displays->close_latest_window()) return true;
+
+    return false;
+  });  // handle escape
+
+  // just start binds at 211 to avoid overwriting any existing cmd/bind
+  binds_hook->add_bind(211, "Strafe Left", "StrafeLeft", key_category::Movement, [this](int key_down) {});    // stub
+  binds_hook->add_bind(212, "Strafe Right", "StrafeRight", key_category::Movement, [this](int key_down) {});  // stub
+  binds_hook->add_bind(213, "Cycle through nearest NPCs", "CycleTargetNPC", key_category::Target,
+                       [this](int key_down) { cycle_target->handle_next_target(key_down, Zeal::GameEnums::NPC); });
+  binds_hook->add_bind(214, "Cycle through nearest PCs", "CycleTargetPC", key_category::Target,
+                       [this](int key_down) { cycle_target->handle_next_target(key_down, Zeal::GameEnums::Player); });
+  binds_hook->add_bind(
+      215, "Toggle all containers", "OpenCloseContainers", key_category::UI | key_category::Commands, [](int key_down) {
+        if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+          Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+          std::vector<std::pair<Zeal::GameStructures::_GAMEITEMINFO *, int>> containers;
+          std::vector<Zeal::GameStructures::_GAMEITEMINFO *> opened_containers;  // don't need an index to close
+          for (int i = 0; i < 8; i++)                                            // 8 inventory slots for containers
+          {
+            Zeal::GameStructures::_GAMEITEMINFO *item = self->CharInfo->InventoryPackItem[i];
+            if (item && item->Type == 1 && item->Container.Capacity > 0) {
+              containers.push_back({item, i});
+              if (item->Container.IsOpen) opened_containers.push_back(item);
+            }
+          }
+          if (opened_containers.size() == containers.size())  // all the containers are open..
+          {
+            Zeal::Game::GameInternal::CloseAllContainers(*Zeal::Game::ptr_ContainerMgr, 0);
+          } else {
+            for (auto &[c, index] : containers) {
+              if (!c->Container.IsOpen)
+                Zeal::Game::GameInternal::OpenContainer(*Zeal::Game::ptr_ContainerMgr, 0, (int)&c->Name, 22 + index);
+            }
+          }
+        }
+      });
+  binds_hook->add_bind(216, "Toggle last two targets", "ToggleLastTwo", key_category::Target,
+                       [this](int key_down) { cycle_target->handle_toggle_last_two(key_down); });
+  binds_hook->add_bind(217, "Reply Target", "ReplyTarget", key_category::Target, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::GameInternal::ReplyTarget(Zeal::Game::get_self(), "");
+    }
+  });
+  binds_hook->add_bind(218, "Pet Attack", "PetAttack", key_category::Commands,
+                       [this](int key_down) {  // probably need to add a check if you have a pet
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+                           Zeal::GameStructures::Entity *target = Zeal::Game::get_target();
+                           if (target) Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Attack, target->SpawnId);
+                         }
+                       });
+  binds_hook->add_bind(219, "Pet Guard", "PetGuard", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Guard, 0);
+    }
+  });
+  binds_hook->add_bind(220, "Pet Back", "PetBack", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Back, 0);
+    }
+  });
+  binds_hook->add_bind(221, "Pet Follow", "PetFollow", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Follow, 0);
+    }
+  });
+  binds_hook->add_bind(222, "Pet Sit", "PetSit", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Sit, 0);
+    }
+  });
+  binds_hook->add_bind(223, "Slow Turn Right", "SlowMoveRight", key_category::Movement, [this](int key_down) {
+    if (!Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::execute_cmd(5, key_down, 0);
+      if (key_down) {
+        mem::write<BYTE>(0x53fb60, 4);
+        mem::write<BYTE>(0x53fb66, 4);
+      } else {
+        if (*(BYTE *)0x53fb60 != 12) {
+          mem::write<BYTE>(0x53fb60, 12);
+          mem::write<BYTE>(0x53fb66, 12);
+        }
+      }
+    }
+  });
+  binds_hook->add_bind(224, "Slow Turn Left", "SlowMoveLeft", key_category::Movement, [this](int key_down) {
+    if (!Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::execute_cmd(6, key_down, 0);
+      if (key_down) {
+        mem::write<BYTE>(0x53f758, 4);
+        mem::write<BYTE>(0x53f75E, 4);
+      } else {
+        if (*(BYTE *)0x53f758 != 12) {
+          mem::write<BYTE>(0x53f758, 12);
+          mem::write<BYTE>(0x53f75E, 12);
+        }
+      }
+    }
+  });
+  binds_hook->add_bind(225, "Auto Fire", "AutoFire", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->autofire->SetAutoFire(!ZealService::get_instance()->autofire->autofire, true);
+    }
+  });
+  binds_hook->add_bind(226, "Target Nearest NPC Corpse", "TargetNPCCorpse", key_category::Target, [](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 2);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+  });
+  binds_hook->add_bind(227, "Target Nearest PC Corpse", "TargetPCCorpse", key_category::Target, [](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::GameStructures::Entity *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, 3);
+      if (ent) Zeal::Game::set_target(ent);
+    }
+  });
+  binds_hook->add_bind(228, "Toggle Map", "ToggleMap", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->set_enabled(!ZealService::get_instance()->zone_map->is_enabled());
+    }
+  });
+  binds_hook->add_bind(229, "Toggle Map Background", "ToggleMapBackground", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->toggle_background();
+    }
+  });
+  binds_hook->add_bind(230, "Toggle Map Zoom", "ToggleMapZoom", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->toggle_zoom();
+    }
+  });
+  binds_hook->add_bind(231, "Toggle Map Labels", "ToggleMapLabels", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->toggle_labels();
+    }
+  });
+  binds_hook->add_bind(232, "Toggle Map Level Up", "ToggleMapLevelUp", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->toggle_level_up();
+    }
+  });
+  binds_hook->add_bind(233, "Toggle Map Level Down", "ToggleMapLevelDown", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->toggle_level_down();
+    }
+  });
+  binds_hook->add_bind(234, "Toggle Map Show Raid", "ToggleMapShowRaid", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->set_show_raid(
+          !ZealService::get_instance()->zone_map->is_show_raid_enabled(), false);
+    }
+  });
+  binds_hook->add_bind(235, "Toggle Nameplate Colors", "ToggleNameplateColors", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->nameplate->setting_colors.toggle(false);
+                       });
+  binds_hook->add_bind(236, "Toggle Nameplate Con Colors", "ToggleNameplateConColors", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->nameplate->setting_con_colors.toggle(false);
+                       });
+  binds_hook->add_bind(237, "Toggle Map Member Names", "FlashMapMemberNames", key_category::UI, [this](int key_down) {
+    // Left the short name as "Flash" to stay consistent with previous keybinds.
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      ZealService::get_instance()->zone_map->set_show_all_names_override(
+          !ZealService::get_instance()->zone_map->is_show_all_names_override());
+    }
+  });
+  binds_hook->add_bind(238, "Toggle Nameplate Self", "ToggleNameplateSelf", key_category::Target, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      ZealService::get_instance()->nameplate->setting_hide_self.toggle(false);
+  });
+  binds_hook->add_bind(239, "Toggle Nameplate Self as X", "ToggleNameplateX", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->nameplate->setting_x.toggle(false);
+                       });
+  binds_hook->add_bind(240, "Toggle Nameplate Raid Pets", "ToggleNameplateRaidPets", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->nameplate->setting_hide_raid_pets.toggle(false);
+                       });
+  binds_hook->add_bind(241, "Toggle Map Grid Lines", "ToggleMapGridLines", key_category::UI, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      ZealService::get_instance()->zone_map->set_show_grid(
+          !ZealService::get_instance()->zone_map->is_show_grid_enabled(), false);
+  });
+  binds_hook->add_bind(242, "Toggle Map Interactive Mode", "ToggleMapInteractiveMode", key_category::UI,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->zone_map->set_interactive_enable(
+                               !ZealService::get_instance()->zone_map->is_interactive_enabled(), false);
+                       });
+  binds_hook->add_bind(
+      243, "Cycle through near PC corpses", "CycleTargetPCCorpses", key_category::Target,
+      [this](int key_down) { cycle_target->handle_next_target(key_down, Zeal::GameEnums::PlayerCorpse); });
+  binds_hook->add_bind(244, "Buy/Sell Stack", "BuySell", key_category::UI, [](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      if (Zeal::Game::is_in_game() && Zeal::Game::Windows && Zeal::Game::Windows->Merchant &&
+          Zeal::Game::Windows->Merchant->IsVisible) {
+        Zeal::GameUI::CXWndManager *wnd_mgr = Zeal::Game::get_wnd_manager();
+        if (!wnd_mgr) return;
+        DWORD selected_slot = Zeal::Game::Windows->Merchant->InventoryItemSlot;
+        if (selected_slot >= 6000 && selected_slot < 6080) {
+          // Buying an item
+          if (!Zeal::Game::Windows->Merchant->BuyButton || !Zeal::Game::Windows->Merchant->BuyButton->IsEnabled) return;
+        } else {
+          // Selling an Item
+          if (!Zeal::Game::Windows->Merchant->SellButton || !Zeal::Game::Windows->Merchant->SellButton->IsEnabled)
+            return;
+        }
+        BYTE shift = wnd_mgr->ShiftKeyState;
+        BYTE ctrl = wnd_mgr->ControlKeyState;
+        BYTE alt = wnd_mgr->AltKeyState;
+        wnd_mgr->ShiftKeyState = 1;
+        wnd_mgr->ControlKeyState = 0;
+        wnd_mgr->AltKeyState = 0;
+        int quantity = -1;
+        Zeal::Game::Windows->Merchant->WndNotification((int)Zeal::Game::Windows->Merchant, 29, (int)&quantity);
+        wnd_mgr->ShiftKeyState = shift;
+        wnd_mgr->ControlKeyState = ctrl;
+        wnd_mgr->AltKeyState = alt;
+      }
+    }
+  });
+  binds_hook->add_bind(245, "Close all tell windows", "CloseAllTellWindows", key_category::Chat, [](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      ZealService::get_instance()->tells->CloseAllWindows();
+  });
+  binds_hook->add_bind(246, "Loot target", "LootTarget", key_category::Commands, [](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      reinterpret_cast<void (*)(void)>(0x004fb5ae)();  // do_loot().
+  });
+  binds_hook->add_bind(247, "Pet Health", "PetHealth", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Health, 0);
+  });
+  binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
+                       [](int key_down) {
+                         if (key_down) {
+                           if (Zeal::Game::can_inventory_item(Zeal::Game::get_char_info()->CursorItem)) {
+                             Zeal::Game::GameInternal::auto_inventory(Zeal::Game::get_char_info(),
+                                                                      &Zeal::Game::get_char_info()->CursorItem, 0);
+                           } else {
+                             if (Zeal::Game::get_char_info()->CursorItem)
+                               Zeal::Game::print_chat(USERCOLOR_LOOT, "Cannot auto inventory %s",
+                                                      Zeal::Game::get_char_info()->CursorItem->Name);
+                           }
+                         }
+                       });
+}

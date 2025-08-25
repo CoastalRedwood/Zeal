@@ -29,6 +29,8 @@ class Looting {
   bool is_item_protected_from_selling(const Zeal::GameStructures::GAMEITEMINFO *item_info) const;
   bool is_trade_protected(struct Zeal::GameUI::TradeWnd *wnd) const;
 
+  void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
+
  protected:
   ZealSetting<bool> setting_protect_enable = {false, "Protect", "Enabled", true};
   ZealSetting<int> setting_protect_value = {10, "Protect", "Value", true};
@@ -45,6 +47,7 @@ class Looting {
   void load_protected_items();
   void unhide_last_hidden();
 
+  std::function<void()> update_options_ui_callback;
   std::vector<ProtectedItem> protected_items;
   Zeal::GameStructures::Entity *last_hidden_entity = nullptr;
   int last_hidden_spawnid = 0;

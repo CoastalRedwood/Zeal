@@ -255,6 +255,21 @@ void OutputFile::write_to_file(std::string data, std::string file_arg, std::stri
   file.close();
 }
 
+// This replaces the previous /camp command with a direct hook of the game ::Camp() client
+// method in order to support all camping pathways (buttons, hotkeyed button, and /camp).
+static void __fastcall GameCamp(void *this_game, int unused_edx) {
+  // Support auto-sitting (but peek ahead to see if the camp command is likely allowed).
+  if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive()) {
+    if (Zeal::Game::is_mounted()) Zeal::Game::dismount();
+    Zeal::Game::sit();
+  }
+  if (ZealService::get_instance()->outputfile->setting_export_on_camp.get()) {
+    ZealService::get_instance()->outputfile->export_inventory();
+    ZealService::get_instance()->outputfile->export_spellbook();
+  }
+  ZealService::get_instance()->hooks->hook_map["GameCamp"]->original(GameCamp)(this_game, unused_edx);
+}
+
 OutputFile::OutputFile(ZealService *zeal) {
   zeal->commands_hook->Add(
       "/outputfile", {"/output", "/out"}, "Outputs your inventory,spellbook, or raidlist to file.",
@@ -275,4 +290,5 @@ OutputFile::OutputFile(ZealService *zeal) {
         }
         return true;
       });
+  zeal->hooks->Add("GameCamp", 0x00530c7b, GameCamp, hook_type_detour);
 }

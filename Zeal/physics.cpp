@@ -4,7 +4,6 @@
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
-#include "game_ui.h"
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "zeal.h"

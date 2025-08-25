@@ -1369,6 +1369,15 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { RenderUI(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { Deactivate(); }, callback_type::DeactivateUI);
+  zeal->camera_mods->add_options_callback([this]() { UpdateOptionsCamera(); });
+  zeal->target_ring->add_options_callback([this]() { UpdateOptionsTargetRing(); });
+  zeal->nameplate->add_options_callback([this]() { UpdateOptionsNameplate(); });
+  zeal->floating_damage->add_options_callback([this]() { UpdateOptionsFloatingDamage(); });
+  zeal->looting_hook->add_options_callback([this]() { UpdateOptions(); });
+  zeal->tells->AddOptionsCallback([this]() { UpdateOptions(); });
+  zeal->target_ring->add_get_color_callback([this](int index) { return GetColor(index); });
+  zeal->nameplate->add_get_color_callback([this](int index) { return GetColor(index); });
+  zeal->floating_damage->add_get_color_callback([this](int index) { return GetColor(index); });
 
   zeal->hooks->Add("ContainerWndSetContainer", 0x0041717d, ContainerWndSetContainer, hook_type_detour);
   zeal->hooks->Add("SidlScreenWndHandleRButtonDown", 0x005703f0, SidlScreenWndHandleRButtonDown, hook_type_detour);

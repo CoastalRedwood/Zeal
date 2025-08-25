@@ -1643,6 +1643,19 @@ GameStructures::Display *get_display() { return *reinterpret_cast<GameStructures
 
 const char *get_ui_skin() { return reinterpret_cast<const char *>(0x0063D3C0); }
 
+std::string get_ui_ini_filename() {
+  // First try to use client's function (GetUIIniFilename) to retrieve it.
+  const char *ui_ini_file = reinterpret_cast<const char *(__cdecl *)(void)>(0x00437481)();
+  if (ui_ini_file && ui_ini_file[0]) return ui_ini_file;
+
+  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
+  if (c) {
+    std::string char_name = c->Name;
+    return ".\\UI_" + char_name + "_pq.proj.ini";
+  }
+  return "";
+}
+
 std::filesystem::path get_default_ui_skin_path() {
   return std::filesystem::current_path() / std::filesystem::path("uifiles") / std::filesystem::path("default");
 }

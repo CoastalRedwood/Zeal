@@ -1,24 +1,15 @@
 #include "commands.h"
 
-#include <algorithm>
-#include <cctype>
+#include <sstream>
 
-#include "alarm.h"
-#include "cycle_target.h"
-#include "entity_manager.h"
+// Do not add additional headers to this list. Add those commands in zeal.cpp.
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
 #include "game_structures.h"
-#include "helm_manager.h"
 #include "hook_wrapper.h"
-#include "item_display.h"
-#include "melody.h"
 #include "memory.h"
-#include "outputfile.h"
 #include "string_util.h"
-#include "tellwindows.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 void ChatCommands::print_commands() {
@@ -43,33 +34,23 @@ void ChatCommands::print_commands() {
   Zeal::Game::print_chat(ss.str());
 }
 
-// This replaces the previous /camp command with a direct hook of the game ::Camp() client
-// method in order to support all camping pathways (buttons, hotkeyed button, and /camp).
-static void __fastcall GameCamp(void *this_game, int unused_edx) {
-  // Support auto-sitting (but peek ahead to see if the camp command is likely allowed).
-  if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive()) {
-    if (Zeal::Game::is_mounted()) Zeal::Game::dismount();
-    Zeal::Game::sit();
-  }
-  if (ZealService::get_instance()->outputfile->setting_export_on_camp.get()) {
-    ZealService::get_instance()->outputfile->export_inventory();
-    ZealService::get_instance()->outputfile->export_spellbook();
-  }
-  ZealService::get_instance()->hooks->hook_map["GameCamp"]->original(GameCamp)(this_game, unused_edx);
+bool ChatCommands::handle_chat(std::string &str_cmd) const {
+  if (!tell_callback) return false;
+  auto name = tell_callback();
+  if (name.empty()) return false;
+  str_cmd = "/tell " + name + " " + str_cmd;
+  return true;
 }
 
 void __fastcall InterpretCommand(int c, int unused, Zeal::GameStructures::Entity *player, const char *cmd) {
   ZealService *zeal = ZealService::get_instance();
   std::string str_cmd = Zeal::String::trim_and_reduce_spaces(cmd);
   if (str_cmd.length() == 0) return;
-  if (str_cmd.length() > 0 && str_cmd.front() != '/') {
-    if (zeal->tells && zeal->tells->HandleTell(str_cmd)) {
-      InterpretCommand(c, unused, player, (char *)str_cmd.c_str());
-      return;
-    }
-    // Zeal::Game::print_chat("Command: %s", str_cmd.c_str()); //if the problem comes up again use this with the test to
-    // see what happening str_cmd = "/" + str_cmd;
-  }
+
+  // Support tell windows by optionally prepending the /tell target based on chat window.
+  if (str_cmd.length() > 0 && str_cmd.front() != '/' && zeal->commands_hook->handle_chat(str_cmd))
+    cmd = str_cmd.c_str();  // Updates the cmd going to the client call.
+
   std::vector<std::string> args = Zeal::String::split(str_cmd, " ");
   const std::string &cmd_name = args.front();
   if (!args.empty() && !cmd_name.empty() && Zeal::Game::is_in_game()) {
@@ -138,96 +119,6 @@ ChatCommands::ChatCommands(ZealService *zeal) {
     ForwardCommand("/clearchat");
     return true;
   });
-  Add("/corpsedrag", {"/drag"}, "Attempts to corpse drag your current target. Use /corpsedrag nearest to auto-target.",
-      [](std::vector<std::string> &args) {
-        bool nearest = (args.size() == 2 && args[1] == "nearest");
-        if (args.size() == 1 || nearest) {
-          if (nearest) {
-            auto *ent = ZealService::get_instance()->cycle_target->get_nearest_ent(250, Zeal::GameEnums::PlayerCorpse);
-            if (ent) Zeal::Game::set_target(ent);
-          }
-
-          if (Zeal::Game::get_target() && (Zeal::Game::get_target()->Type == Zeal::GameEnums::PlayerCorpse)) {
-            Zeal::Packets::CorpseDrag_Struct tmp;
-            memset(&tmp, 0, sizeof(tmp));
-            strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
-            strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
-            Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrag, (int *)&tmp, sizeof(tmp), 0);
-          } else if (nearest)
-            Zeal::Game::print_chat("No corpse found nearby to drag.");
-          else
-            Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Need to target a corpse to /drag (or use /drag nearest)");
-
-          return true;  // return true to stop the game from processing any further on this command, false if you want
-                        // to just add features to an existing cmd
-        }
-        return false;
-      });
-  Add("/corpsedrop", {"/drop"}, "Attempts to drop a corpse (your current target). To drop all use /corpsedrop all",
-      [](std::vector<std::string> &args) {
-        if (args.size() == 1) {
-          if (Zeal::Game::get_target()) {
-            Zeal::Packets::CorpseDrag_Struct tmp;
-            memset(&tmp, 0, sizeof(tmp));
-            strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
-            strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
-            Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, (int *)&tmp, sizeof(tmp), 0);
-          } else
-            Zeal::Game::print_chat("Need to target a corpse to /drop (or use /drop all)");
-          return true;  // return true to stop the game from processing any further on this command, false if you want
-                        // to just add features to an existing cmd
-        } else if (Zeal::String::compare_insensitive(args[1], "all")) {
-          Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, 0, 0, 0);
-          return true;
-        }
-        return false;
-      });
-  Add("/trade", {"/opentrade", "/ot"}, "Opens a trade window with your current target.",
-      [](std::vector<std::string> &args) {
-        if (args.size() == 1) {
-          if (Zeal::Game::Windows->Trade->IsVisible || Zeal::Game::Windows->Give->IsVisible) {
-            // Disabled the auto-drop from the cursor since it needs more work (see /singlegive notes).
-            Zeal::Game::print_chat("Trade window already open");
-          } else {
-            if (Zeal::Game::get_target()) {
-              Zeal::Packets::TradeRequest_Struct tmp;
-              memset(&tmp, 0, sizeof(tmp));
-              tmp.from_id = Zeal::Game::get_self()->SpawnId;
-              tmp.to_id = Zeal::Game::get_target()->SpawnId;
-              Zeal::Game::send_message(Zeal::Packets::opcodes::RequestTrade, (int *)&tmp, sizeof(tmp), 0);
-            }
-          }
-          return true;  // return true to stop the game from processing any further on this command, false if you want
-                        // to just add features to an existing cmd
-        }
-        return false;
-      });
-  Add("/useitem", {}, "Use an item's right click function arugment is 0-29 which indicates the slot",
-      [](std::vector<std::string> &args) {
-        Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-        Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-        if (!char_info || !self || !self->ActorInfo) {
-          Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
-          return true;
-        }
-        int item_index = 0;
-        if (args.size() > 1 && Zeal::String::tryParse(args[1], &item_index)) {
-          if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
-              ZealService::get_instance()->melody->use_item(item_index))
-            return true;
-          bool quiet = args.size() > 2 && args[2] == "quiet";
-          Zeal::Game::use_item(item_index, quiet);
-        } else {
-          Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "useitem requires an item slot between 0 and 29");
-          Zeal::Game::print_chat("0: Left ear, 1: Head, 2: Face, 3: Right Ear, 4: Neck, 5: Shoulders");
-          Zeal::Game::print_chat("6: Arms, 7: Back, 8: Left Wrist, 9: Right Wrist, 10: Ranged");
-          Zeal::Game::print_chat("11: Hands, 12: Primary, 13: Secondary, 14: Left Finger, 15: Right Finger");
-          Zeal::Game::print_chat("16: Chest, 17: Legs, 18: Feet, 19: Waist, 20: Ammo");
-          Zeal::Game::print_chat("Inventory: 22: Top Left, 25: Bottom left, 26: Top Right, 29: Bottom Right");
-        }
-        return true;  // return true to stop the game from processing any further on this command, false if you want to
-                      // just add features to an existing cmd
-      });
   Add("/autoinventory", {"/autoinv", "/ai"}, "Puts whatever is on your cursor into your inventory.",
       [](std::vector<std::string> &args) {
         if (Zeal::Game::can_inventory_item(Zeal::Game::get_char_info()->CursorItem)) {
@@ -247,15 +138,6 @@ ChatCommands::ChatCommands(ZealService *zeal) {
     return true;  // return true to stop the game from processing any further on this command, false if you want to
                   // just add features to an existing cmd
   });
-  if (Zeal::Game::is_new_ui()) {
-    Add("/autobank", {"/autoba", "/ab"},
-        "Changes your money into its highest denomination in bank and inventory (requires bank to be open).",
-        [](std::vector<std::string> &args) {
-          ZealService::get_instance()->ui->bank->change();
-          return true;  // return true to stop the game from processing any further on this command, false if you want
-                        // to just add features to an existing cmd
-        });
-  }
   Add("/aspectratio", {"/ar"}, "Change your aspect ratio.", [](std::vector<std::string> &args) {
     Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
     if (ci) {
@@ -311,208 +193,11 @@ ChatCommands::ChatCommands(ZealService *zeal) {
       Zeal::Game::print_chat("Usage: /run (toggles), /run on, /run off");
     return true;
   });
-  Add("/showhelm", {"/helm"}, "Toggles your show helm setting on/off.", [](std::vector<std::string> &args) {
-    if (args.size() == 1) {
-      ZealService::get_instance()->helm->ShowHelmEnabled.toggle();
-      return true;
-    }
-    if (args.size() == 2) {
-      if (Zeal::String::compare_insensitive(args[1], "on")) {
-        ZealService::get_instance()->helm->ShowHelmEnabled.set(true);
-        return true;
-      }
-      if (Zeal::String::compare_insensitive(args[1], "off")) {
-        ZealService::get_instance()->helm->ShowHelmEnabled.set(false);
-        return true;
-      }
-    }
-    Zeal::Game::print_chat("Usage: /showhelm or /showhelm <on|off>");
-    return true;
-  });
   Add("/showlootlockouts", {"/sll", "/showlootlockout", "/showlockouts"}, "Sends #showlootlockouts to server.",
       [](std::vector<std::string> &args) {
         Zeal::Game::do_say(true, "#showlootlockouts");
         return true;
       });
-  Add("/zeal", {"/zea"}, "Help and version information.", [this](std::vector<std::string> &args) {
-    if (args.size() == 1) {
-      Zeal::Game::print_chat("Available args: version, help");  // leave room for more args on this command for later
-      return true;
-    }
-    if (args.size() > 1 && Zeal::String::compare_insensitive(args[1], "version")) {
-      std::stringstream ss;
-      ss << "Zeal version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
-      Zeal::Game::print_chat(ss.str());
-      return true;
-    }
-    if (args.size() >= 2 && args[1] == "show_ui_errors" && Zeal::Game::is_new_ui()) {
-      if (args.size() != 3) {
-        Zeal::Game::print_chat("Usage: /zeal show_ui_errors <on | off>");
-      } else {
-        bool enable = (args[2] == "1" || args[2] == "on");
-        ZealService::get_instance()->ui->setting_show_ui_errors.set(enable);
-        Zeal::Game::print_chat("Showing UI errors is %s.", enable ? "enabled" : "disabled");
-      }
-      return true;
-    }
-    if (args.size() == 2 && args[1] == "era") {  // TODO: Remove, temporary testing.
-      auto char_info = Zeal::Game::get_char_info();
-      BYTE char_expansions = char_info ? char_info->Expansions : 0;
-
-      // OP_ExpansionInfo values:
-      BYTE op_expansions = 0;
-      if (*reinterpret_cast<DWORD *>(0x007cf1e8))  // gKunarkEnabled_007cf1e8
-        op_expansions = op_expansions | 0x01;
-      if (*reinterpret_cast<DWORD *>(0x007cf1ec))  // gVeliousEnabled_007cf1ec
-        op_expansions = op_expansions | 0x02;
-      if (*reinterpret_cast<DWORD *>(0x007cf1f0))  // gLuclinEnabled_007cf1f0
-        op_expansions = op_expansions | 0x04;
-      if (*reinterpret_cast<DWORD *>(0x007cf1f4))  // gPlanesOfPowerEnabled_007cf1f4
-        op_expansions = op_expansions | 0x08;
-
-      Zeal::Game::print_chat("Era bits: Character: 0x%02x, Op_ExpansionInfo: 0x%02x", char_expansions, op_expansions);
-    }
-    if (args.size() == 2 && args[1] == "bank")  // Temporary for bank patch testing.
-    {
-      Zeal::Game::print_chat("total: %i, personal: %i, shared: %i, size: 0x%x", Zeal::Game::get_num_total_bank_slots(),
-                             Zeal::Game::get_num_personal_bank_slots(), Zeal::Game::get_num_shared_bank_slots(),
-                             sizeof(Zeal::GameStructures::GAMECHARINFO));
-      return true;
-    }
-    if (args.size() == 2 && args[1] == "check")  // Report state and do basic debug integrity checks.
-    {
-      ZealService::get_instance()->entity_manager.get()->Dump();
-      int heap_valid1 = HeapValidate(GetProcessHeap(), 0, NULL);
-      Zeal::Game::print_chat("Process HeapValidate: %s", heap_valid1 ? "Pass" : "Fail");
-      int heap_valid2 = HeapValidate(*Zeal::Game::Heap, 0, NULL);
-      Zeal::Game::print_chat("Game HeapValidate: %s", heap_valid2 ? "Pass" : "Fail");
-
-      HEAP_SUMMARY heap_summary;
-      memset(&heap_summary, 0, sizeof(heap_summary));
-      heap_summary.cb = sizeof(heap_summary);
-      HeapSummary(*Zeal::Game::Heap, 0, &heap_summary);
-      Zeal::Game::print_chat("Game Heap: Alloc: 0x%08x, Commit: 0x%08x", heap_summary.cbAllocated,
-                             heap_summary.cbCommitted);
-
-      return true;
-    }
-    if (args.size() == 3 && args[1] == "get_command") {
-      auto command = Zeal::Game::get_command_struct(args[2]);
-      if (command)
-        Zeal::Game::print_chat("%s: id: %i, name: %s, localized: %s, gm: %i, category: %i, fn: 0x%08x", args[2].c_str(),
-                               command->string_id, command->name ? command->name : "null",
-                               command->localized_name ? command->localized_name : "null", command->gm_command,
-                               command->category, command->fn);
-      else
-        Zeal::Game::print_chat("no matches");
-
-      return true;
-    }
-    if (args.size() == 2 && args[1] == "list_keybinds")  // Just a utility to check native keybind mapping.
-    {
-      const char **cmd = reinterpret_cast<const char **>(0x00611220);
-      for (int i = 0; cmd[i] != nullptr; ++i) Zeal::Game::print_chat("[%d]: %s", i, cmd[i]);
-      return true;
-    }
-    if (args.size() == 2 && args[1] == "target_name")  // Report name parsing of current target.
-    {
-      Zeal::GameStructures::Entity *target = Zeal::Game::get_target();
-      if (target) {
-        std::string original = target->Name;
-        std::string trimmed = Zeal::Game::trim_name(target->Name);
-        std::string stripped = Zeal::Game::strip_name(target->Name);
-        Zeal::Game::print_chat("Raw: %s, Trim: %s, Strip: %s, Equal: %s", original.c_str(), trimmed.c_str(),
-                               stripped.c_str(), trimmed == stripped ? "true" : "false");
-        if (target->ActorInfo && target->ActorInfo->DagHeadPoint && target->ActorInfo->DagHeadPoint->StringSprite) {
-          auto &sprite = *target->ActorInfo->DagHeadPoint->StringSprite;
-          if (sprite.MagicValue == sprite.kMagicValidValue)
-            Zeal::Game::print_chat("Sprite: %s, len: %i", sprite.Text, sprite.TextLength);
-        }
-      }
-      return true;
-    }
-    int sound_index = 0;
-    if (args.size() == 3 && args[1] == "wave_play" && Zeal::String::tryParse(args[2], &sound_index)) {
-      Zeal::Game::WavePlay(sound_index);
-      return true;
-    }
-    if (args.size() > 1 && Zeal::String::compare_insensitive(args[1], "help")) {
-      print_commands();
-      return true;
-    }
-    return false;
-  });
-
-  Add("/mystats", {}, "Calculate and report your current stats.", [this](std::vector<std::string> &args) {
-    using Zeal::Game::print_chat;
-    const char kMarker = 0x12;  // Link marker.
-    int item_id = 0;
-    if (args.size() == 2 && args[1] == "info") {
-      print_chat("---- mystats Beta info ----");
-      print_chat("Known simplifications:");
-      print_chat("  - Anti-twink defensive logic may not be accurate");
-      print_chat("  - All disciplines (offensive, defensive) are ignored");
-      print_chat("  - Range weapons, duel wield, double-attack will be in future update");
-      print_chat("Stat descriptions (all values include current spell effects):");
-      print_chat("Mitigation: modifies incoming damage based on offense vs mitigation (0.1x to 2.0x factor)");
-      print_chat("Mitigation (melee) ~= item_ac*4/3 + defense_skill/3 + agility/20 + spell_ac/4 + class_ac");
-      print_chat(
-          "Note: The spell_ac value is an internal calc from the database. Sites like pqdi already include "
-          "the /4.");
-      print_chat("Avoidance: modifies probability of taking zero damage");
-      print_chat("Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct)");
-      print_chat("To Hit: sets probability of hitting based on to hit vs avoidance");
-      print_chat("To Hit ~= 7 + offense_skill + weap_skill + bonuses (item, spell, AA)");
-      print_chat("Offense: impacts both mitigation factor and damage multiplier");
-      print_chat("Offense ~= weap_skill_value + spell_atk + item_atk + max(0, (str-75)*2/3)");
-      print_chat("Damage multiplier: Chance for bonus damage factor based on level, weapon skill, and offense");
-      print_chat("Average damage: Mitigation factor = 1, damage multiplier = average after both rolls");
-    } else if (args.size() == 2 && args[1] == "affects") {
-      auto char_info = Zeal::Game::get_char_info();
-      if (char_info) {
-        const int SE_ArmorClass = 1;
-        print_chat("TotalSpellAffects: AC: %d",
-                   Zeal::Game::total_spell_affects(char_info, SE_ArmorClass, true, nullptr));
-      }
-    } else if (args.size() >= 2 && args[1].size() >= 8 && args[1].front() == kMarker) {
-      std::string link = args[1];  // Only need the first item ID part of the link (name doesn't matter).
-      std::string item_id_str = link.substr(2, 6);
-      if (link.front() == kMarker && Zeal::String::tryParse(item_id_str, &item_id) && item_id > 0) {
-        auto zeal = ZealService::get_instance();
-        const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr;
-        if (zeal && zeal->item_displays && zeal->item_displays->get_cached_item(item_id)) {
-          const auto weapon = zeal->item_displays->get_cached_item(item_id);
-          Zeal::Game::print_melee_attack_stats(true, weapon);
-          Zeal::Game::print_melee_attack_stats(false, weapon);
-        } else
-          print_chat("Unable to locate a local copy of information for item %d", item_id);
-      } else
-        print_chat("Failed to parse item link.");
-    } else if (args.size() == 1) {
-      bool is_luclin_enabled = (Zeal::Game::get_era() >= Zeal::Game::Era::Luclin);
-      auto self = Zeal::Game::get_self();
-      if (self) {
-        Zeal::Game::print_chat("---- Misc stats ----");
-        auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
-        float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
-        print_chat("Movement speed: %d%%", (int)(speed / 0.7 * 100 + 0.5));
-        if (!horse && self->ActorInfo)
-          print_chat("Movement modifier: %+d%%", (int)(self->ActorInfo->MovementSpeedModifier / 0.7 * 100 + 0.5));
-      }
-      Zeal::Game::print_chat("---- Defensive stats ----");
-      print_chat("AC (display): %i = (Mit: %i  + Avoidance: %i) * 1000/847", Zeal::Game::get_display_AC(),
-                 Zeal::Game::get_mitigation(), Zeal::Game::get_avoidance());
-      print_chat("Mitigation: %i (%s: %i)", Zeal::Game::get_mitigation(true), is_luclin_enabled ? "softcap" : "hardcap",
-                 Zeal::Game::get_mitigation_softcap());
-      print_chat("Avoidance: %i (with AAs)",
-                 Zeal::Game::get_avoidance(true));  // Includes combat_agility.
-      Zeal::Game::print_melee_attack_stats(true);
-      Zeal::Game::print_melee_attack_stats(false);
-    } else
-      print_chat("Usage: /mystats, /mystats info, /mystats <item_id>, /mystats <item_link>");
-
-    return true;
-  });
 
   Add("/clientmanatick", {"/cmt"}, "Toggle client mana tick (disabled by default in this client).",
       [this](std::vector<std::string> &args) {
@@ -535,43 +220,6 @@ ChatCommands::ChatCommands(ZealService *zeal) {
     mem::write<BYTE>(0x8092da, 1);  // reload with ui
     return true;
   });
-  Add("/alarm", {}, "Open the alarm ui and gives alarm functionality on old ui.",
-      [this, zeal](std::vector<std::string> &args) {
-        if (Zeal::Game::is_new_ui()) {
-          if (Zeal::Game::Windows->Alarm)
-            Zeal::Game::Windows->Alarm->IsVisible = true;
-          else
-            Zeal::Game::print_chat("Alarm window not found");
-
-          return true;
-        } else {
-          if (args.size() == 1) {
-            std::ostringstream oss;
-            oss << "-- ALARM COMMANDS --" << std::endl << "/alarm set #m#s" << std::endl << "/alarm halt" << std::endl;
-            Zeal::Game::print_chat(oss.str());
-            return true;
-          }
-          if (args.size() > 1 && args.size() < 4) {
-            if (Zeal::String::compare_insensitive(args[1], "set")) {
-              int minutes = 0;
-              int seconds = 0;
-              size_t delim[2] = {args[2].find("m"), args[2].find("s")};
-              if (Zeal::String::tryParse(args[2].substr(0, delim[0]), &minutes) &&
-                  Zeal::String::tryParse(args[2].substr(delim[0] + 1, delim[1]), &seconds)) {
-                zeal->alarm->Set(minutes, seconds);
-                return true;
-              } else {
-                Zeal::Game::print_chat("[Alarm] Failed to parse the specified duration.");
-                return true;
-              }
-            } else if (Zeal::String::compare_insensitive(args[1], "halt")) {
-              zeal->alarm->Halt();
-              return true;
-            }
-          }
-        }
-        return false;
-      });
   Add("/inspect", {}, "Inspect your current target.", [this, zeal](std::vector<std::string> &args) {
     if (args.size() > 1 && args[1] == "target") {
       Zeal::GameStructures::Entity *t = Zeal::Game::get_target();
@@ -619,5 +267,4 @@ ChatCommands::ChatCommands(ZealService *zeal) {
     return false;
   });
   zeal->hooks->Add("commands", Zeal::Game::GameInternal::fn_interpretcmd, InterpretCommand, hook_type_detour);
-  zeal->hooks->Add("GameCamp", 0x00530c7b, GameCamp, hook_type_detour);
 }

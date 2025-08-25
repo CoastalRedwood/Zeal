@@ -32,6 +32,7 @@ class HelmManager {
  private:
   bool Handle_In_OP_WearChange(Zeal::Packets::WearChange_Struct *data);
   bool Handle_Out_OP_WearChange(Zeal::Packets::WearChange_Struct *data);
+  bool Handle_Showhelm(const std::vector<std::string> &args);
 
   // Checks if this race/gender combination needs special handling for Velious helms
   bool IsHelmBuggedOldModel(WORD race, BYTE gender);

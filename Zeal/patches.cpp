@@ -1,7 +1,6 @@
 #include "patches.h"
 
 #include "commands.h"
-#include "entity_manager.h"
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "string_util.h"
@@ -31,7 +30,7 @@ void __fastcall GetZoneInfoFromNetwork(int *t, int unused, char *p1) {
 // looks like a client bug to patch (impacts corpse nameplates and targeting).
 static void __fastcall ProcessDeath(uint32_t passthruECX, uint32_t unusedEDX,
                                     Zeal::Packets::Death_Struct *death_struct) {
-  auto *ent = ZealService::get_instance()->entity_manager->Get(death_struct->spawn_id);
+  auto *ent = Zeal::Game::get_entity_by_id(death_struct->spawn_id);
   bool player_death = (ent != nullptr && ent->Type == Zeal::GameEnums::Player);
   ZealService::get_instance()->hooks->hook_map["ProcessDeath"]->original(ProcessDeath)(passthruECX, unusedEDX,
                                                                                        death_struct);
