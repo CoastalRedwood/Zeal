@@ -464,6 +464,8 @@ chatfilter::chatfilter(ZealService *zeal) {
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Melee Special", 0x10009,
                    [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "/mystats", 0x1000A, [this, zeal](short &color, std::string data) { return color == CHANNEL_MYSTATS; }));
 
   // Callbacks
   zeal->callbacks->AddOutputText(

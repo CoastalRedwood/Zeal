@@ -112,6 +112,8 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
       return c->get_color_callback(23);
     case CHANNEL_OTHERMELEESPECIAL:
       return c->get_color_callback(24);
+    case CHANNEL_MYSTATS:
+      return 0xffffffff;  // Just hard-code to white.
   }
   return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
 }
