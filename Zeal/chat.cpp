@@ -94,7 +94,7 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
   if (!c->get_color_callback) return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
 
   switch (index) {
-    case 4:
+    case 4:  // Update the blue color in chat, track, etc.
     case 0x10:
       if (c->UseBlueCon.get()) {
         return c->get_color_callback(14);

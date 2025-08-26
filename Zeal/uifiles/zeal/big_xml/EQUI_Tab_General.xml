@@ -46,7 +46,7 @@
     <Style_HScroll>false</Style_HScroll>
     <Style_Transparent>false</Style_Transparent>
     <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Changes the blue con color to usercolor #70 which is otherwise unused, you can edit in the options window.</TooltipReference>
+    <TooltipReference>Changes the dark blue con color in chat and track to use zeal color #15.</TooltipReference>
     <Text>Blue Con</Text>
     <TextColor>
       <R>255</R>

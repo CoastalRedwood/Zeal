@@ -229,15 +229,8 @@ void ui_options::LoadColors() {
   }
   if (!ini->exists("ZealColors", "Color14"))  // Adds default Nameplate Color to Button15 for new users
   {
-    if (color_buttons.count(14)) {
-      if (ZealService::get_instance()->ini->getValue<bool>("Zeal", "Bluecon"))
-        color_buttons[14]->TextColor.ARGB =
-            Zeal::Game::get_user_color(70);  // BlueCon - Keeps original BlueCon if set from old Options, Color #70
-      else
-        color_buttons[14]->TextColor.ARGB =
-            D3DCOLOR_ARGB(0xff, 0x0, 0x40,
-                          0xf0);  // Default DarkBlue is lighter than CON_BLUE as Nameplate Color Button15 for new users
-    }
+    if (color_buttons.count(14))
+      color_buttons[14]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0x0, 0x40, 0xf0);  // CON_BLUE (lightened).
   }
   if (!ini->exists("ZealColors", "Color15"))  // Adds default Nameplate Color to Button16 for new users
   {
@@ -1378,6 +1371,7 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->target_ring->add_get_color_callback([this](int index) { return GetColor(index); });
   zeal->nameplate->add_get_color_callback([this](int index) { return GetColor(index); });
   zeal->floating_damage->add_get_color_callback([this](int index) { return GetColor(index); });
+  zeal->chat_hook->add_get_color_callback([this](int index) { return GetColor(index); });
 
   zeal->hooks->Add("ContainerWndSetContainer", 0x0041717d, ContainerWndSetContainer, hook_type_detour);
   zeal->hooks->Add("SidlScreenWndHandleRButtonDown", 0x005703f0, SidlScreenWndHandleRButtonDown, hook_type_detour);
