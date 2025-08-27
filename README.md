@@ -141,6 +141,10 @@ ___
   - **Arguments:** none, `open` (reports raid groups with open slots), `all` (lists all raid groups)
   - **Description:** prints out your current group leader (and raid leader if in raid).
 
+- `/leftclickcon`
+  - **Arguments:** `on`, `off`
+  - **Description:** Enables (on) the generation of a consider message when left clicking (like right).
+
 - `/linkall`
   - **Arguments:** none (pastes into active chat) or `rs` (rsay), `gs` (gsay), `gu` (guildsay), `ooc`, `auc`, `say`
   - **Description:** prints item links if looting window is open. The argument options route directly to channel for macros.

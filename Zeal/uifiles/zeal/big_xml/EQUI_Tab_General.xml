@@ -1,405 +1,6 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <XML ID="EQInterfaceDefinitionLanguage">
   <Schema xmlns="EverQuestData" xmlns:dt="EverQuestDataTypes" />
-<Button item="Zeal_HideCorpse">
-    <ScreenID>Zeal_HideCorpse</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>48</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Hides a corpse after you have looted it</TooltipReference>
-    <Text>Hide corpse looted</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-   <Button item="Zeal_BlueCon">
-    <ScreenID>Zeal_BlueCon</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>92</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Changes the dark blue con color in chat and track to use zeal color #15.</TooltipReference>
-    <Text>Blue Con</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_Timestamp">
-    <ScreenID>Zeal_Timestamp</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>152</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Shows message timestamps</TooltipReference>
-    <Text>Chat timestamps</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_Input">
-    <ScreenID>Zeal_Input</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>136</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Toggles the zeal input setup for any input in game, giving you a more modern input (ctrl+c, ctrl+v, left, right, shift left+right for highlighting, home, end ect)</TooltipReference>
-    <Text>Advanced Input</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_ShowHelm">
-    <ScreenID>Zeal_ShowHelm</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>180</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Toggles your helmet</TooltipReference>
-    <Text>Show Helm</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_Escape">
-    <ScreenID>Zeal_Escape</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>224</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Stops windows from closing on escape but still drops target</TooltipReference>
-    <Text>Escape Logic</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_AltContainerTooltips">
-    <ScreenID>Zeal_AltContainerTooltips</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>312</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Alt key will show ALL item Tooltips in open bags</TooltipReference>
-    <Text>Container Tooltips</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_SpellbookAutoStand">
-    <ScreenID>Zeal_SpellbookAutoStand</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>356</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Toggles Autostand if Spellbook is open (so you can turn pages with movement keys)</TooltipReference>
-    <Text>Spellbook Auto Stand</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-    <Button item="Zeal_RightClickToEquip">
-    <ScreenID>Zeal_RightClickToEquip</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>400</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-        <TooltipReference>Equip items from your bags by right clicking them.</TooltipReference>
-    <Text>Right Click to Equip</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  
-  <Label item="Zeal_Timestamps_Label">
-    <ScreenID>Zeal_Timestamps_Label</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>150</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>28</CY>
-    </Size>
-    <Text>Timestamps</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>false</AlignRight>
-  </Label>
-  <Combobox item="Zeal_Timestamps_Combobox">
-    <ScreenID>Zeal_Timestamps_Combobox</ScreenID>
-    <DrawTemplate>WDT_Inner</DrawTemplate>
-    <Location>
-      <X>388</X>
-      <Y>190</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>48</CY>
-    </Size>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ListHeight>70</ListHeight>
-    <Button>BDT_Combo</Button>
-    <Style_Border>true</Style_Border>
-    <Choices>None</Choices>
-    <Choices>Long</Choices>
-    <Choices>Short</Choices>
-  </Combobox>
-  <Label item="Zeal_InviteSound_Label">
-    <ScreenID>Zeal_InviteSound_Label</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>250</Y>
-    </Location>
-    <Size>
-      <CX>290</CX>
-      <CY>28</CY>
-    </Size>
-    <Text>Invite sound</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>false</AlignRight>
-  </Label>
-  <Combobox item="Zeal_InviteSound_Combobox">
-    <ScreenID>Zeal_InviteSound_Combobox</ScreenID>
-    <DrawTemplate>WDT_Inner</DrawTemplate>
-    <Location>
-      <X>388</X>
-      <Y>290</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>48</CY>
-    </Size>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ListHeight>70</ListHeight>
-    <Button>BDT_Combo</Button>
-    <Style_Border>true</Style_Border>
-    <Choices>None</Choices>
-  </Combobox>
-  <Label item="Zeal_TellSound_Label">
-    <ScreenID>Zeal_TellSound_Label</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>350</Y>
-    </Location>
-    <Size>
-      <CX>290</CX>
-      <CY>28</CY>
-    </Size>
-    <Text>New tell sound</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>false</AlignRight>
-  </Label>
-  <Combobox item="Zeal_TellSound_Combobox">
-    <ScreenID>Zeal_TellSound_Combobox</ScreenID>
-    <DrawTemplate>WDT_Inner</DrawTemplate>
-    <Location>
-      <X>388</X>
-      <Y>390</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>48</CY>
-    </Size>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ListHeight>70</ListHeight>
-    <Button>BDT_Combo</Button>
-    <Style_Border>true</Style_Border>
-    <Choices>None</Choices>
-  </Combobox>
   <Label item="Zeal_VersionLabel">
     <ScreenID>Zeal_VersionLabel</ScreenID>
     <RelativePosition>true</RelativePosition>
@@ -442,7 +43,163 @@
     <NoWrap>true</NoWrap>
     <AlignCenter>false</AlignCenter>
     <AlignRight>false</AlignRight>
-  </Label>
+  </Label>  
+    
+  <Button item="Zeal_HideCorpse">
+    <ScreenID>Zeal_HideCorpse</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>48</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Hides a corpse after you have looted it</TooltipReference>
+    <Text>Hide corpse looted</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+   <Button item="Zeal_BlueCon">
+    <ScreenID>Zeal_BlueCon</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>92</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Changes the dark blue con color in chat and track to use zeal color #15.</TooltipReference>
+    <Text>Blue Con</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_Input">
+    <ScreenID>Zeal_Input</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>136</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Toggles the zeal input setup for any input in game, giving you a more modern input (ctrl+c, ctrl+v, left, right, shift left+right for highlighting, home, end ect)</TooltipReference>
+    <Text>Advanced Input</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_ShowHelm">
+    <ScreenID>Zeal_ShowHelm</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>180</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Toggles your helmet</TooltipReference>
+    <Text>Show Helm</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_Escape">
+    <ScreenID>Zeal_Escape</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>224</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Stops windows from closing on escape but still drops target</TooltipReference>
+    <Text>Escape Logic</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <Button item="Zeal_RaidEscapeLock">
     <ScreenID>Zeal_RaidEscapeLock</ScreenID>
     <RelativePosition>true</RelativePosition>
@@ -473,13 +230,75 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  
+
+  <Button item="Zeal_AltContainerTooltips">
+    <ScreenID>Zeal_AltContainerTooltips</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>312</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Alt key will show ALL item Tooltips in open bags</TooltipReference>
+    <Text>Container Tooltips</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_SpellbookAutoStand">
+    <ScreenID>Zeal_SpellbookAutoStand</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>356</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Toggles Autostand if Spellbook is open (so you can turn pages with movement keys)</TooltipReference>
+    <Text>Spellbook Auto Stand</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <Button item="Zeal_ClassicClasses">
     <ScreenID>Zeal_ClassicClasses</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>444</Y>
+      <Y>400</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -504,13 +323,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  
+
   <Button item="Zeal_TellWindows">
     <ScreenID>Zeal_TellWindows</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>488</Y>
+      <Y>444</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -535,12 +354,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-    <Button item="Zeal_TellWindowsHist">
+  
+  <Button item="Zeal_TellWindowsHist">
     <ScreenID>Zeal_TellWindowsHist</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>532</Y>
+      <Y>488</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -565,13 +385,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-   
+
   <Button item="Zeal_LinkAllAltDelimiter">
     <ScreenID>Zeal_LinkAllAltDelimiter</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>576</Y>
+      <Y>532</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -596,12 +416,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  
   <Button item="Zeal_EnableContainerLock">
     <ScreenID>Zeal_EnableContainerLock</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>620</Y>
+      <Y>576</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -626,12 +447,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  
   <Button item="Zeal_ExportOnCamp">
     <ScreenID>Zeal_ExportOnCamp</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>664</Y>
+      <Y>620</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -656,42 +478,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  <Button item="Zeal_SelfClickThru">
-    <ScreenID>Zeal_SelfClickThru</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>708</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Disables third person click on self (/selfclickthru)</TooltipReference>
-    <Text>Self-click thru</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
+
   <Button item="Zeal_BuffTimers">
     <ScreenID>Zeal_BuffTimers</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>752</Y>
+      <Y>664</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -716,12 +509,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_RecastTimers">
     <ScreenID>Zeal_RecastTimers</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>796</Y>
+      <Y>708</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -746,12 +540,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_RecastTimersLeftAlign">
     <ScreenID>Zeal_RecastTimersLeftAlign</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>840</Y>
+      <Y>752</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -776,72 +571,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  <Button item="Zeal_CtrlRightClickCorpse">
-    <ScreenID>Zeal_CtrlRightClickCorpse</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>884</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Require Ctrl with right click to loot corpse</TooltipReference>
-    <Text>Ctrl Right Click Loot</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_CtrlContextMenus">
-    <ScreenID>Zeal_CtrlContextMenus</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>20</X>
-      <Y>928</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Require Ctrl with right click to pop-up context menus</TooltipReference>
-    <Text>Ctrl Context Menus</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
+ 
   <Button item="Zeal_InviteDialog">
     <ScreenID>Zeal_InviteDialog</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>972</Y>
+      <Y>796</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -866,12 +602,255 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  <Button item="Zeal_AutoFollowEnable">
-    <ScreenID>Zeal_AutoFollowEnable</ScreenID>
+
+  
+  <Label item="Zeal_HoverTimeout_Label">
+    <ScreenID>Zeal_HoverTimeout_Label</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>20</X>
-      <Y>1016</Y>
+      <X>370</X>
+      <Y>52</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Tooltip Hover Delay</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  <Slider item="Zeal_HoverTimeout_Slider">
+    <ScreenID>Zeal_HoverTimeout_Slider</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>92</Y>
+    </Location>
+    <Size>
+      <CX>200</CX>
+      <CY>32</CY>
+    </Size>
+    <SliderArt>SDT_DefSlider</SliderArt>
+  </Slider>
+  <Label item="Zeal_HoverTimeout_Value">
+    <ScreenID>Zeal_HoverTimeout_Value</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>570</X>
+      <Y>92</Y>
+    </Location>
+    <Size>
+      <CX>100</CX>
+      <CY>32</CY>
+    </Size>
+    <Text>0</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>true</AlignRight>
+  </Label>
+
+  <Label item="Zeal_Timestamps_Label">
+    <ScreenID>Zeal_Timestamps_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>150</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Timestamps</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  
+  <Combobox item="Zeal_Timestamps_Combobox">
+    <ScreenID>Zeal_Timestamps_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>190</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>None</Choices>
+    <Choices>Long</Choices>
+    <Choices>Short</Choices>
+  </Combobox>
+
+  <Label item="Zeal_InviteSound_Label">
+    <ScreenID>Zeal_InviteSound_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>250</Y>
+    </Location>
+    <Size>
+      <CX>290</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Invite sound</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+
+  <Combobox item="Zeal_InviteSound_Combobox">
+    <ScreenID>Zeal_InviteSound_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>290</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>None</Choices>
+  </Combobox>
+
+  <Label item="Zeal_TellSound_Label">
+    <ScreenID>Zeal_TellSound_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>350</Y>
+    </Location>
+    <Size>
+      <CX>290</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>New tell sound</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+
+  <Combobox item="Zeal_TellSound_Combobox">
+    <ScreenID>Zeal_TellSound_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>390</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>None</Choices>
+  </Combobox>
+ 
+  <Label item="Zeal_FPS_Label">
+    <ScreenID>Zeal_FPS_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>450</Y>
+    </Location>
+    <Size>
+      <CX>290</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>FPS Limit</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+
+  <Combobox item="Zeal_FPS_Combobox">
+    <ScreenID>Zeal_FPS_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>490</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Unlimited</Choices>
+    <Choices>30</Choices>
+    <Choices>60</Choices>
+    <Choices>120</Choices>
+    <Choices>144</Choices>
+    <Choices>165</Choices>
+    <Choices>240</Choices>
+  </Combobox>
+
+  
+  <Button item="Zeal_EnhancedAutoRun">
+    <ScreenID>Zeal_EnhancedAutoRun</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>48</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -881,8 +860,8 @@
     <Style_HScroll>false</Style_HScroll>
     <Style_Transparent>false</Style_Transparent>
     <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Enable Zeal /follow mode (reliability)</TooltipReference>
-    <Text>Patch /follow</Text>
+    <TooltipReference>More consistent 'lock on' behavior and adds strafe</TooltipReference>
+    <Text>Enhanced AutoRun</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -895,12 +874,261 @@
       <Disabled>A_BtnDisabled</Disabled>
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
-  </Button>  
+  </Button>
+  
+  <Button item="Zeal_AutoFollowEnable">
+    <ScreenID>Zeal_AutoFollowEnable</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>92</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Enable Zeal /follow mode (reliability, distance, and pitch)</TooltipReference>
+    <Text>Enhance /follow</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_SingleClickGiveEnable">
+    <ScreenID>Zeal_SingleClickGiveEnable</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>136</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Enables the single click auto-transfer of stackable items to open give, trade, or crafting windows</TooltipReference>
+    <Text>Single click give</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_SelfClickThru">
+    <ScreenID>Zeal_SelfClickThru</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>180</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Disables third person click on self (/selfclickthru)</TooltipReference>
+    <Text>Self-click thru</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_LeftClickCon">
+    <ScreenID>Zeal_LeftClickCon</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>224</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Generates a consider message upon left click</TooltipReference>
+    <Text>Left click consider</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_RightClickToEquip">
+    <ScreenID>Zeal_RightClickToEquip</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>268</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Equip items from your bags by right clicking them.</TooltipReference>
+    <Text>Right Click to Equip</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_CtrlRightClickCorpse">
+    <ScreenID>Zeal_CtrlRightClickCorpse</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>312</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Require Ctrl with right click to loot corpse</TooltipReference>
+    <Text>Ctrl Right Click Loot</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
+  <Button item="Zeal_CtrlContextMenus">
+    <ScreenID>Zeal_CtrlContextMenus</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>356</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Require Ctrl with right click to pop-up context menus</TooltipReference>
+    <Text>Ctrl Context Menus</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_EnhancedSpellInfo">
+    <ScreenID>Zeal_EnhancedSpellInfo</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>400</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Replaces the spell info display content with 'enhanced' information</TooltipReference>
+    <Text>Enhanced spell info</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <Button item="Zeal_CastAutoStand">
     <ScreenID>Zeal_CastAutoStand</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>444</Y>
     </Location>
     <Size>
@@ -926,11 +1154,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_BrownSkeletons">
     <ScreenID>Zeal_BrownSkeletons</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>488</Y>
     </Location>
     <Size>
@@ -956,11 +1185,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_ClassicMusic">
     <ScreenID>Zeal_ClassicMusic</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>532</Y>
     </Location>
     <Size>
@@ -986,11 +1216,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  
   <Button item="Zeal_SuppressMissedNotes">
     <ScreenID>Zeal_SuppressMissedNotes</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>576</Y>
     </Location>
     <Size>
@@ -1016,11 +1247,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_SuppressOtherFizzles">
     <ScreenID>Zeal_SuppressOtherFizzles</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>620</Y>
     </Location>
     <Size>
@@ -1046,11 +1278,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>  
+
   <Button item="Zeal_UseZealAssistOn">
     <ScreenID>Zeal_UseZealAssistOn</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>664</Y>
     </Location>
     <Size>
@@ -1076,11 +1309,12 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+
   <Button item="Zeal_DetectAssistFailure">
     <ScreenID>Zeal_DetectAssistFailure</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
+      <X>720</X>
       <Y>708</Y>
     </Location>
     <Size>
@@ -1106,72 +1340,13 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  <Button item="Zeal_SingleClickGiveEnable">
-    <ScreenID>Zeal_SingleClickGiveEnable</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>752</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Enables the single click auto-transfer of stackable items to open give, trade, or crafting windows</TooltipReference>
-    <Text>Single click give</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Button item="Zeal_EnhancedSpellInfo">
-    <ScreenID>Zeal_EnhancedSpellInfo</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>796</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Replaces the spell info display content with 'enhanced' information</TooltipReference>
-    <Text>Enhanced spell info</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
+
   <Button item="Zeal_SlashNotPoke">
     <ScreenID>Zeal_SlashNotPoke</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>388</X>
-      <Y>840</Y>
+      <X>720</X>
+      <Y>752</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1196,83 +1371,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-  <Button item="Zeal_EnhancedAutoRun">
-    <ScreenID>Zeal_EnhancedAutoRun</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>884</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>40</CY>
-    </Size>
-    <Style_VScroll>false</Style_VScroll>
-    <Style_HScroll>false</Style_HScroll>
-    <Style_Transparent>false</Style_Transparent>
-    <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>More consistent 'lock on' behavior and adds strafe</TooltipReference>
-    <Text>Enhanced AutoRun</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <ButtonDrawTemplate>
-      <Normal>A_BtnNormal</Normal>
-      <Pressed>A_BtnPressed</Pressed>
-      <Flyby>A_BtnFlyby</Flyby>
-      <Disabled>A_BtnDisabled</Disabled>
-      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
-    </ButtonDrawTemplate>
-  </Button>
-  <Label item="Zeal_FPS_Label">
-    <ScreenID>Zeal_FPS_Label</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>388</X>
-      <Y>928</Y>
-    </Location>
-    <Size>
-      <CX>300</CX>
-      <CY>28</CY>
-    </Size>
-    <Text>FPS Limit</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>false</AlignRight>
-  </Label>
-  <Combobox item="Zeal_FPS_Combobox">
-		<ScreenID>Zeal_FPS_Combobox</ScreenID>
-		<Location>
-			<X>388</X>
-			<Y>968</Y>
-		</Location>
-		<Size>
-			<CX>280</CX>
-			<CY>50</CY>
-		</Size>
-		<TextColor>
-			<R>255</R>
-			<G>255</G>
-			<B>255</B>
-		</TextColor>
-		<ListHeight>60</ListHeight>
-		<Button>BDT_Combo</Button>
-		<Style_Border>true</Style_Border>
-		<Choices>Unlimited</Choices>
-		<Choices>30</Choices>
-		<Choices>60</Choices>
-		<Choices>120</Choices>
-		<Choices>144</Choices>
-		<Choices>165</Choices>
-		<Choices>240</Choices>
-	</Combobox>
+
   
     
   <Page item="Tab_General">
@@ -1295,36 +1394,50 @@
       <B>0</B>
     </TabTextActiveColor>
     <Style_Sizable>true</Style_Sizable>
+    <Pieces>Zeal_VersionLabel</Pieces>
+    <Pieces>Zeal_VersionValue</Pieces>
+    
     <Pieces>Zeal_HideCorpse</Pieces>
     <Pieces>Zeal_BlueCon</Pieces>
-    
     <Pieces>Zeal_Input</Pieces>
     <Pieces>Zeal_ShowHelm</Pieces>
     <Pieces>Zeal_Escape</Pieces>
-    <Pieces>Zeal_HoverTimeout_Label</Pieces>
-    <Pieces>Zeal_HoverTimeout_Slider</Pieces>
-    <Pieces>Zeal_HoverTimeout_Value</Pieces>
+    <Pieces>Zeal_RaidEscapeLock</Pieces>
     <Pieces>Zeal_AltContainerTooltips</Pieces>
     <Pieces>Zeal_SpellbookAutoStand</Pieces>
-    <Pieces>Zeal_RightClickToEquip</Pieces>
-    <Pieces>Zeal_Timestamps_Label</Pieces>
-    <Pieces>Zeal_VersionLabel</Pieces>
-    <Pieces>Zeal_VersionValue</Pieces>
-    <Pieces>Zeal_RaidEscapeLock</Pieces>
     <Pieces>Zeal_ClassicClasses</Pieces>
     <Pieces>Zeal_TellWindows</Pieces>
     <Pieces>Zeal_TellWindowsHist</Pieces>
     <Pieces>Zeal_LinkAllAltDelimiter</Pieces>
     <Pieces>Zeal_EnableContainerLock</Pieces>
     <Pieces>Zeal_ExportOnCamp</Pieces>
-    <Pieces>Zeal_SelfClickThru</Pieces>
     <Pieces>Zeal_BuffTimers</Pieces>
     <Pieces>Zeal_RecastTimers</Pieces>
     <Pieces>Zeal_RecastTimersLeftAlign</Pieces>
+    <Pieces>Zeal_InviteDialog</Pieces>
+    
+    <Pieces>Zeal_HoverTimeout_Label</Pieces>
+    <Pieces>Zeal_HoverTimeout_Slider</Pieces>
+    <Pieces>Zeal_HoverTimeout_Value</Pieces>
+    <Pieces>Zeal_Timestamps_Label</Pieces>
+    <Pieces>Zeal_InviteSound_Label</Pieces>
+    <Pieces>Zeal_TellSound_Label</Pieces>
+    <Pieces>Zeal_FPS_Label</Pieces>
+    
+    <Pieces>Zeal_FPS_Combobox</Pieces>
+    <Pieces>Zeal_TellSound_Combobox</Pieces>
+    <Pieces>Zeal_InviteSound_Combobox</Pieces>
+    <Pieces>Zeal_Timestamps_Combobox</Pieces>
+    
+    <Pieces>Zeal_EnhancedAutoRun</Pieces>
+    <Pieces>Zeal_AutoFollowEnable</Pieces>
+    <Pieces>Zeal_SingleClickGiveEnable</Pieces>
+    <Pieces>Zeal_SelfClickThru</Pieces>
+    <Pieces>Zeal_LeftClickCon</Pieces>
+    <Pieces>Zeal_RightClickToEquip</Pieces>
     <Pieces>Zeal_CtrlRightClickCorpse</Pieces>
     <Pieces>Zeal_CtrlContextMenus</Pieces>
-    <Pieces>Zeal_InviteDialog</Pieces>
-    <Pieces>Zeal_AutoFollowEnable</Pieces>
+    <Pieces>Zeal_EnhancedSpellInfo</Pieces>
     <Pieces>Zeal_CastAutoStand</Pieces>
     <Pieces>Zeal_BrownSkeletons</Pieces>
     <Pieces>Zeal_ClassicMusic</Pieces>
@@ -1332,17 +1445,7 @@
     <Pieces>Zeal_SuppressOtherFizzles</Pieces>
     <Pieces>Zeal_UseZealAssistOn</Pieces>
     <Pieces>Zeal_DetectAssistFailure</Pieces>
-    <Pieces>Zeal_SingleClickGiveEnable</Pieces>
-    <Pieces>Zeal_EnhancedSpellInfo</Pieces>
     <Pieces>Zeal_SlashNotPoke</Pieces>
-    <Pieces>Zeal_EnhancedAutoRun</Pieces>
-    <Pieces>Zeal_TellSound_Label</Pieces>
-    <Pieces>Zeal_TellSound_Combobox</Pieces>
-    <Pieces>Zeal_InviteSound_Label</Pieces>
-    <Pieces>Zeal_InviteSound_Combobox</Pieces>
-    <Pieces>Zeal_Timestamps_Combobox</Pieces>
-	<Pieces>Zeal_FPS_Combobox</Pieces>
-	<Pieces>Zeal_FPS_Label</Pieces>
     <Location>
       <X>0</X>
       <Y>44</Y>

@@ -24,6 +24,7 @@ class CameraMods {
                             }};
   ZealSetting<int> pan_delay = {0, "Zeal", "PanDelay", false};
   ZealSetting<bool> setting_selfclickthru = {false, "Zeal", "SelfClickThru", false};
+  ZealSetting<bool> setting_leftclickcon = {false, "Zeal", "LeftClickCon", false};
   ZealSetting<bool> setting_toggle_overhead_view = {true, "Camera", "ToggleOverheadView", false};
   ZealSetting<bool> setting_toggle_zeal_view = {true, "Camera", "ToggleZealView", false};
   ZealSetting<bool> setting_toggle_free1_view = {true, "Camera", "ToggleFree1View", false};
