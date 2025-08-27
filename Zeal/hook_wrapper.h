@@ -29,7 +29,7 @@ class hook {
   template <typename X, typename T>
   hook(X addr, T dest, hook_type_ hooktype = hook_type_detour, int byte_count = 5) {
     orig_byte_count = byte_count;
-    original_bytes = new BYTE(byte_count);
+    original_bytes = new BYTE[byte_count];
     address = (int)addr;
     destination = (int)dest;
     hook_type = hooktype;
