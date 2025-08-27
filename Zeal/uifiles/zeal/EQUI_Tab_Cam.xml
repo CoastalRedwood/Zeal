@@ -389,62 +389,6 @@
     <AlignCenter>false</AlignCenter>
     <AlignRight>true</AlignRight>
   </Label>
-  <!-- Tooltip Hover Timeout -->
-  <Label item="Zeal_HoverTimeout_Label">
-    <ScreenID>Zeal_HoverTimeout_Label</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>197</X>
-      <Y>26</Y>
-    </Location>
-    <Size>
-      <CX>150</CX>
-      <CY>14</CY>
-    </Size>
-    <Text>Tooltip Hover Delay</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>false</AlignRight>
-  </Label>
-  <Slider item="Zeal_HoverTimeout_Slider">
-    <ScreenID>Zeal_HoverTimeout_Slider</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>197</X>
-      <Y>46</Y>
-    </Location>
-    <Size>
-      <CX>100</CX>
-      <CY>16</CY>
-    </Size>
-    <SliderArt>SDT_DefSlider</SliderArt>
-  </Slider>
-  <Label item="Zeal_HoverTimeout_Value">
-    <ScreenID>Zeal_HoverTimeout_Value</ScreenID>
-    <RelativePosition>true</RelativePosition>
-    <Location>
-      <X>297</X>
-      <Y>46</Y>
-    </Location>
-    <Size>
-      <CX>50</CX>
-      <CY>16</CY>
-    </Size>
-    <Text>0</Text>
-    <TextColor>
-      <R>255</R>
-      <G>255</G>
-      <B>255</B>
-    </TextColor>
-    <NoWrap>true</NoWrap>
-    <AlignCenter>false</AlignCenter>
-    <AlignRight>true</AlignRight>
-  </Label>
   <Button item="Zeal_UseOldSens">
     <ScreenID>Zeal_UseOldSens</ScreenID>
     <RelativePosition>true</RelativePosition>

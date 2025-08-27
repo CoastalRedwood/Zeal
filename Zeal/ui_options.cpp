@@ -501,6 +501,9 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_SelfClickThru", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->camera_mods->setting_selfclickthru.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_LeftClickCon", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->camera_mods->setting_leftclickcon.set(wnd->Checked);
+  });
   ui->AddComboCallback(wnd, "Zeal_Timestamps_Combobox", [](Zeal::GameUI::BasicWnd *wnd, int value) {
     ZealService::get_instance()->chat_hook->TimeStampsStyle.set(value);
   });
@@ -971,6 +974,7 @@ void ui_options::UpdateOptionsGeneral() {
                  ZealService::get_instance()->ui->options->setting_enable_container_lock.get());
   ui->SetChecked("Zeal_ExportOnCamp", ZealService::get_instance()->outputfile->setting_export_on_camp.get());
   ui->SetChecked("Zeal_SelfClickThru", ZealService::get_instance()->camera_mods->setting_selfclickthru.get());
+  ui->SetChecked("Zeal_LeftClickCon", ZealService::get_instance()->camera_mods->setting_leftclickcon.get());
   ui->SetChecked("Zeal_ClassicClasses", ZealService::get_instance()->chat_hook->UseClassicClassNames.get());
   ui->SetLabelValue("Zeal_VersionValue", "%s (%s)", ZEAL_VERSION, ZEAL_BUILD_VERSION);
   ui->SetChecked("Zeal_BlueCon", ZealService::get_instance()->chat_hook->UseBlueCon.get());
@@ -1362,7 +1366,10 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { RenderUI(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { Deactivate(); }, callback_type::DeactivateUI);
-  zeal->camera_mods->add_options_callback([this]() { UpdateOptionsCamera(); });
+  zeal->camera_mods->add_options_callback([this]() {
+    UpdateOptionsCamera();
+    UpdateOptionsGeneral();
+  });
   zeal->target_ring->add_options_callback([this]() { UpdateOptionsTargetRing(); });
   zeal->nameplate->add_options_callback([this]() { UpdateOptionsNameplate(); });
   zeal->floating_damage->add_options_callback([this]() { UpdateOptionsFloatingDamage(); });

@@ -447,6 +447,32 @@ static int __fastcall GetClickedActor(int this_display, int unused_edx, int mous
   return rval;
 }
 
+// Old UI
+static int __fastcall EQ3DView_MouseUp(int this_view, int unused_edx, int right_button, int mouse_x, int mouse_y) {
+  auto pre_target = Zeal::Game::get_target();
+  auto zeal = ZealService::get_instance();
+  int result = zeal->hooks->hook_map["EQ3DView_MouseUp"]->original(GetClickedActor)(this_view, unused_edx, right_button,
+                                                                                    mouse_x, mouse_y);
+  auto target = Zeal::Game::get_target();
+  if (!right_button && target && target != pre_target && target != Zeal::Game::get_self() &&
+      target->Type == Zeal::GameEnums::EntityTypes::NPC && Zeal::Game::is_in_game() &&
+      zeal->camera_mods->setting_leftclickcon.get()) {
+    Zeal::Game::do_consider(target, " ");
+  }
+  return result;
+}
+
+// New UI
+static void __fastcall LeftClickedOnPlayer(int this_game, int unused_edx, Zeal::GameStructures::Entity *player) {
+  auto zeal = ZealService::get_instance();
+  zeal->hooks->hook_map["LeftClickedOnPlayer"]->original(LeftClickedOnPlayer)(this_game, unused_edx, player);
+  auto target = Zeal::Game::get_target();
+  if (target && target != Zeal::Game::get_self() && target->Type == Zeal::GameEnums::EntityTypes::NPC &&
+      Zeal::Game::is_in_game() && zeal->camera_mods->setting_leftclickcon.get()) {
+    Zeal::Game::do_consider(target, " ");
+  }
+}
+
 void CameraMods::handle_toggle_cam() {
   // The camera view is going to be incremented in the CDisplay::ToggleView() call. If the next slot has
   // been disabled, we adjust it so it will increment to an enabled slot.
@@ -512,6 +538,8 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->hooks->Add("RMouseDown", 0x54699d, RMouseDown, hook_type_detour);
   zeal->hooks->Add("DoCamAI", 0x4db384, DoCamAI, hook_type_detour);
   zeal->hooks->Add("GetClickedActor", 0x004b008a, GetClickedActor, hook_type_detour);
+  zeal->hooks->Add("EQ3DView_MouseUp", 0x0043c8af, EQ3DView_MouseUp, hook_type_detour);
+  zeal->hooks->Add("LeftClickedOnPlayer", 0x0053271e, LeftClickedOnPlayer, hook_type_detour);
 
   FARPROC gfx_dx8 = GetProcAddress(GetModuleHandleA("eqgfx_dx8.dll"), "t3dSetCameraLens");
   if (gfx_dx8 != NULL) zeal->hooks->Add("SetCameraLens", (int)gfx_dx8, SetCameraLens, hook_type_detour);
@@ -559,8 +587,23 @@ CameraMods::CameraMods(ZealService *zeal) {
                                Zeal::Game::print_chat("Usage: /selfclickthru on or /selfclickthru off");
                              Zeal::Game::print_chat("Selfclickthru is now %s",
                                                     setting_selfclickthru.get() ? "on" : "off");
+                             if (update_options_ui_callback) update_options_ui_callback();
                              return true;
                            });
+  zeal->commands_hook->Add("/leftclickcon", {}, "Disable (on) or enable (off) left-click consider.",
+                           [this](const std::vector<std::string> &args) {
+                             if (args.size() == 2 && args[1] == "on")
+                               setting_leftclickcon.set(true);
+                             else if (args.size() == 2 && args[1] == "off")
+                               setting_leftclickcon.set(false);
+                             else
+                               Zeal::Game::print_chat("Usage: /leftclickcon on or /leftclickcon off");
+                             Zeal::Game::print_chat("Left click consider is now %s",
+                                                    setting_leftclickcon.get() ? "on" : "off");
+                             if (update_options_ui_callback) update_options_ui_callback();
+                             return true;
+                           });
+
   zeal->commands_hook->Add(
       "/zealcam", {"/smoothing"}, "Toggles the zealcam on/off as well as adjusting the sensitivities.",
       [this](std::vector<std::string> &args) {

@@ -1777,6 +1777,10 @@ void set_target(Zeal::GameStructures::Entity *target) {
 
 void do_target(const char *name) { reinterpret_cast<void(__cdecl *)(int, const char *)>(0x4FD9A7)(0, name); }
 
+void do_consider(Zeal::GameStructures::Entity *entity, const char *str) {
+  reinterpret_cast<void(__cdecl *)(Zeal::GameStructures::Entity *, const char *)>(0x004f6364)(entity, str);
+}
+
 Zeal::GameStructures::Entity *get_entity_list() { return *(Zeal::GameStructures::Entity **)Zeal::Game::EntListPtr; }
 
 bool get_attack_on_assist() { return *Zeal::Game::attack_on_assist != 0; }
