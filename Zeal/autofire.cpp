@@ -47,6 +47,17 @@
 //    return false;
 //}
 
+static void suppress_autofire_fault_messages(bool flag) {
+  ZealService::get_instance()->gamestr_hook->str_noprint[108] = flag;    // You cannot see your target.
+  ZealService::get_instance()->gamestr_hook->str_noprint[123] = flag;    // You can't hit them from here.
+  ZealService::get_instance()->gamestr_hook->str_noprint[124] = flag;    // Your target is too far away, get closer!
+  ZealService::get_instance()->gamestr_hook->str_noprint[125] = flag;    // You can't attack while stunned!
+  ZealService::get_instance()->gamestr_hook->str_noprint[12695] = flag;  // You can't attack while invulnerable!
+  ZealService::get_instance()->gamestr_hook->str_noprint[12696] = flag;  // Try attacking someone other...
+  ZealService::get_instance()->gamestr_hook->str_noprint[12698] = flag;  // Your target is too close...
+  ZealService::get_instance()->gamestr_hook->str_noprint[12699] = flag;  // Your target is too far above/below...
+}
+
 void AutoFire::Main() {
   if (!Zeal::Game::get_target() || *(BYTE *)0x7f6ffe) {
     SetAutoFire(false);
@@ -71,13 +82,7 @@ void AutoFire::Main() {
 
       // Suppress spam messages to only a 1 Hz rate.
       if (GetTickCount64() - last_print_time < 1000) {
-        ZealService::get_instance()->gamestr_hook->str_noprint[123] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[124] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[108] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[12695] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[12696] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[12698] = true;
-        ZealService::get_instance()->gamestr_hook->str_noprint[12699] = true;
+        suppress_autofire_fault_messages(true);  // Disable fault reporting this cycle.
       } else {
         last_print_time = GetTickCount64();
       }
@@ -86,14 +91,7 @@ void AutoFire::Main() {
         *(BYTE *)0x7cd844 = 0;
         Zeal::Game::do_attack(11, 0);
       }
-
-      ZealService::get_instance()->gamestr_hook->str_noprint[123] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[124] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[108] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[12695] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[12696] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[12698] = false;
-      ZealService::get_instance()->gamestr_hook->str_noprint[12699] = false;
+      suppress_autofire_fault_messages(false);  // Always re-enable before exiting.
     }
   }
 }
