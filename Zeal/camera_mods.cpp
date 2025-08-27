@@ -124,7 +124,7 @@ void CameraMods::update_desired_zoom(float zoom) {
     desired_zoom = 0;
 
   if (desired_zoom == 0 && is_zeal_cam_active()) {
-    Zeal::Game::get_self()->Pitch = zeal_cam_pitch;
+    Zeal::Game::get_self()->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
     set_camera_view(Zeal::GameEnums::CameraView::FirstPerson);
   }
 

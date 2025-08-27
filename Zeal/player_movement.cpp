@@ -1,6 +1,7 @@
 #include "player_movement.h"
 
 #include "binds.h"
+#include "camera_math.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "hook_wrapper.h"
@@ -133,7 +134,76 @@ void PlayerMovement::set_strafe(strafe_direction dir) {
   }
 }
 
+// These patches improve /follow reliability. There is logic in /follow to turn run mode on and off
+// and this actually makes your character crash out of the game if your framerate is high enough.
+// There is also a smooth turning function to circle around to the followed target which is
+// framerate dependent and causes follow failures.
+//
+// Both of these things are disabled by this mod, and it also adds an adjustable follow distance.
+void PlayerMovement::sync_auto_follow_enable(bool first_boot) {
+  // To patch the follow distance, we modify the pointer to a float in an instruction.
+  // We don't modify the value directly since that value is shared elsewhere in the code.
+  const DWORD follow_distance_address = (0x00507D92 + 2);                              // FADD dword ptr[addr]
+  const float *follow_distance_default = reinterpret_cast<const float *>(0x005e44d4);  // 15.0.
+  static float follow_distance_modified = 15.0f;  // Provides the static value to point to.
+
+  // Support disabling the rapid on/off toggling of run mode which can cause LDs or crashes.
+  const DWORD run_mode_address = 0x00507DB0;                    // FLD dword ptr[EBP + local_8]
+  const BYTE run_mode_toggle_default[3] = {0xd9, 0x45, 0xfc};   // Original client code.
+  const BYTE run_mode_toggle_disabled[3] = {0xeb, 0x43, 0x90};  // Patched to disable (jmp 0x45, nop).
+
+  // Support disabling the 'smoothing' where it only turns a little bit at a time if more than
+  // a quarter circle off course.
+  const DWORD turn_smoothing_address = 0x00507CB1;       // JNC LAB_00507cc1
+  const BYTE turn_smoothing_default[2] = {0x73, 0x0e};   // Original client code.
+  const BYTE turn_smoothing_disabled[2] = {0x90, 0x90};  // Patched to disable (nop, nop).
+
+  if (AutoFollowEnable.get()) {
+    follow_distance_modified = max(1.f, min(50.f, AutoFollowDistance.get()));
+    mem::write(follow_distance_address, &follow_distance_modified);
+    mem::write(run_mode_address, run_mode_toggle_disabled);
+    mem::write(turn_smoothing_address, turn_smoothing_disabled);
+  } else if (!first_boot)  // Do nothing at boot if Zeal mode is disabled.
+  {
+    mem::write(follow_distance_address, follow_distance_default);
+    mem::write(run_mode_address, run_mode_toggle_default);
+    mem::write(turn_smoothing_address, turn_smoothing_default);
+  }
+}
+
+// Enhanced auto-follow supports pitch control.
+void PlayerMovement::handle_autofollow() {
+  if (!Zeal::Game::is_in_game() || !AutoFollowEnable.get()) return;
+
+  // Only support pitch control when self and controlled == self.
+  auto controlled = Zeal::Game::get_controlled();
+  auto self = Zeal::Game::get_self();
+  if (!self || self != Zeal::Game::get_controlled()) return;
+  auto leader = self->ActorInfo ? self->ActorInfo->Following : nullptr;
+  if (!leader) return;
+
+  // Returns a directional pitch in a [-128 to 128 range].
+  float pitch = camera_math::get_pitch(controlled->Position, leader->Position);
+  if (pitch < 0) pitch *= 0.75;  // Reduce downward pitch by 25% to account for lev sinking.
+
+  // Apply a simple IIR filter with simple FPS dependent coefficient scaling.
+  float filter_coeff = 0.1f;
+  const auto display = Zeal::Game::get_display();
+  if (display) {
+    DWORD game_time = display->GameTimeMs;
+    int delta_time = game_time - last_follow_time_ms;
+    last_follow_time_ms = game_time;
+    delta_time = std::clamp(delta_time, 2, 100);
+    filter_coeff *= delta_time / (1000.f / 60);  // Scale relative to 60 Hz.
+  }
+  pitch = self->Pitch + filter_coeff * (pitch - self->Pitch);
+
+  self->Pitch = std::clamp(pitch, -64.f, 64.f);  // Clamp to +/- 45 deg as well.
+}
+
 void PlayerMovement::callback_main() {
+  handle_autofollow();
+
   if (current_strafe != strafe_direction::None) {
     Zeal::GameStructures::Entity *controlled_player = Zeal::Game::get_controlled();
     *Zeal::Game::strafe_speed = 2.f;  // Default for mounts.
@@ -244,4 +314,37 @@ PlayerMovement::PlayerMovement(ZealService *zeal) {
         set_strafe(strafe_direction::None);  // Reset strafe logic including strafe_lock.
       },
       callback_type::InitUI);
+
+  // Auto-follow enhancements.
+  sync_auto_follow_enable(true);  // Sync only if non-default.
+
+  ZealService::get_instance()->commands_hook->Add(
+      "/follow", {}, "Additional /follow options to improve reliability.", [this](std::vector<std::string> &args) {
+        if (args.size() == 1) return false;  // No special flags, return false to let normal path handle.
+
+        float distance = 10;
+        if (args.size() == 3 && args[1] == "zeal") {
+          if (args[2] == "on") {
+            Zeal::Game::print_chat("Setting /follow mode to use Zeal patches");
+            AutoFollowEnable.set(true);
+            return true;  // Done
+          }
+          if (args[2] == "off") {
+            Zeal::Game::print_chat("Setting /follow mode to use default client behavior");
+            AutoFollowEnable.set(false);
+            return true;  // Done
+          }
+        } else if (args.size() == 3 && args[1] == "distance" && Zeal::String::tryParse(args[2], &distance)) {
+          distance = max(1.f, min(50.f, distance));
+          Zeal::Game::print_chat("Setting /follow distance in zeal mode to: %f", distance);
+          AutoFollowDistance.set(distance);
+          return true;  // Done
+        }
+
+        Zeal::Game::print_chat("Usage: /follow: Enable / disable auto-follow.");
+        Zeal::Game::print_chat("Usage: /follow zeal on, /follow zeal off: Enable / disable zeal follow mode.");
+        Zeal::Game::print_chat("Usage: /follow distance <value>: Sets the follow distance in zeal mode.");
+
+        return true;
+      });
 }

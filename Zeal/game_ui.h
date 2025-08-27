@@ -672,6 +672,7 @@ struct LootWnd : public SidlWnd {
   /* 0x01B0 */ DWORD Timer;
   /* 0x01B4 */ PVOID Unknown01B4;
   /* 0x01B8 */ Zeal::GameStructures::_GAMEITEMINFO *Item[GAME_NUM_LOOT_WINDOW_ITEMS];
+  /* 0x0230 */ BYTE Unknown0230[0x84];  // Operator new of 0x2b4 bytes.
 };
 
 struct EditWnd : public BasicWnd  // Note: this definition has a truncated vtbl.
