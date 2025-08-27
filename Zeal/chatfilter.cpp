@@ -318,6 +318,9 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
     color_index = CHANNEL_MYPETSAY;
   else if (cf->isPetMessage)
     color_index = CHANNEL_OTHERPETSAY;
+  else if (cf->current_string_id == 422) 
+      color_index = CHANNEL_ITEMSPEECH;
+
   ZealService::get_instance()->hooks->hook_map["serverPrintChat"]->original(serverPrintChat)(t, unused, data,
                                                                                              color_index, u);
   cf->isMyPetSay = false;
@@ -466,6 +469,8 @@ chatfilter::chatfilter(ZealService *zeal) {
                    [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
   Extended_ChannelMaps.push_back(CustomFilter(
       "/mystats", 0x1000A, [this, zeal](short &color, std::string data) { return color == CHANNEL_MYSTATS; }));
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "Item Speech", 0x1000B, [this, zeal](short &color, std::string data) { return color == CHANNEL_ITEMSPEECH; }));
 
   // Callbacks
   zeal->callbacks->AddOutputText(
