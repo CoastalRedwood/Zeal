@@ -10,6 +10,7 @@
 #define CHANNEL_MYMELEESPECIAL 1004
 #define CHANNEL_OTHERMELEESPECIAL 1005
 #define CHANNEL_MYSTATS 1006
+#define CHANNEL_ITEMSPEECH 1007
 
 struct CustomFilter {
   std::string name;                     // String name - Appears in the Menu
