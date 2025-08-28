@@ -88,10 +88,8 @@ ChatCommands::~ChatCommands() {}
 
 // call interpret command without hitting the detour, useful for aliasing default commands
 void ForwardCommand(std::string cmd) {
-  reinterpret_cast<bool(__thiscall *)(Zeal::GameStructures::GameClass * game, Zeal::GameStructures::Entity * player,
-                                      const char *cmd)>(
-      ZealService::get_instance()->hooks->hook_map["commands"]->trampoline)(Zeal::Game::get_game(),
-                                                                            Zeal::Game::get_self(), cmd.c_str());
+  ZealService::get_instance()->hooks->hook_map["commands"]->original(InterpretCommand)(
+      (int)Zeal::Game::get_game(), 0, Zeal::Game::get_self(), cmd.c_str());
 }
 
 ChatCommands::ChatCommands(ZealService *zeal) {

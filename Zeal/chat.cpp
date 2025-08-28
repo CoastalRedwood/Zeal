@@ -113,9 +113,9 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
     case CHANNEL_OTHERMELEESPECIAL:
       return c->get_color_callback(24);
     case CHANNEL_MYSTATS:
-      return 0xffffffff;  // Just hard-code to white.
-    case CHANNEL_ITEMSPEECH: // Just hard-code to spells.
-        index = 0x108;
+      return 0xffffffff;      // Just hard-code to white.
+    case CHANNEL_ITEMSPEECH:  // Just hard-code to spells.
+      index = 0x108;
   }
   return zeal->hooks->hook_map["GetRGBAFromIndex"]->original(GetRGBAFromIndex)(t, u, index);
 }
@@ -547,9 +547,9 @@ void __fastcall DoPercentConvert(int *t, int u, char *data, int u2) {
   }
 
   // Call original function using the stored hook
-  if (auto hook = ZealService::get_instance()->hooks->hook_map["DoPercentConvert"]) {
-    hook->original(DoPercentConvert)(t, u, data, u2);
-  }
+  auto hook = ZealService::get_instance()->hooks->hook_map.find("DoPercentConvert");
+  if (hook != ZealService::get_instance()->hooks->hook_map.end())
+    hook->second->original(DoPercentConvert)(t, u, data, u2);
 }
 
 void Chat::DoPercentReplacements(std::string &str_data) {
