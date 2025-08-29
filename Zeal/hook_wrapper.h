@@ -1,58 +1,47 @@
 #pragma once
 #include <Windows.h>
 
+#include <memory>
+#include <string>
 #include <unordered_map>
-
-#include "instruction_length.h"
-#include "memory.h"
 
 #define czVOID(c) (void)c
 
-enum hook_type_ { hook_type_replace_call, hook_type_jmp, hook_type_detour, hook_type_vtable };
+// Types of supported hooks. All hooks store the original bytes for restoration at deletion and their
+// original() methods execute the original code (stored in the trampoline).
+enum hook_type_ {
+  hook_type_replace_call,  // Replace an 0xe8 relative call or 0xe9 relative jump (middle of function).
+  hook_type_detour,        // More general insertion of a detour hook at start of function.
+  hook_type_vtable,        // Replace a vtable int address entry.
+};
 
 class hook {
- private:
-  void replace_vtable(int addr, int index, int dest);
-  void replace_vtable(int addr, int dest);
-  void replace_call(int addr, int dest);
-  void replace(int addr, int dest);
-  void detour(int addr, int dest);
-  BYTE *original_bytes;
+ public:
+  hook() = delete;              // No simple implicit construction.
+  hook(const hook &) = delete;  // Copies not allowed.
+  hook(hook &&) = delete;       // Moves not allowed.
 
- public:  // methods
-  void remove();
-
-  ~hook() { remove(); }
-
-  hook() : orig_byte_count{0}, address{}, original_bytes{}, destination{}, trampoline{}, hook_type{hook_type_detour} {};
+  ~hook();  // Copies back original code.
 
   template <typename X, typename T>
-  hook(X addr, T dest, hook_type_ hooktype = hook_type_detour, int byte_count = 5) {
-    orig_byte_count = byte_count;
-    original_bytes = new BYTE[byte_count];
-    address = (int)addr;
-    destination = (int)dest;
-    hook_type = hooktype;
-    trampoline = 0;
-    mem::copy((int)original_bytes, (BYTE *)addr, byte_count);
-
+  hook(X patch_address_, T replacement_function_ptr, hook_type_ hooktype = hook_type_detour)
+      : patch_address(patch_address_), replacement_callee_addr((int)replacement_function_ptr), hook_type(hooktype) {
     switch (hook_type) {
       case hook_type_detour: {
-        detour((int)addr, (int)dest);
+        detour();
         break;
       }
       case hook_type_replace_call: {
-        replace_call((int)addr, (int)dest);
-        break;
-      }
-      case hook_type_jmp: {
-        replace_call((int)addr, (int)dest);
+        replace_call();
         break;
       }
       case hook_type_vtable: {
-        replace_vtable((int)addr, (int)dest);
+        replace_vtable();
         break;
       }
+      default:
+        fatal_error();
+        break;
     }
   }
 
@@ -62,41 +51,28 @@ class hook {
     return (T)trampoline;
   }
 
-  void rehook();
+ private:
+  void detour();
+  void replace_call();
+  void replace_vtable();
+  void fatal_error();
+  void patch_trampoline_relative_jumps();
 
- public:  // variables
-  int destination;
-  int address;
-  int trampoline;
-  int orig_byte_count;
-  hook_type_ hook_type;
+  const int patch_address;                            // Address to patch to jump to the callee.
+  const int replacement_callee_addr;                  // Address of the replacement function.
+  const hook_type_ hook_type;                         // Type of replacement.
+  int orig_byte_count;                                // Number of original patch bytes modified.
+  BYTE original_bytes[11];                            // 5 byte jump with 6 more bytes for opcode boundary.
+  BYTE trampoline_bytes[sizeof(original_bytes) + 5];  // Additional space for an 0xe9 jump opcode at end.
+  int trampoline = reinterpret_cast<int>(&trampoline_bytes[0]);
 };
 
 class HookWrapper {
  public:
-  std::unordered_map<std::string, hook *> hook_map;
+  std::unordered_map<std::string, std::unique_ptr<hook>> hook_map;
 
   template <typename X, typename T>
-  hook *Add(std::string name, X addr, T fnc, hook_type_ type,
-            int byte_count = -1)  // could have used zdys or capstone but keeping this a single compile with minimal
-                                  // libs and its not that hard to figure out the bytes
-  {
-    if (type != hook_type_vtable) {
-      if (byte_count == -1) {
-        byte_count = Zeal::InstructionLength((unsigned char *)addr);
-        while (byte_count < 5)  // you need 5 bytes for a jmp
-          byte_count += Zeal::InstructionLength((unsigned char *)(addr + byte_count));
-      }
-    } else
-      byte_count = 4;
-    hook *x = new hook(addr, fnc, type, byte_count);
-    hook_map[name] = x;
-    x->hook_type = type;
-
-    return x;
-  }
-
-  ~HookWrapper() {
-    for (auto &hook : hook_map) hook.second->remove();
+  void Add(std::string name, X addr, T fnc, hook_type_ type) {
+    hook_map[name] = std::make_unique<hook>(addr, fnc, type);
   }
 };

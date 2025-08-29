@@ -1606,6 +1606,9 @@ void print_chat(short color, const char *format, ...) {
   Zeal::Game::get_game()->dsp_chat(buffer, color, true);
 }
 
+// Kludge function definition hack for the cross-module hook original call.
+static void _fastcall AddOutputText(Zeal::GameUI::ChatWnd *wnd, int u, Zeal::GameUI::CXSTR msg, short channel){};
+
 void print_chat_wnd(Zeal::GameUI::ChatWnd *wnd, short color, const char *format, ...) {
   va_list argptr;
   char buffer[512];
@@ -1617,10 +1620,9 @@ void print_chat_wnd(Zeal::GameUI::ChatWnd *wnd, short color, const char *format,
     ZealService::get_instance()->queue_chat_message(buffer);
     return;
   }
-  // eal::GameUI::ChatWnd* wnd, int u, Zeal::GameUI::CXSTR msg, short channel)
+
   Zeal::GameUI::CXSTR cxBuff(buffer);  // Callers of AddOutputText() must FreeRep().
-  reinterpret_cast<void(__thiscall *)(Zeal::GameUI::ChatWnd *, Zeal::GameUI::CXSTR msg, short channel)>(
-      ZealService::get_instance()->hooks->hook_map["AddOutputText"]->trampoline)(wnd, cxBuff, color);
+  ZealService::get_instance()->hooks->hook_map["AddOutputText"]->original(AddOutputText)(wnd, 0, cxBuff, color);
   cxBuff.FreeRep();  // Required here to match client behavior calling AddOutputText.
 }
 

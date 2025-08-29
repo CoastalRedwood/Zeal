@@ -549,6 +549,7 @@ modrm_fetched:
   }
 
 error: {
+  throw std::bad_alloc();  // Will crash out the program.
   // printf("InstructionLength: unhandled opcode at %8x with opcode %2x\n", pc, opcode);
 }
   return 0;  // can't actually execute this

@@ -318,8 +318,8 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
     color_index = CHANNEL_MYPETSAY;
   else if (cf->isPetMessage)
     color_index = CHANNEL_OTHERPETSAY;
-  else if (cf->current_string_id == 422) 
-      color_index = CHANNEL_ITEMSPEECH;
+  else if (cf->current_string_id == 422)
+    color_index = CHANNEL_ITEMSPEECH;
 
   ZealService::get_instance()->hooks->hook_map["serverPrintChat"]->original(serverPrintChat)(t, unused, data,
                                                                                              color_index, u);
@@ -412,8 +412,6 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
 
 chatfilter::chatfilter(ZealService *zeal) {
   if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
-
-  zeal->hooks->Add("DamageOutputText", 0x52A8C1, CChatManager, hook_type_replace_call);
 
   zeal->callbacks->AddReportSuccessfulHit(
       [this](Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type, short spell_id,
