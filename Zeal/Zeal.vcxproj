@@ -90,6 +90,7 @@
     <ClInclude Include="ui_inspect.h" />
     <ClInclude Include="ui_skin.h" />
     <ClInclude Include="ui_zoneselect.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="zeal_settings.h" />
     <ClInclude Include="zone_map.h" />
     <ClInclude Include="miniz.h" />
@@ -168,6 +169,7 @@
     <ClCompile Include="ui_inspect.cpp" />
     <ClCompile Include="ui_skin.cpp" />
     <ClCompile Include="ui_zoneselect.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="zone_map.cpp" />
     <ClCompile Include="miniz.c" />
     <ClCompile Include="named_pipe.cpp" />

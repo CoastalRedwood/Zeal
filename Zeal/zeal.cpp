@@ -55,6 +55,7 @@
 #include "tooltip.h"
 #include "ui_manager.h"
 #include "ui_skin.h"
+#include "utils.h"
 #include "zone_map.h"
 
 extern HMODULE this_module;
@@ -145,6 +146,7 @@ ZealService::ZealService() {
   floating_damage = MakeCheckedUnique(FloatingDamage);  // Uses target ring method.
 
   // Classes that add more explicit dependencies on the new UI.
+  utils = MakeCheckedUnique(Utils);                 // Uses container manager.
   experience = MakeCheckedUnique(Experience);       // Uses new UI AA window calcs.
   labels_hook = MakeCheckedUnique(Labels);          // Uses tick and experience.
   item_displays = MakeCheckedUnique(ItemDisplay);   // Uses new UI ItemDisplayWnd.
@@ -575,31 +577,11 @@ void ZealService::AddBinds() {
                        [this](int key_down) { cycle_target->handle_next_target(key_down, Zeal::GameEnums::NPC); });
   binds_hook->add_bind(214, "Cycle through nearest PCs", "CycleTargetPC", key_category::Target,
                        [this](int key_down) { cycle_target->handle_next_target(key_down, Zeal::GameEnums::Player); });
-  binds_hook->add_bind(
-      215, "Toggle all containers", "OpenCloseContainers", key_category::UI | key_category::Commands, [](int key_down) {
-        if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
-          Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-          std::vector<std::pair<Zeal::GameStructures::_GAMEITEMINFO *, int>> containers;
-          std::vector<Zeal::GameStructures::_GAMEITEMINFO *> opened_containers;  // don't need an index to close
-          for (int i = 0; i < 8; i++)                                            // 8 inventory slots for containers
-          {
-            Zeal::GameStructures::_GAMEITEMINFO *item = self->CharInfo->InventoryPackItem[i];
-            if (item && item->Type == 1 && item->Container.Capacity > 0) {
-              containers.push_back({item, i});
-              if (item->Container.IsOpen) opened_containers.push_back(item);
-            }
-          }
-          if (opened_containers.size() == containers.size())  // all the containers are open..
-          {
-            Zeal::Game::GameInternal::CloseAllContainers(*Zeal::Game::ptr_ContainerMgr, 0);
-          } else {
-            for (auto &[c, index] : containers) {
-              if (!c->Container.IsOpen)
-                Zeal::Game::GameInternal::OpenContainer(*Zeal::Game::ptr_ContainerMgr, 0, (int)&c->Name, 22 + index);
-            }
-          }
-        }
-      });
+  binds_hook->add_bind(215, "Toggle all containers", "OpenCloseContainers", key_category::UI | key_category::Commands,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           utils->handle_toggle_all_containers();
+                       });
   binds_hook->add_bind(216, "Toggle last two targets", "ToggleLastTwo", key_category::Target,
                        [this](int key_down) { cycle_target->handle_toggle_last_two(key_down); });
   binds_hook->add_bind(217, "Reply Target", "ReplyTarget", key_category::Target, [this](int key_down) {

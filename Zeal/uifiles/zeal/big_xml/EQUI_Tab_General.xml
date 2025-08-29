@@ -844,6 +844,58 @@
     <Choices>240</Choices>
   </Combobox>
 
+  <Label item="Zeal_LockToggleBag_Label">
+    <ScreenID>Zeal_LockToggleBag_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>550</Y>
+    </Location>
+    <Size>
+      <CX>290</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Lock open toggle bag slot #</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+
+  <Combobox item="Zeal_LockToggleBag_Combobox">
+    <ScreenID>Zeal_LockToggleBag_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>590</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>70</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>None</Choices>
+    <Choices>1</Choices>
+    <Choices>2</Choices>
+    <Choices>3</Choices>
+    <Choices>4</Choices>
+    <Choices>5</Choices>
+    <Choices>6</Choices>
+    <Choices>7</Choices>
+    <Choices>8</Choices>
+  </Combobox> 
+
   
   <Button item="Zeal_EnhancedAutoRun">
     <ScreenID>Zeal_EnhancedAutoRun</ScreenID>
@@ -1423,7 +1475,9 @@
     <Pieces>Zeal_InviteSound_Label</Pieces>
     <Pieces>Zeal_TellSound_Label</Pieces>
     <Pieces>Zeal_FPS_Label</Pieces>
+    <Pieces>Zeal_LockToggleBag_Label</Pieces>
     
+    <Pieces>Zeal_LockToggleBag_Combobox</Pieces>
     <Pieces>Zeal_FPS_Combobox</Pieces>
     <Pieces>Zeal_TellSound_Combobox</Pieces>
     <Pieces>Zeal_InviteSound_Combobox</Pieces>
