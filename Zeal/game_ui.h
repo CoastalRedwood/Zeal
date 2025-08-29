@@ -739,6 +739,18 @@ class ContainerMgr {
   /*0x04c*/ DWORD Unknown0x04c;  // in the future this is ID of container in zone, starts at one (zero?) and goes up.
   /*0x050*/ DWORD dwTimeSpentWithWorldContainerOpen;  // Cumulative counter?
                                                       /*0x054*/
+
+  void OpenContainer(Zeal::GameStructures::GAMEITEMINFO *container, int index) {
+    reinterpret_cast<void(__thiscall *)(ContainerMgr *, Zeal::GameStructures::GAMEITEMINFO *, int)>(0x004168bd)(
+        this, container, index);
+  }
+
+  void CloseContainer(Zeal::GameStructures::GAMEITEMINFO *container, bool close_window) {
+    reinterpret_cast<void(__thiscall *)(ContainerMgr *, Zeal::GameStructures::GAMEITEMINFO *, bool)>(0x004169e5)(
+        this, container, close_window);
+  }
+
+  int CloseAllContainers() { return reinterpret_cast<int(__thiscall *)(ContainerMgr *)>(0x00416a43)(this); }
 };
 
 struct CInvSlotMgr {

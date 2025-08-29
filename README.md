@@ -152,6 +152,10 @@ ___
 - `/loc noprint`
   - **Description:** adds noprint argument to /loc, this just sends loc directly to your log.
 
+- `/locktogglebag`
+  - **Arguments:** `# (1 to 8 = inventory slot #, 0 = disable)`
+  - **Description:** Locks an inventory bag open (toggle containers keybind will not close).
+
 - `/log`
   - **Arguments:** `on`, `off`, `output text message with percent converts`
   - **Description:** if first argument is not `on` or `off`, it copies the rest of line to the log directly.

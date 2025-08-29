@@ -26,6 +26,7 @@
 #include "tooltip.h"
 #include "ui_manager.h"
 #include "ui_skin.h"
+#include "utils.h"
 #include "zeal.h"
 #include "zone_map.h"
 
@@ -535,6 +536,9 @@ void ui_options::InitGeneral() {
         break;
     }
   });
+  ui->AddComboCallback(wnd, "Zeal_LockToggleBag_Combobox", [](Zeal::GameUI::BasicWnd *wnd, int value) {
+    ZealService::get_instance()->utils->setting_lock_toggle_bag_slot.set(value);
+  });
   ui->AddSliderCallback(wnd, "Zeal_HoverTimeout_Slider", [this](Zeal::GameUI::SliderWnd *wnd, int value) {
     int val = value * 5;
     ZealService::get_instance()->tooltips->set_timer(val);
@@ -958,6 +962,8 @@ void ui_options::UpdateOptionsGeneral() {
       break;
   }
   ui->SetComboValue("Zeal_FPS_Combobox", fps_limit_selection);
+  ui->SetComboValue("Zeal_LockToggleBag_Combobox",
+                    ZealService::get_instance()->utils->setting_lock_toggle_bag_slot.get());
   ui->SetComboValue("Zeal_Timestamps_Combobox", ZealService::get_instance()->chat_hook->TimeStampsStyle.get());
   ui->SetSliderValue("Zeal_HoverTimeout_Slider", ZealService::get_instance()->tooltips->hover_timeout.get() > 0
                                                      ? ZealService::get_instance()->tooltips->hover_timeout.get() / 5
@@ -1374,6 +1380,7 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->nameplate->add_options_callback([this]() { UpdateOptionsNameplate(); });
   zeal->floating_damage->add_options_callback([this]() { UpdateOptionsFloatingDamage(); });
   zeal->looting_hook->add_options_callback([this]() { UpdateOptions(); });
+  zeal->utils->add_options_callback([this]() { UpdateOptionsGeneral(); });
   zeal->tells->AddOptionsCallback([this]() { UpdateOptions(); });
   zeal->target_ring->add_get_color_callback([this](int index) { return GetColor(index); });
   zeal->nameplate->add_get_color_callback([this](int index) { return GetColor(index); });

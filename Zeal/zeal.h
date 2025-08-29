@@ -62,6 +62,7 @@ class ZealService {
   std::unique_ptr<class FloatingDamage> floating_damage = nullptr;
   std::unique_ptr<class NamePlate> nameplate = nullptr;
 
+  std::unique_ptr<class Utils> utils = nullptr;
   std::unique_ptr<class Experience> experience = nullptr;
   std::unique_ptr<class Labels> labels_hook = nullptr;
   std::unique_ptr<class ItemDisplay> item_displays = nullptr;
