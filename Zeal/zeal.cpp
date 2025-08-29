@@ -622,10 +622,14 @@ void ZealService::AddBinds() {
       if (key_down) {
         mem::write<BYTE>(0x53fb60, 4);
         mem::write<BYTE>(0x53fb66, 4);
+        mem::write<BYTE>(0x53fb43, 4);
+        mem::write<BYTE>(0x53fb49, 4);
       } else {
         if (*(BYTE *)0x53fb60 != 12) {
           mem::write<BYTE>(0x53fb60, 12);
           mem::write<BYTE>(0x53fb66, 12);
+          mem::write<BYTE>(0x53fb43, 8);
+          mem::write<BYTE>(0x53fb49, 8);
         }
       }
     }
@@ -636,10 +640,14 @@ void ZealService::AddBinds() {
       if (key_down) {
         mem::write<BYTE>(0x53f758, 4);
         mem::write<BYTE>(0x53f75E, 4);
+        mem::write<BYTE>(0x53f73b, 4);
+        mem::write<BYTE>(0x53f741, 4);
       } else {
         if (*(BYTE *)0x53f758 != 12) {
           mem::write<BYTE>(0x53f758, 12);
           mem::write<BYTE>(0x53f75E, 12);
+          mem::write<BYTE>(0x53f73b, 8);
+          mem::write<BYTE>(0x53f741, 8);
         }
       }
     }
