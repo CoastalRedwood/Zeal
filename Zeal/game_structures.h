@@ -865,6 +865,19 @@ struct GAMEZONEINFO {  // OP_NewZone 0x4058 performs a memcpy of the first 0x23c
 
 struct GAMECHARINFO  // common/patches/mac_structs.h::PlayerProfile_Struct
 {
+  // Returns trained rank of an AA
+  int GetAbility(int aa_id) {
+    if (aa_id < 1 || aa_id > 226) return 0;
+    return reinterpret_cast<int(__thiscall *)(Zeal::GameStructures::GAMECHARINFO *, int)>(0x4C3FB0)(this, aa_id);
+  }
+
+  bool is_cloth_caster() {
+    using Zeal::GameEnums::ClassTypes;
+    int cls = this->Class;
+    return (cls == ClassTypes::Wizard || cls == ClassTypes::Magician || cls == ClassTypes::Enchanter ||
+            cls == ClassTypes::Necromancer);
+  }
+
   float encum_factor() { return reinterpret_cast<float(__thiscall *)(GAMECHARINFO *)>(0x4bb9c7)(this); }
 
   short max_mana() { return reinterpret_cast<short(__thiscall *)(GAMECHARINFO *)>(0x4B9483)(this); }
@@ -1368,6 +1381,69 @@ struct ActorLocation {
 };
 
 struct SPELL {
+
+    // Note: Technically this is a GAMECHARINFO::CalculateSpellDuration, but declared here for now
+  short CalculateSpellDuration(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE caster_level) {
+    if (!char_info) return 0;
+    return reinterpret_cast<short(__thiscall *)(Zeal::GameStructures::GAMECHARINFO *, Zeal::GameStructures::SPELL *,
+                                                BYTE, BYTE)>(0x4ca746)(char_info, this, caster_level, 0);
+  }
+
+  // Note: Technically this is a GAMECHARINFO::CalculateAffectChange, but declared here for now
+  short CalculateAffectChange(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE caster_level, BYTE effect_index,
+                              Zeal::GameStructures::_GAMEBUFFINFO *buff = nullptr) {
+    if (!char_info) return 0;
+    if (this->ID == 742 && this->Attrib[effect_index] == 0) {
+      // Fix: Denon's Desperate Dirge formula not known by client
+      int level = caster_level > 43 ? caster_level - 43 : 0;
+      return 315 + (10 * level);
+    }
+    return reinterpret_cast<short(__thiscall *)(Zeal::GameStructures::GAMECHARINFO *, Zeal::GameStructures::SPELL *,
+                                                BYTE, BYTE, Zeal::GameStructures::_GAMEBUFFINFO *)>(0x4c657d)(
+        char_info, this, caster_level, effect_index, buff);
+  }
+
+  bool IsBardSong() {
+    return ClassLevel[Zeal::GameEnums::ClassTypes::Bard] != 0 && ClassLevel[Zeal::GameEnums::ClassTypes::Bard] != 0xff;
+  }
+
+  bool IsInstrumentModdableSpellEffect(BYTE effect) {
+    if (!IsBardSong()) return false;
+    switch (effect) {
+      case 0:    // SE_CurrentHP
+      case 1:    // SE_ArmorClass
+      case 2:    // SE_ATK
+      case 3:    // SE_MovementSpeed
+      case 4:    // SE_STR
+      case 5:    // SE_DEX
+      case 6:    // SE_AGI
+      case 7:    // SE_STA
+      case 8:    // SE_INT
+      case 9:    // SE_WIS
+      case 10:   // SE_CHA
+      case 24:   // SE_Stamina
+      case 46:   // SE_ResistFire
+      case 47:   // SE_ResistCold
+      case 48:   // SE_ResistPoison
+      case 49:   // SE_ResistDisease
+      case 50:   // SE_ResistMagic
+      case 55:   // SE_Rune
+      case 59:   // SE_DamageShield
+      case 78:   // SE_AbsorbMagicAtt
+      case 111:  // SE_ResistAll
+        return true;
+      case 15:  // SE_CurrentMana
+      {
+        // Only these mana songs are moddable: Cassindra`s Chorus of Clarity, Denon`s Dissension, Cassindra`s Chant
+        // of Clarity, Ervaj's Lost Composition
+        // but we override the mod for the mana regen songs in Mob::GetInstrumentMod()
+        if (DurationType == 0 && TargetType != 13 && TargetType != 20 && SpellType == 0) return true;
+        return false;
+      }
+    }
+    return false;
+  }
+
   /*0x000*/ DWORD ID;
   /*0x004*/ FLOAT Range;
   /*0x008*/ FLOAT AERange;
