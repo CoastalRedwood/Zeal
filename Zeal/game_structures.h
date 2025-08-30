@@ -1381,8 +1381,7 @@ struct ActorLocation {
 };
 
 struct SPELL {
-
-    // Note: Technically this is a GAMECHARINFO::CalculateSpellDuration, but declared here for now
+  // Note: Technically this is a GAMECHARINFO::CalculateSpellDuration, but declared here for now
   short CalculateSpellDuration(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE caster_level) {
     if (!char_info) return 0;
     return reinterpret_cast<short(__thiscall *)(Zeal::GameStructures::GAMECHARINFO *, Zeal::GameStructures::SPELL *,
@@ -1437,7 +1436,9 @@ struct SPELL {
         // Only these mana songs are moddable: Cassindra`s Chorus of Clarity, Denon`s Dissension, Cassindra`s Chant
         // of Clarity, Ervaj's Lost Composition
         // but we override the mod for the mana regen songs in Mob::GetInstrumentMod()
-        if (DurationType == 0 && TargetType != 13 && TargetType != 20 && SpellType == 0) return true;
+        if (DurationType == 0 && TargetType != Zeal::GameEnums::SpellTargetType::Tap &&
+            TargetType != Zeal::GameEnums::SpellTargetType::TargetedAETap && SpellType == 0)
+          return true;
         return false;
       }
     }
