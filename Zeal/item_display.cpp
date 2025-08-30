@@ -74,6 +74,80 @@ bool ItemDisplay::close_latest_window() {
   return false;
 }
 
+static bool IsFixedLevelSpell(WORD spell_id) { return (spell_id >= 1252 && spell_id <= 1266) || spell_id == 3999; }
+
+static int GetEffectiveCastingLevelBonus() {
+  if (!Zeal::Game::get_char_info()) return 0;
+  // Note: Currently, Jam Fest gives bonus to all spells, mirring here
+  int jam_fest_rank = Zeal::Game::get_char_info()->GetAbility(94);
+  return jam_fest_rank > 0 ? (jam_fest_rank * 2 - 1) : 0;
+}
+
+static int GetCastingLevel(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::SPELL *spell,
+                           Zeal::GameStructures::GAMEITEMINFO *item = nullptr) {
+  if (item && item->Type == 0 && item->Common.CastingLevel > 0) {
+    if (item->Common.Skill == Zeal::GameEnums::ItemTypePotion) {
+      // Only potions with specific spell IDs use the item's casting level, the rest use caster's level
+      if (IsFixedLevelSpell(spell->ID)) {
+        return item->Common.CastingLevel;
+      }
+    }
+    if (item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectWorn) {
+      return item->Common.CastingLevel;
+    }
+  }
+  return char_info->Level + GetEffectiveCastingLevelBonus();
+}
+
+static short CalculateEffectAtLevel(std::string &value_str, Zeal::GameStructures::SPELL *spell, BYTE casting_level,
+                                    BYTE effect_index, int bardmodifier = 10) {
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return 0;
+  BYTE effect = spell->Attrib[effect_index];
+  short value = spell->CalculateAffectChange(char_info, casting_level, effect_index);
+  if (bardmodifier > 10 && spell->IsInstrumentModdableSpellEffect(effect)) {
+    value = value * bardmodifier / 10;
+  }
+  switch (effect) {
+    case 1:  // Armor Class
+      if (value >= 0 && char_info->is_cloth_caster())
+        value /= 3;  // Buff on cloth caster, show cloth AC amount
+      else
+        value /= 4;  // Debuff, show regular AC amount
+      value_str = std::format("{}", std::abs(value));
+      break;
+    case 3:  // Movement Speed
+      value_str = std::format("{}%", std::abs(value));
+      break;
+    case 11:  // Attack Speed
+      if (value > 100)
+        value -= 100;  // Increase by X%
+      else if (value > 0)
+        value = 100 - value;  // Decrease by X%
+      value_str = std::format("{}%", std::abs(value));
+      break;
+    case 21:  // Stun
+      value_str = std::format("({} seconds)", value * 1.0f / 1000.0f);
+      break;
+    case 118:  // Amplification
+      value *= 10;
+      value_str = std::format("{}%", value);
+      break;
+    case 119:  // Haste V3
+      value_str = std::format("{}%", value);
+      break;
+    default:
+      value_str = std::format("{}", std::abs(value));
+      break;
+  }
+  return value;
+}
+
+static int GetMaxBardModifier() {
+  if (!Zeal::Game::get_char_info()) return 36;
+  return 36 + Zeal::Game::get_char_info()->GetAbility(192);  // Ayonae's Tutelage
+}
+
 static std::string CopperToAll(unsigned long long copper) {
   unsigned long long platinum = copper / 1000;
   unsigned long long gold = (copper % 1000) / 100;
@@ -111,7 +185,8 @@ static std::string GetSpellClassLevels(const Zeal::GameStructures::_GAMEITEMINFO
 }
 
 static void ApplySpellInfo(Zeal::GameStructures::_GAMEITEMINFO *item, std::string &s) {
-  if (item->Type == 0 && item->Common.Skill != 0x14 && item->Common.IsStackable > 1 && item->Common.IsStackable < 5) {
+  if (item->Type == 0 && item->Common.Skill != Zeal::GameEnums::ItemTypeSpell && item->Common.IsStackable > 1 &&
+      item->Common.IsStackable < 5) {
     // Items with Clicky/Proc/Worn Spells
     if (item->Common.IsStackableEx >= Zeal::GameEnums::ItemEffectCombatProc &&
         item->Common.IsStackableEx <= Zeal::GameEnums::ItemEffectCanEquipClick && item->Common.SpellIdEx > 0 &&
@@ -189,47 +264,162 @@ const Zeal::GameStructures::GAMEITEMINFO *ItemDisplay::get_cached_item(int item_
   return nullptr;
 }
 
-static bool is_cloth_caster() {
-  auto char_info = Zeal::Game::get_char_info();
-  if (!char_info) return false;
+static void append_effect_description(std::string &line, Zeal::GameStructures::SPELL *spell, BYTE caster_level,
+                                      BYTE effect_index) {
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return;
 
-  using Zeal::GameEnums::ClassTypes;
-  int cls = char_info->Class;
-  return (cls == ClassTypes::Wizard || cls == ClassTypes::Magician || cls == ClassTypes::Enchanter ||
-          cls == ClassTypes::Necromancer);
+  BYTE min_level;
+  BYTE max_level;
+  const BYTE highest_casting_level = 65 + GetEffectiveCastingLevelBonus();
+
+  if (IsFixedLevelSpell(spell->ID)) {
+    min_level = caster_level;
+    max_level = caster_level;
+  } else {
+    // Find the earliest castable level for the spell (if it has one)
+    min_level = 0xFF;
+    for (int i = Zeal::GameEnums::ClassTypes::Warrior; i <= Zeal::GameEnums::ClassTypes::Beastlord; i++) {
+      if (spell->ClassLevel[i] > 0 && spell->ClassLevel[i] < min_level) min_level = spell->ClassLevel[i];
+    }
+    if (min_level == 0xFF) min_level = 1;
+
+    // Determine when spell starts scaling
+    short value = spell->CalculateAffectChange(char_info, min_level, effect_index);
+    for (int lvl = min_level + 1; lvl <= highest_casting_level; lvl++) {
+      if (spell->CalculateAffectChange(char_info, lvl, effect_index) == value)
+        min_level = lvl;
+      else
+        break;
+    }
+
+    // Determine when spell stops scaling
+    value = spell->CalculateAffectChange(char_info, min_level, effect_index);
+    max_level = min_level;
+    for (int lvl = min_level + 1; lvl <= highest_casting_level; lvl++) {
+      short test_value = spell->CalculateAffectChange(char_info, lvl, effect_index);
+      if (test_value != value) {
+        max_level = lvl;
+        value = test_value;
+      }
+    }
+  }
+
+  std::string min_effect_str;
+  CalculateEffectAtLevel(min_effect_str, spell, min_level, effect_index);
+
+  if (max_level == min_level) {
+    line += min_effect_str;
+  } else {
+    std::string max_effect_str;
+    CalculateEffectAtLevel(max_effect_str, spell, max_level, effect_index);
+    line += std::format("{} (L{}) to {} (L{})", min_effect_str.c_str(), min_level, max_effect_str.c_str(), max_level);
+  }
+}
+
+// Fixes missing effects
+static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spell, BYTE caster_level,
+                            BYTE effect_index) {
+  BYTE effect = spell->Attrib[effect_index];
+  BYTE display_index = effect_index + 1;
+  switch (effect) {
+    case 0:                    // CurrentHP
+      if (spell->ID == 742) {  // Fix - Denon's Depserate Dirge missing accurate base description
+        line = std::format("  {}: Decrease hitpoints by ", display_index);
+        append_effect_description(line, spell, caster_level, effect_index);
+      }
+      break;
+    case 1:  // Armor class (clean up inaccuracies)
+      if (spell->Base[effect_index] < 0) {
+        line = std::format("  {}: Decrease AC by ", display_index);
+      } else {
+        if (Zeal::Game::get_char_info() && Zeal::Game::get_char_info()->is_cloth_caster()) {
+          line = std::format("  {}: Increase AC for Cloth Casters by ", display_index);
+        } else {
+          line = std::format("  {}: Increase AC by ", display_index);
+        }
+      }
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+    case 11:  // Attack Speed (wrong on some spells)
+      if (spell->Base[effect_index] < 100 || (spell->Max[effect_index] > 0 && spell->Max[effect_index] < 100))
+        line = std::format("  {}: Decrease Attack Speed by ", display_index);
+      else
+        line = std::format("  {}: Increase Attack Speed by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+    case 21:  // Stun
+      line = std::format("  {}: Stun ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+    case 78:  // Absorb Magic
+      line = std::format("  {}: Increase Absorb Magic Damage by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+    case 115:  // Song of Sustenance
+      line = std::format("  {}: Food/Water", display_index);
+      break;
+    case 117:  // MagicWeapon
+      line = std::format("  {}: Make Weapons Magical", display_index);
+      break;
+    case 118:  // Amplification
+      line = std::format("  {}: Increase Singing Modifier by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+    case 119:  // Haste V3
+      line = std::format("  {}: Increase Haste v3 (Overhaste) by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
+  }
 }
 
 // Help the mathematically challenged by calculating the spell effect value and
 // the durations at the casting level and appending it to the string.
-static void add_value_at_level(std::string &line, int level) {
-  if (level <= 0 || line.find("(L") == std::string::npos || !(line.starts_with("  ") || line.starts_with("Duration:")))
-    return;  // Early exit. The affects lines all start with two spaces.
+static void add_value_at_level(std::string &line, Zeal::GameStructures::SPELL *spell, int level, int bardmodifier = 10,
+                               bool is_buff = false) {
+  if (!spell || level <= 0) return;
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return;
 
-  size_t search_offset = 0;
-  if (line.find("AC for Cloth Casters by") != std::string::npos && !is_cloth_caster()) {
-    size_t comma = line.find(",");  // Skip to second (non-cloth) range.
-    if (comma == std::string::npos) return;
-    search_offset = comma + 1;
+  bool is_effect = line.starts_with("  ");
+  bool is_duration = line.starts_with("Duration:");
+  bool is_detrimental = spell->SpellType == 0;
+  if (!is_effect && !is_duration) return;
+
+  if (is_duration) {
+    short ticks = spell->CalculateSpellDuration(char_info, level);
+    if (ticks > 0 && !is_buff) line += std::format("<c \"#c0c000\"> [{} ticks @ L{}]</c>", ticks, level);  // In yellow.
+    return;
   }
 
-  std::smatch match;
-  const char *pattern_str = line.starts_with("Duration:")
-                                ? "(\\d+) (\\w+) [^\\(]*\\(L(\\d+)\\) to (\\d+)[^\\(]*\\(L(\\d+)\\)"
-                                : "(\\d+)(%?) \\(L(\\d+)\\) to (\\d+)%? \\(L(\\d+)\\)";
-  std::regex pattern(pattern_str);
-  std::string search_line = line.substr(search_offset);
-  if (std::regex_search(search_line, match, pattern) && match.size() == 6) {
-    try {
-      int value1 = std::stoi(match.str(1));
-      int level1 = std::stoi(match.str(3));
-      int value2 = std::stoi(match.str(4));
-      int level2 = std::stoi(match.str(5));
-      int cast_level = std::min(level2, std::max(level1, level));
-      int value = value1 + (value2 - value1) * (cast_level - level1) / (level2 - level1);
-      std::string label = match.str(2) == "ticks" ? (" " + match.str(2)) : match.str(2);
-      line += std::format("<c \"#c0c000\"> [{}{} @ L{}]</c>", value, label, level);  // In yellow.
-    } catch (const std::exception &e) {
-      return;  // Just abort the attempt.
+  std::smatch effect_index_match;
+  static const char *effect_index_pattern_str = "(\\d+):.*";
+  static const std::regex effect_index_pattern(effect_index_pattern_str);
+  if (std::regex_search(line, effect_index_match, effect_index_pattern)) {
+    int effect_index = std::stoi(effect_index_match.str(1)) - 1;
+    if (effect_index >= 0 && effect_index <= 11) {
+      fix_effect_line(line, spell, level, effect_index);
+      bool has_level_range = line.find("(L") != std::string::npos;
+      BYTE effect = spell->Attrib[effect_index];
+      std::string value1;
+      std::string value2;
+      if (is_buff) {
+        if (!is_detrimental && (has_level_range || spell->IsInstrumentModdableSpellEffect(effect))) {
+          CalculateEffectAtLevel(value1, spell, level, effect_index, bardmodifier);
+          line += std::format("<c \"#c0c000\"> [{}]</c>", value1.c_str());  // In yellow.
+        }
+      } else if (spell->IsInstrumentModdableSpellEffect(effect)) {
+        CalculateEffectAtLevel(value1, spell, level, effect_index, 10);
+        CalculateEffectAtLevel(value2, spell, level, effect_index, GetMaxBardModifier());
+        if (has_level_range)
+          line += std::format("<c \"#c0c000\"> [{}-{} @ L{}]</c>", value1.c_str(), value2.c_str(),
+                              level);  // In yellow.
+        else
+          line += std::format("<c \"#c0c000\"> [{}-{}]</c>", value1.c_str(), value2.c_str());  // In yellow.
+      } else if (has_level_range) {
+        CalculateEffectAtLevel(value1, spell, level, effect_index);
+        line += std::format("<c \"#c0c000\"> [{} @ L{}]</c>", value1.c_str(), level);  // In yellow.
+      }
     }
   }
 }
@@ -294,18 +484,24 @@ static void append_item_effect_info(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::Gam
       !wnd->DisplayText.Data || !item || item->Type != 0 || !Zeal::Game::get_self())
     return;
 
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return;
   int spell_id = item->Common.SpellIdEx;
   if (spell_id < 1 || spell_id >= GAME_NUM_SPELLS) return;
+  Zeal::GameStructures::SPELL *spell =
+      Zeal::Game::get_spell_mgr() ? Zeal::Game::get_spell_mgr()->Spells[spell_id] : nullptr;
+  if (!spell) return;
 
   // Items have abbreviated info appended to the display window.
-  bool is_spell_scroll = (item && item->Common.Skill == 0x14);
-  bool is_proc_effect =
-      (item && item->Common.Skill != 0x14 && item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectCombatProc);
-  bool is_worn_effect =
-      (item && item->Common.Skill != 0x14 && item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectWorn);
-  bool is_click_effect = (item && item->Common.Skill != 0x14 &&
+  bool is_spell_scroll = (item && item->Common.Skill == Zeal::GameEnums::ItemTypeSpell);
+  bool is_proc_effect = (item && item->Common.Skill != Zeal::GameEnums::ItemTypeSpell &&
+                         item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectCombatProc);
+  bool is_worn_effect = (item && item->Common.Skill != Zeal::GameEnums::ItemTypeSpell &&
+                         item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectWorn);
+  bool is_click_effect = (item && item->Common.Skill != Zeal::GameEnums::ItemTypeSpell &&
                           (item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectClick ||
                            item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectMustEquipClick ||
+                           item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectExpendable ||
                            item->Common.IsStackableEx == Zeal::GameEnums::ItemEffectCanEquipClick));
   if (!(is_spell_scroll || is_proc_effect || is_worn_effect || is_click_effect))
     return;  // Not an item with a displayable spell effect.
@@ -313,13 +509,12 @@ static void append_item_effect_info(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::Gam
   std::string description = get_spell_info(spell_id);
   if (description.empty()) return;  // Failed to read or no data for this spell id.
 
-  bool detrimental = Zeal::Game::get_spell_mgr() && Zeal::Game::get_spell_mgr()->Spells[spell_id] &&
-                     Zeal::Game::get_spell_mgr()->Spells[spell_id]->SpellType == 0;
+  bool detrimental = spell->SpellType == 0;
 
   const std::string stml_line_break = "<BR>";
   wnd->DisplayText.Append(stml_line_break.c_str());  // Add a line break.
 
-  int level = is_spell_scroll ? Zeal::Game::get_self()->Level : item->Common.CastingLevel;
+  int level = GetCastingLevel(char_info, spell, item);
   if (!is_spell_scroll)
     wnd->DisplayText.Append(std::format("Effect casting level: {}{}", level, stml_line_break).c_str());
 
@@ -336,7 +531,7 @@ static void append_item_effect_info(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::Gam
     if (is_worn_effect && (line.starts_with("Target:") || line.starts_with("Duration:")))
       continue;  // Skip, these are also ignored for worn effects.
 
-    add_value_at_level(line, level);
+    add_value_at_level(line, spell, level);
     if (line.starts_with("  "))
       line = "&nbsp;&nbsp;" + line + stml_line_break;  // Indent effects for items.
     else
@@ -354,22 +549,40 @@ static bool UpdateSetSpellTextEnhanced(Zeal::GameUI::ItemDisplayWnd *wnd, int sp
       !wnd->DisplayText.Data || !Zeal::Game::get_self())
     return false;
 
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return false;
   if (spell_id < 1 || spell_id >= GAME_NUM_SPELLS) return false;
+  if (!Zeal::Game::get_spell_mgr()) return false;
+  Zeal::GameStructures::SPELL *spell = Zeal::Game::get_spell_mgr()->Spells[spell_id];
+  if (!spell) return false;
+
+  bool is_detrimental = spell->SpellType == 0;
+  int level = GetCastingLevel(char_info, spell);
+  int bardmodifier = 10;
+
+  if (buff && !is_detrimental) {
+    int max_buffs = char_info->GetMaxBuffs();
+    for (int i = 0; i < max_buffs; i++) {
+      Zeal::GameStructures::_GAMEBUFFINFO *buff = char_info->GetBuff(i);
+      if (buff && buff->SpellId == spell_id) {
+        level = buff->CasterLevel;
+        bardmodifier = buff->Modifier;
+        break;
+      }
+    }
+  }
 
   std::string description = get_spell_info(spell_id);
   if (description.empty()) return false;  // Failed to read or no data for this spell id.
-
-  bool detrimental = Zeal::Game::get_spell_mgr() && Zeal::Game::get_spell_mgr()->Spells[spell_id] &&
-                     Zeal::Game::get_spell_mgr()->Spells[spell_id]->SpellType == 0;
 
   const std::string stml_line_break = "<BR>";
   wnd->DisplayText.Set("");  // Replace the SetSpell text entirely with the blob.
 
   auto lines = Zeal::String::split_text(description, "^");
   for (auto &line : lines) {
-    if (line.starts_with("Resist:") && !detrimental) continue;  // Skip resists if not a detrimental spell.
+    if (line.starts_with("Resist:") && !is_detrimental) continue;  // Skip resists if not a detrimental spell.
 
-    if (!buff) add_value_at_level(line, Zeal::Game::get_self()->Level);
+    add_value_at_level(line, spell, level, bardmodifier, buff);
     line += stml_line_break;
     wnd->DisplayText.Append(line.c_str());
   }
