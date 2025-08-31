@@ -4,6 +4,7 @@
 
 #include <array>
 #include <filesystem>
+#include <fstream>
 
 #include "game_functions.h"
 #include "hook_wrapper.h"
@@ -230,9 +231,62 @@ bool UISkin::is_ui_skin_big_fonts_mode(const char *ui_skin) {
   return std::filesystem::exists(file_path);
 }
 
+// Simple file scan for the existence of a substring. Returns false if file doesn't exist.
+static bool is_string_in_file(const std::filesystem::path &path, const std::string &target) {
+  std::ifstream file(path);
+  if (!file.is_open()) return false;
+
+  std::string line;
+  while (std::getline(file, line)) {
+    std::transform(line.begin(), line.end(), line.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (line.find(target) != std::string::npos) return true;
+  }
+  return false;
+}
+
+static void print_block_message(const std::string &skin_name, const std::string &message) {
+  Zeal::Game::print_chat(USERCOLOR_SHOUT, "Zeal is blocking %s: %s", skin_name.c_str(), message.c_str());
+}
+
+// Performs first order UI Skin compatibility checks with Zeal.
+static bool is_skin_valid(const std::string &skin_name) {
+  // First reject it if the ui folder doesn't exist.
+  std::filesystem::path ui_skin_path =
+      std::filesystem::current_path() / std::filesystem::path("uifiles") / std::filesystem::path(skin_name);
+  if (!std::filesystem::exists(ui_skin_path)) {
+    print_block_message(skin_name, "Skin folder does not exist in uifiles");
+    return false;
+  }
+
+  // The zeal equi.xml merge is broken if the skin equi.xml includes yet another equi.xml (like the default).
+  // It is okay if the skin doesn't include a customized xml (the string check will return false).
+  std::filesystem::path equi_file_path = ui_skin_path / "EQUI.xml";
+  if (is_string_in_file(equi_file_path, "equi.xml<")) {
+    print_block_message(skin_name, "Incompatible EQUI.xml format");
+    return false;
+  }
+
+  // And then do a basic check for required template definitions (if using a custom templates xml).
+  std::filesystem::path templates_file_path = ui_skin_path / "EQUI_Templates.xml";
+  if (!std::filesystem::exists(templates_file_path))
+    return true;  // Doesn't exist so must be using the default version.
+
+  bool wdt_def = is_string_in_file(templates_file_path, "\"wdt_def\"");
+  bool wdt_inner = is_string_in_file(templates_file_path, "\"wdt_inner\"");
+  bool wdt_rounded = is_string_in_file(templates_file_path, "\"wdt_rounded\"");
+
+  if (!wdt_def) print_block_message(skin_name, "EQUI_Templates.xml is missing WDT_Def");
+  if (!wdt_inner) print_block_message(skin_name, "EQUI_Templates.xml is missing WDT_Inner.");
+  if (!wdt_rounded) print_block_message(skin_name, "EQUI_Templates.xml is missing WDT_Rounded.");
+
+  return wdt_def && wdt_inner && wdt_rounded;
+}
+
 static void do_loadskin_hook(void *entity, const char *cmd) {
   std::string str_cmd = Zeal::String::trim_and_reduce_spaces(cmd);
   std::vector<std::string> args = Zeal::String::split(str_cmd, " ");
+
+  if (args.size() > 0 && !is_skin_valid(args[0])) return;  // Blocked, bail out.
 
   if (args.size() > 0) {
     // Keep the global default value in sync with latest character setting (simplifies big font support).
