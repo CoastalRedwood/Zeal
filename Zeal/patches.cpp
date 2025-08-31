@@ -86,6 +86,14 @@ Patches::Patches() {
   mem::set(0x4C3F93, 0x90, 7);
   mem::set(0x4C7642, 0x90, 7);
 
+  // disable client sided health ticking
+  mem::set(0x4C28B5, 0x90, 9);
+  mem::set(0x4C28EF, 0x90, 1);
+  mem::set(0x4C28EF + 1, 0xE9, 1);
+  mem::set(0x4C298B, 0x90, 2);
+  mem::set(0x4C2991, 0x90, 5);
+  mem::set(0x4C2BB4, 0x90, 9);
+
   mem::write<BYTE>(0x40f07a, 0);     // disable character select rotation by default
   mem::write<BYTE>(0x40f07d, 0xEB);  // uncheck rotate button defaultly
 
