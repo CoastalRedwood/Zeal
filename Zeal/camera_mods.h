@@ -70,6 +70,7 @@ class CameraMods {
   bool is_zeal_cam_active() const;
   bool calc_camera_positions(Vec3 &head_pos, Vec3 &wanted_pos) const;
   void update_left_pan(DWORD camera_view);
+  void update_autofollow();
   void interpolate_zoom();
   void process_time_tick();
   void update_fps_sensitivity();
