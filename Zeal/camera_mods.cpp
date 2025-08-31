@@ -255,6 +255,23 @@ void CameraMods::update_left_pan(DWORD camera_view) {
   }
 }
 
+// Turns Zeal Cam into a chase cam in autofollow mode (unless left panning).
+void CameraMods::update_autofollow() {
+  if (!is_zeal_cam_active()) return;
+
+  if (lmouse_time) return;  // Skip chase mode when left panning.
+
+  // Must be in follow mode with control relevant to self heading.
+  auto self = Zeal::Game::get_self();
+  if (!self) return;
+  auto leader = self->ActorInfo ? self->ActorInfo->Following : nullptr;
+  if (!leader) return;  // Not in auto-follow.
+  auto controlled = Zeal::Game::get_controlled();
+  if (!controlled || (controlled != self && controlled != self->ActorInfo->Mount)) return;
+
+  zeal_cam_yaw = self->Heading;
+}
+
 // Called repeatedly by main_callback() to handle periodic calls and process held down keys.
 void CameraMods::process_time_tick() {
   if (reset_camera) callback_zone();
@@ -270,6 +287,8 @@ void CameraMods::process_time_tick() {
   update_left_pan(camera_view);  // Call to keep cursor visibility updated.
 
   if (!is_zeal_cam_active()) return;
+
+  update_autofollow();
 
   if (kKeyDownStates[CMD_ZOOM_IN])
     update_desired_zoom(-0.3f);
