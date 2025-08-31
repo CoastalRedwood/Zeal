@@ -3027,7 +3027,7 @@ static inline std::string GetSpellSubCategoryName(DWORD subcategoryID) {
     case 165:
       return "Group";
     case 166:
-      return "Others";
+      return "Target";
     case 167:
       return "Area";
     default:
