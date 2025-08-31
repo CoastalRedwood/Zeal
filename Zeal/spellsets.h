@@ -9,12 +9,15 @@
 
 #include "game_ui.h"
 #include "io_ini.h"
+#include "zeal_settings.h"
 
 struct menudata {
   std::string Name;
   std::string Category;
   std::string SubCategory;
   DWORD ID;
+
+  bool operator<(const menudata &other) const { return Name < other.Name; }  // For alphabetical sort.
 };
 
 class SpellSets {
@@ -22,6 +25,10 @@ class SpellSets {
   SpellSets(class ZealService *zeal);
   ~SpellSets();
 
+  ZealSetting<bool> setting_alternate_transport_categories = {false, "Zeal", "AltTransportCats", true,
+                                                              [this](bool val) { create_spells_menus(); }};
+
+ public:  // For internal callback use only.
   // Client event hook callbacks.
   void handle_finished_memorizing(int a1, int a2);
   void handle_finished_scribing(int a1, int a2);
