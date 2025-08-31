@@ -1,6 +1,8 @@
 #include "spellsets.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <format>
 
 #include "callbacks.h"
 #include "commands.h"
@@ -253,9 +255,10 @@ void SpellSets::destroy_menus(std::vector<SpellSets::MenuPair> &menus) {
 
 // Initializes the character dependent filename useed to store spell sets.
 void SpellSets::initialize_ini_filename() {
-  std::stringstream ss;
-  ss << ".\\" << Zeal::Game::get_char_info()->Name << "_spellsets.ini";
-  ini.set(ss.str());
+  const char *name = Zeal::Game::get_char_info() ? Zeal::Game::get_char_info()->Name : "unknown";
+  std::string filename = std::string(name) + "_spellsets.ini";
+  std::filesystem::path file_path = std::filesystem::current_path() / std::filesystem::path(filename);
+  ini.set(file_path.string());
 }
 
 // Helper function that allocates and initializes new context menus.
@@ -298,21 +301,29 @@ std::map<std::string, std::map<std::string, std::list<menudata>>> SpellSets::get
   std::sort(spells.begin(), spells.end(), compareBySpellLevel);
   std::map<std::string, std::map<std::string, std::list<menudata>>> spell_category;
   for (auto &s : spells) {
-    SpellCat spell_cat_data = getSpellCategoryAndSubcategory(s->ID);
+    SpellCat spell_cat_data = getSpellCategoryAndSubcategory(s->ID, setting_alternate_transport_categories.get());
     menudata md;
     md.ID = s->ID;
     int level = s->ClassLevel[char_info->Class];
-    std::stringstream ss;
-    if (spell_cat_data.NewName != nullptr)
-      ss << level << " - " << spell_cat_data.NewName;
-    else
-      ss << level << " - " << s->Name;
-    md.Name = ss.str();
+
+    // The Alternate transport swaps the names to be first and level last.
+    const char *name = (spell_cat_data.NewName != nullptr) ? spell_cat_data.NewName : s->Name;
+    bool alt_transport = (spell_cat_data.Category == 123 && setting_alternate_transport_categories.get());
+    md.Name = alt_transport ? std::format("{0} - {1}", name, level) : std::format("{0} - {1}", level, name);
 
     std::string category = GetSpellCategoryName(spell_cat_data.Category);
     std::string subcategory = GetSpellSubCategoryName(spell_cat_data.SubCategory);
     spell_category[category][subcategory].push_back(md);
   }
+
+  // Perform an alphabetical sort of the alternate transport categories (one above was by level).
+  if (setting_alternate_transport_categories.get()) {
+    auto it = spell_category.find("Transport");
+    if (it != spell_category.end()) {
+      for (auto &sub : it->second) sub.second.sort();
+    }
+  }
+
   return spell_category;
 }
 
@@ -447,6 +458,37 @@ static int __fastcall CastSpellWnd_WndNotification(Zeal::GameUI::CastSpellWnd *w
       wnd, unused_edx, src_wnd, flag, unknown3);
 }
 
+// The ContextMenuManager contains an array of added menus that isn't meant to be dynamically resized
+// between init and clean UI. With the addition of the alternate transport categories, it is possible
+// for the number of spells_menu items to decrease when toggled, so we need to patch the code to prevent
+// a nullptr dereference as it loops through the array. The remove nulls the removed ones and the add
+// inserts into the nulls, so it shouldn't leak long-term, but the 0x1128 offset = number of menus
+// represents the maximum potential pointer slot, not the actual # of non-null values.
+__declspec(naked) void context_menu_manager_patch() {
+  __asm {
+    // Custom prolog
+        test edx, edx                   ; Perform the missing nullptr check.
+        jz after_write                  ; Skip write if it is a nullptr.
+        and byte ptr [EDX + 0x29], 0x0  ; This is the overwritten patched instruction.
+     after_write:
+        inc ecx                         ; This instruction was also overwritten.
+        mov edx, 0x00418256             ; Use EDX as scratch to hold absolute jump address.
+        jmp edx                         ; Jump back to the next CMP instruction.
+  }
+}
+
+static void apply_context_menu_manager_patch() {
+  int patch_addr = 0x00418251;
+  int patch_function_addr = (int)&context_menu_manager_patch;
+  int relative_jump_size = patch_function_addr - (patch_addr + 5);  // Relative jump from end of patched 5-byte opcode.
+  DWORD old_protect;
+  VirtualProtect((LPVOID)patch_addr, 5, PAGE_EXECUTE_READWRITE, &old_protect);
+  *reinterpret_cast<uint8_t *>(patch_addr) = 0xE9;
+  *reinterpret_cast<int *>(patch_addr + 1) = relative_jump_size;
+  FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(patch_addr), 5);
+  VirtualProtect((LPVOID)patch_addr, 5, old_protect, NULL);
+}
+
 SpellSets::SpellSets(ZealService *zeal) {
   if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
 
@@ -458,6 +500,8 @@ SpellSets::SpellSets(ZealService *zeal) {
   zeal->hooks->Add("FinishScribing", 0x43501f, FinishScribing, hook_type_detour);
   zeal->hooks->Add("SpellGemRbutton", 0x5A67B0, SpellGemWnd_HandleRButtonUp, hook_type_detour);
   zeal->hooks->Add("CastSpellWnd_WndNotification", 0x0040a32a, CastSpellWnd_WndNotification, hook_type_detour);
+
+  apply_context_menu_manager_patch();
 
   zeal->commands_hook->Add("/spellset", {"/ss"}, "Load, save, delete or list your spellsets.",
                            [this, zeal](std::vector<std::string> &args) {

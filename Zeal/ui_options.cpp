@@ -20,6 +20,7 @@
 #include "outputfile.h"
 #include "patches.h"
 #include "player_movement.h"
+#include "spellsets.h"
 #include "string_util.h"
 #include "target_ring.h"
 #include "tellwindows.h"
@@ -478,6 +479,9 @@ void ui_options::InitGeneral() {
   });
   ui->AddCheckboxCallback(wnd, "Zeal_SlashNotPoke",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_slash_not_poke.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_AltTransportCats", [this](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->spell_sets->setting_alternate_transport_categories.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_InviteDialog",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_invite_dialog.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_AutoFollowEnable", [](Zeal::GameUI::BasicWnd *wnd) {
@@ -1009,6 +1013,8 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_EnhancedAutoRun", ZealService::get_instance()->movement->EnhancedAutoRun.get());
   ui->SetChecked("Zeal_SlashNotPoke", setting_slash_not_poke.get());
   ui->SetChecked("Zeal_InviteDialog", setting_invite_dialog.get());
+  ui->SetChecked("Zeal_AltTransportCats",
+                 ZealService::get_instance()->spell_sets->setting_alternate_transport_categories.get());
   ui->SetChecked("Zeal_AutoFollowEnable", ZealService::get_instance()->movement->AutoFollowEnable.get());
 
   UpdateComboBox("Zeal_TellSound_Combobox", setting_tell_sound.get(), kDefaultSoundNone);

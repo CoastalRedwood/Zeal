@@ -403,8 +403,9 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
        target->PetOwnerSpawnId == 0);
   if (damage > 0 || is_ds_damage_to_non_pet_npcs) {
     if (damage < 0) damage = -damage;
-    if (source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
-        target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500)
+    if ((source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
+         target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500) &&
+        std::abs(source->Position.z - Zeal::Game::get_self()->Position.z) < 20)
       Zeal::Game::print_chat(USERCOLOR_NON_MELEE, "%s hit %s for %i points of non-melee damage.",
                              Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
   }
