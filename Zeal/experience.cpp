@@ -59,13 +59,19 @@ Experience::Experience(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { reset(); }, callback_type::CleanUI);
 
   zeal->commands_hook->Add("/resetexp", {}, "resets exp per hour calculations", [this](std::vector<std::string> &args) {
-    if (args.size() == 2 and args[1] == "debug") {
+    if (args.size() == 2 && args[1] == "debug") {
       auto char_info = Zeal::Game::get_char_info();
       if (char_info)
         Zeal::Game::print_chat("Exp: %d, Points: %d, AA exp: %d", char_info->Experience, get_aa_total_points(),
                                char_info->AlternateAdvancementExperience);
       exp_calc.dump();
       aa_calc.dump();
+    } else if (args.size() == 2 && args[1] == "ding") {
+      setting_aa_ding.set(true);
+      Zeal::Game::print_chat("AA level ding sound enabled");
+    } else if (args.size() == 2 && args[1] == "off") {
+      setting_aa_ding.set(false);
+      Zeal::Game::print_chat("AA level ding sound disabled");
     } else {
       reset();
     }
@@ -90,7 +96,8 @@ void Experience::reset_aa() {
   auto self = Zeal::Game::get_self();
   auto char_info = self ? self->CharInfo : nullptr;
   int exp = char_info ? char_info->AlternateAdvancementExperience : 0;
-  aa_calc.reset(get_aa_total_points(), exp);
+  last_aa_points = get_aa_total_points();
+  aa_calc.reset(last_aa_points, exp);
 }
 
 int Experience::get_exp_level() const {
@@ -125,5 +132,12 @@ void Experience::callback_main() {
   if (!self || !self->CharInfo || !Zeal::Game::is_in_game()) return;
 
   exp_calc.update(get_exp_level(), self->CharInfo->Experience);
-  aa_calc.update(get_aa_total_points(), self->CharInfo->AlternateAdvancementExperience);
+
+  // Detect change in aa_points and play a level Ding if it increases. Note that just to
+  // avoid any initialization timing dependency around when the AA window data gets
+  // refreshed, we don't play a sound unless the last_aa_points was > 0 (skips first ding).
+  int aa_points = get_aa_total_points();
+  if (aa_points > last_aa_points && last_aa_points > 0 && setting_aa_ding.get()) Zeal::Game::WavePlay(139);  // Ding!
+  last_aa_points = aa_points;
+  aa_calc.update(aa_points, self->CharInfo->AlternateAdvancementExperience);
 }

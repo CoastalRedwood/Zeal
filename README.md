@@ -234,7 +234,7 @@ ___
   - **Description:** reloads your current skin using ini.
 
 - `/resetexp`
-  - **Arguments:** ``
+  - **Arguments:** `` (none resets exp), `ding` (enables aa ding sound), `off` (disables ding sound)
   - **Example:** `/resetexp`
   - **Description:** resets the exp per hour calculations.
 

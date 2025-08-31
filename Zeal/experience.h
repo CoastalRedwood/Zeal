@@ -3,6 +3,8 @@
 
 #include <deque>
 
+#include "zeal_settings.h"
+
 class ExperienceCalc {
  public:
   static constexpr int kExpPerLevel = 330;  // 330 exp points = 100%.
@@ -37,6 +39,8 @@ class Experience {
 
   float get_aa_exp_per_hour_pct() const { return aa_calc.get_exp_per_hour_pct(); }
 
+  ZealSetting<bool> setting_aa_ding = {true, "Zeal", "AADing", false};
+
  private:
   void reset();                     // Resets both exp and aa calcs.
   void reset_exp();                 // Resets exp rate to zero and initializes state.
@@ -46,5 +50,6 @@ class Experience {
   void callback_main();             // Periodic update and recalculation of exp rates.
 
   ExperienceCalc exp_calc;  // Normal experience.
-  ExperienceCalc aa_calc;   // Altenate advancement experience.
+  ExperienceCalc aa_calc;   // Alternate advancement experience.
+  int last_aa_points = -1;  // Tracks changes in aa_level for playing ding sound.
 };
