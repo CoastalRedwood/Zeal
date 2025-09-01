@@ -86,9 +86,12 @@ ___
   - **Example:** `/cc`
   - **Description:** toggles classic classes in who and other areas.
 
+- `/clienthptick`
+  - **Aliases** `/cht`
+  - **Description:** Toggles client health tick (disabled by default in this client).
+
 - `/clientmanatick`
   - **Aliases** `/cmt`
-  - **Example:** `/cc`
   - **Description:** Toggles client mana tick (disabled by default in this client).
 
 - `/cls`

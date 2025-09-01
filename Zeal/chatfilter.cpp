@@ -1,5 +1,7 @@
 #include "chatfilter.h"
 
+#include <array>
+
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_ui.h"
@@ -314,6 +316,27 @@ static bool is_from_me(const char *data) {
   return (!strncmp(my_name, data, length) && strlen(data) > length && data[length] == ' ');
 }
 
+// Returns true if the id is from an "item speech" string.
+static bool is_item_speech(int current_string_id) {
+  static constexpr std::array<int, 10> item_speech_strings = {{
+      422,   // Your %1 begins to glow.
+      1230,  // Your %1 flickers with a pale light.
+      1231,  // Your %1 pulses with light as your vision sharpens.
+      1232,  // Your %1 feeds you with power.
+      1233,  // You feel your power drain into your %1.
+      1234,  // Your %1 seems drained of power.
+      1235,  // Your %1 feels alive with power.
+      1236,  // Your %1 sparkles.
+      1237,  // Your %1 grows dim.
+      1238,  // Your %1 begins to shine.
+  }};
+
+  for (const int &i : item_speech_strings) {
+    if (current_string_id == i) return true;
+  }
+  return false;
+}
+
 void __fastcall serverPrintChat(int t, int unused, const char *data, short color_index, bool u) {
   chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
   if (cf->current_string_id == 1219 && cf->setting_suppress_missed_notes.get() &&
@@ -331,27 +354,8 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
     color_index = CHANNEL_OTHERPETSAY;
   else if (color_index == USERCOLOR_MELEE_CRIT && !is_from_me(data))
     color_index = CHANNEL_OTHER_MELEE_CRIT;
-
-  std::vector<int> item_speech_strings{
-      422,  //Your %1 begins to glow.
-      1230, //Your %1 flickers with a pale light.
-      1231, //Your %1 pulses with light as your vision sharpens.
-      1232, //Your %1 feeds you with power.
-      1233, //You feel your power drain into your %1. 
-      1234, //Your %1 seems drained of power.
-      1235, //Your %1 feels alive with power.
-      1236, //Your %1 sparkles.
-      1237, //Your %1 grows dim.
-      1238, //Your %1 begins to shine.
-  };
-
-  for (const int &i : item_speech_strings) {
-    if (cf->current_string_id == i) {
-      color_index = CHANNEL_ITEMSPEECH;
-      break;
-    }
-  }
-
+  else if (is_item_speech(cf->current_string_id))
+    color_index = CHANNEL_ITEMSPEECH;
 
   ZealService::get_instance()->hooks->hook_map["serverPrintChat"]->original(serverPrintChat)(t, unused, data,
                                                                                              color_index, u);
