@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "bitmap_font.h"
@@ -193,6 +194,7 @@ class ZoneMap {
   void parse_size(const std::vector<std::string> &args);
   void parse_alignment(const std::vector<std::string> &args);
   void parse_marker(const std::vector<std::string> &args);
+  void parse_line(const std::vector<std::string> &args);
   void parse_background(const std::vector<std::string> &args);
   void parse_zoom(const std::vector<std::string> &args);
   void parse_labels(const std::vector<std::string> &args);
@@ -209,6 +211,8 @@ class ZoneMap {
   bool search_poi(const std::string &search);
   void set_marker(int y, int x, const char *label = nullptr);
   void clear_markers(bool erase_list = true);
+  void set_line(const std::vector<std::pair<int, int>> &points);
+  void clear_lines();
   bool set_map_rect(float top, float left, float bottom, float right);
   bool set_level(int level);  // Set to 0 to show all levels.
   bool set_show_zone_id(const std::string &zone_name);
@@ -233,6 +237,7 @@ class ZoneMap {
   void render_map(IDirect3DDevice8 &device);
   void render_background(IDirect3DDevice8 &device);
   void render_grid(IDirect3DDevice8 &device);
+  void render_lines_list(IDirect3DDevice8 &device);
   void render_markers(IDirect3DDevice8 &device);
   void render_positions(IDirect3DDevice8 &device);
   void render_group_member_labels(IDirect3DDevice8 &device);
@@ -250,6 +255,7 @@ class ZoneMap {
   void hide_cursor();
   void restore_cursor();
   std::vector<ZoneMap::MapVertex> calculate_grid_vertices(const ZoneMapData &zone_map_data) const;
+  std::vector<ZoneMap::MapVertex> calculate_lines_list_vertices() const;
   void add_position_marker_vertices(float map_y, float map_x, float heading, float size, D3DCOLOR color,
                                     std::vector<MapVertex> &vertices) const;
   void add_self_pet_position_vertices(std::vector<MapVertex> &vertices) const;
@@ -316,6 +322,7 @@ class ZoneMap {
   int zone_id = kInvalidZoneId;
   int show_zone_id = kInvalidZoneId;  // Override to show zone indepent of current location.
   std::vector<Marker> markers_list;
+  std::vector<std::vector<std::pair<int, int>>> lines_list;
   bool always_align_to_center = false;
   int map_level_index = 0;
   int dynamic_labels_zone_id = kInvalidZoneId;
@@ -351,7 +358,8 @@ class ZoneMap {
   std::vector<const ZoneMapLabel *> labels_list;  // List of pointers to visible map labels.
   ZoneMapLabel succor_label;                      // Auto-generated succor label for safe coordinates.
   int line_count = 0;                             // # of primitives in line buffer.
-  int grid_line_count;                            // # of primitives at end of line buffer.
+  int grid_line_count;                            // # of primitives near end of line buffer.
+  int lines_list_count;                           // # of primitives at end of line buffer.
   IDirect3DVertexBuffer8 *line_vertex_buffer = nullptr;
   IDirect3DVertexBuffer8 *position_vertex_buffer = nullptr;
   IDirect3DVertexBuffer8 *marker_vertex_buffer = nullptr;

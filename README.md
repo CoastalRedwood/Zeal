@@ -811,6 +811,16 @@ is no set limit to the number of markers. See how to clear them below.
   - `/map 0` is a shortcut for clearing all markers
   - `/map marker size 40` sets the marker size to "40%"
 
+#### Adding line markers
+The map supports adding orange line markers to identify paths or outline areas on the map. The
+lines are specified in (y, x) pairs with up to 8 pairs per /map line command. Additional 
+lines can be added (no hard limit) with more commands.
+
+* Command examples:
+  - `/map line 100 200 300 400` adds a line from (100,200) to (300, 400)
+  - `/map line 1 2 3 4 5 6` adds lines from (1,2) to (3,4) and (3,4) to (5,6)
+  - `/map line` clears all lines (auto-cleared on zoning)
+
 #### Map font
 The map supports selecting a "spritefont" formatted bitmap font file. A few sizes of arial
 font are included with Zeal and are located in uifiles/zeal/fonts. See the zeal/bitmap_font.cpp
