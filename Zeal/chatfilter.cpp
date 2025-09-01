@@ -303,6 +303,17 @@ static bool is_non_group_fizzle(const char *data) {
   return true;
 }
 
+// The relevant messages start with the source name (aka  "%1 Scores a critical hit !(%2)"
+static bool is_from_me(const char *data) {
+  auto self = Zeal::Game::get_self();
+  if (!self || !data) return false;
+
+  // Check that the start of the message has 'Name' + a space.
+  const char *my_name = Zeal::Game::strip_name(self->Name);
+  auto length = strlen(my_name);
+  return (!strncmp(my_name, data, length) && strlen(data) > length && data[length] == ' ');
+}
+
 void __fastcall serverPrintChat(int t, int unused, const char *data, short color_index, bool u) {
   chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
   if (cf->current_string_id == 1219 && cf->setting_suppress_missed_notes.get() &&
@@ -320,6 +331,8 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
     color_index = CHANNEL_OTHERPETSAY;
   else if (cf->current_string_id == 422)
     color_index = CHANNEL_ITEMSPEECH;
+  else if (color_index == USERCOLOR_MELEE_CRIT && !is_from_me(data))
+    color_index = CHANNEL_OTHER_MELEE_CRIT;
 
   ZealService::get_instance()->hooks->hook_map["serverPrintChat"]->original(serverPrintChat)(t, unused, data,
                                                                                              color_index, u);
@@ -406,7 +419,7 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
     if ((source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
          target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500) &&
         std::abs(source->Position.z - Zeal::Game::get_self()->Position.z) < 20)
-      Zeal::Game::print_chat(USERCOLOR_NON_MELEE, "%s hit %s for %i points of non-melee damage.",
+      Zeal::Game::print_chat(CHANNEL_OTHER_DAMAGE_SHIELD, "%s hit %s for %i points of non-melee damage.",
                              Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
   }
 }
@@ -470,6 +483,12 @@ chatfilter::chatfilter(ZealService *zeal) {
       "/mystats", 0x1000A, [this, zeal](short &color, std::string data) { return color == CHANNEL_MYSTATS; }));
   Extended_ChannelMaps.push_back(CustomFilter(
       "Item Speech", 0x1000B, [this, zeal](short &color, std::string data) { return color == CHANNEL_ITEMSPEECH; }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("Other Melee Critical", 0x1000C,
+                   [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHER_MELEE_CRIT; }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("Other Damage Shield", 0x1000D,
+                   [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
 
   // Callbacks
   zeal->callbacks->AddOutputText(
