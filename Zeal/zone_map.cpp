@@ -386,12 +386,18 @@ void ZoneMap::render_load_map(IDirect3DDevice8 &device, const ZoneMapData &zone_
   auto grid_vertices = calculate_grid_vertices(zone_map_data);
   grid_line_count = grid_vertices.size() / 2;
 
+  auto lines_list_vertices = calculate_lines_list_vertices();
+  lines_list_count = lines_list_vertices.size() / 2;
+
   const int line_buffer_size = sizeof(MapVertex) * line_count * 2;
   const int background_buffer_size = sizeof(MapVertex) * kBackgroundVertices;
   const int grid_buffer_size = sizeof(MapVertex) * grid_line_count * 2;
+  const int lines_list_buffer_size = sizeof(MapVertex) * lines_list_count * 2;
+
   // Create a Vertex buffer and copy the map line, background, and grid segments over.
-  if (FAILED(device.CreateVertexBuffer(line_buffer_size + background_buffer_size + grid_buffer_size, D3DUSAGE_WRITEONLY,
-                                       kMapVertexFvfCode, D3DPOOL_MANAGED, &line_vertex_buffer))) {
+  if (FAILED(device.CreateVertexBuffer(
+          line_buffer_size + background_buffer_size + grid_buffer_size + lines_list_buffer_size, D3DUSAGE_WRITEONLY,
+          kMapVertexFvfCode, D3DPOOL_MANAGED, &line_vertex_buffer))) {
     return;
   }
 
@@ -403,6 +409,8 @@ void ZoneMap::render_load_map(IDirect3DDevice8 &device, const ZoneMapData &zone_
   memcpy(data, background_vertices, background_buffer_size);
   memcpy(data + background_buffer_size, (const void *)line_vertices.data(), line_buffer_size);
   memcpy(data + background_buffer_size + line_buffer_size, (const void *)grid_vertices.data(), grid_buffer_size);
+  memcpy(data + background_buffer_size + line_buffer_size + grid_buffer_size, (const void *)lines_list_vertices.data(),
+         lines_list_buffer_size);
   line_vertex_buffer->Unlock();
 
   render_load_labels(device, zone_map_data);
@@ -444,6 +452,31 @@ std::vector<ZoneMap::MapVertex> ZoneMap::calculate_grid_vertices(const ZoneMapDa
     vertices.push_back({.x = static_cast<float>(zone_map_data.min_x), .y = y, .z = 0.5f, .color = color});
     vertices.push_back({.x = static_cast<float>(zone_map_data.max_x), .y = y, .z = 0.5f, .color = color});
   }
+  return vertices;
+}
+
+std::vector<ZoneMap::MapVertex> ZoneMap::calculate_lines_list_vertices() const {
+  std::vector<ZoneMap::MapVertex> vertices;
+  if (lines_list.empty()) return vertices;
+
+  int total_line_count = 0;
+  for (const auto &line_set : lines_list) total_line_count += (line_set.size() > 1) ? (line_set.size() - 1) : 0;
+  vertices.reserve(2 * total_line_count);
+
+  // For simplicity of supporting multiple lines, we use 2 vertex line primitives and not segments.
+  auto color = D3DCOLOR_XRGB(255, 172, 0);  // Bright orange.
+  for (const auto &line_set : lines_list)
+    for (auto i = 1; i < line_set.size(); ++i) {
+      vertices.push_back({.x = static_cast<float>(line_set[i - 1].first),
+                          .y = static_cast<float>(line_set[i - 1].second),
+                          .z = 0.5f,
+                          .color = color});
+      vertices.push_back({.x = static_cast<float>(line_set[i].first),
+                          .y = static_cast<float>(line_set[i].second),
+                          .z = 0.5f,
+                          .color = color});
+    }
+
   return vertices;
 }
 
@@ -591,6 +624,8 @@ void ZoneMap::render_map(IDirect3DDevice8 &device) {
     device.DrawPrimitive(D3DPT_LINELIST, kBackgroundVertices, line_count);
   }
 
+  render_lines_list(device);
+
   render_markers(device);
 
   render_labels(device);
@@ -617,9 +652,17 @@ void ZoneMap::render_background(IDirect3DDevice8 &device) {
 void ZoneMap::render_grid(IDirect3DDevice8 &device) {
   if (!grid_line_count) return;
 
-  // Grid lines are stored at the end of the line_vertex_buffer.
+  // Grid lines are stored near the end of the line_vertex_buffer.
   device.SetStreamSource(0, line_vertex_buffer, sizeof(MapVertex));
   device.DrawPrimitive(D3DPT_LINELIST, kBackgroundVertices + line_count * 2, grid_line_count);
+}
+
+void ZoneMap::render_lines_list(IDirect3DDevice8 &device) {
+  if (!lines_list_count) return;
+
+  // Lines list lines are stored after the grid lines.
+  device.SetStreamSource(0, line_vertex_buffer, sizeof(MapVertex));
+  device.DrawPrimitive(D3DPT_LINELIST, kBackgroundVertices + line_count * 2 + grid_line_count * 2, lines_list_count);
 }
 
 void ZoneMap::render_markers(IDirect3DDevice8 &device) {
@@ -2125,6 +2168,23 @@ void ZoneMap::set_marker(int y, int x, const char *label) {
   markers_list.push_back({.loc_y = y, .loc_x = x, .label = std::string(label)});
 }
 
+void ZoneMap::clear_lines() {
+  if (lines_list.size()) {
+    lines_list.clear();
+    zone_id = kInvalidZoneId;  // Triggers reload.
+  }
+}
+
+void ZoneMap::set_line(const std::vector<std::pair<int, int>> &points) {
+  if (points.size() > 0) {
+    std::vector<std::pair<int, int>> map_points;
+    // Note the y and x are in location (position) negated coords and need swapping.
+    for (auto point : points) map_points.push_back({-point.second, -point.first});
+    lines_list.push_back(map_points);
+    zone_id = kInvalidZoneId;  // Triggers reload.
+  }
+}
+
 bool ZoneMap::set_map_zoom_default_index(int new_index, bool update_default) {
   map_zoom_default_index = max(0, min(kNumDefaultZoomFactors - 1, new_index));
   set_zoom(static_cast<int>(100 * kDefaultZoomFactors[map_zoom_default_index] +
@@ -2464,6 +2524,34 @@ void ZoneMap::parse_marker(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /map marker (clears all markers");
   Zeal::Game::print_chat("Usage: /map marker <y> <x> [label] (label is optional)");
   Zeal::Game::print_chat("Example: /map marker 500 -1000 (drops a marker at loc 500, -1000)");
+}
+
+void ZoneMap::parse_line(const std::vector<std::string> &args) {
+  if (args.size() <= 2) {
+    clear_lines();  // Remove all lines from the list and screen.
+    return;
+  }
+
+  auto pairs = args.size() / 2 - 1;  // # of y, x pairs after "/map line".
+  std::vector<std::pair<int, int>> points;
+  if (pairs > 1 && pairs <= 8 && (args.size() == 2 * (pairs + 1))) {  // Must be at least two pairs and in pairs.
+    for (auto i = 1; i <= pairs; ++i) {
+      int y = 0;
+      int x = 0;
+      if (Zeal::String::tryParse(args[2 * i], &y, true) && Zeal::String::tryParse(args[2 * i + 1], &x, true))
+        points.push_back({y, x});
+      else
+        break;  // Abort which will cause the comparison check below to fail and usage to be printed.
+    }
+    if (points.size() == pairs) {
+      set_line(points);
+      return;
+    }
+  }
+
+  Zeal::Game::print_chat("Usage: /map line (clears all lines");
+  Zeal::Game::print_chat("Usage: /map line <y1> <x1> <y2> <x2> (up to <y8> <x8>)");
+  Zeal::Game::print_chat("Example: /map line 1 2 3 4 5 6 (draws two lines from (1,2) to (3,4) to (5,6))");
 }
 
 bool ZoneMap::search_poi(const std::string &search_term) {
@@ -2824,6 +2912,8 @@ bool ZoneMap::parse_command(const std::vector<std::string> &args) {
     parse_alignment(args);
   } else if (args[1] == "marker") {
     parse_marker(args);
+  } else if (args[1] == "line") {
+    parse_line(args);
   } else if (args[1] == "background") {
     parse_background(args);
   } else if (args[1] == "zoom") {
@@ -2871,6 +2961,7 @@ void ZoneMap::reset_zone_state() {
   zone_id = kInvalidZoneId;
   show_zone_id = kInvalidZoneId;
   clear_markers(true);
+  lines_list.clear();
   dynamic_labels_list.clear();
   map_level_index = default_to_zlevel_autofade ? -1 : 0;
   zoom_factor = kDefaultZoomFactors[map_zoom_default_index];  // Reset for consistent behavior.
