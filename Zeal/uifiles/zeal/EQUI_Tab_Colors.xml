@@ -939,12 +939,71 @@
 			<PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
 		</ButtonDrawTemplate>
 	</Button>
+  <Button item="Zeal_Color25">
+    <ScreenID>Zeal_Color25</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>10</X>
+      <Y>436</Y>
+    </Location>
+    <Size>
+      <CX>150</CX>
+      <CY>20</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>26 - Other Melee Critical</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_Color26">
+    <ScreenID>Zeal_Color26</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>200</X>
+      <Y>436</Y>
+    </Location>
+    <Size>
+      <CX>150</CX>
+      <CY>20</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>27 - Other Damage Shield</Text>
+    <TextColor>
+      <R>240</R>
+      <G>240</G>
+      <B>0</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  
   <Label item="Section_FloatingCombat">
     <ScreenID>Section_FloatingCombat</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>136</X>
-      <Y>447</Y>
+      <Y>469</Y>
     </Location>
     <Size>
       <CX>160</CX>
@@ -965,7 +1024,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>0</X>
-      <Y>460</Y>
+      <Y>482</Y>
     </Location>
     <Size>
       <CX>380</CX>
@@ -994,7 +1053,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>470</Y>
+      <Y>492</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1023,7 +1082,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>200</X>
-      <Y>470</Y>
+      <Y>492</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1052,7 +1111,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>492</Y>
+      <Y>514</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1081,7 +1140,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>200</X>
-      <Y>492</Y>
+      <Y>514</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1110,7 +1169,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>514</Y>
+      <Y>536</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1139,7 +1198,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>200</X>
-      <Y>514</Y>
+      <Y>536</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1168,7 +1227,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>10</X>
-      <Y>536</Y>
+      <Y>558</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1197,7 +1256,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>200</X>
-      <Y>536</Y>
+      <Y>558</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1222,8 +1281,8 @@
     </ButtonDrawTemplate>
   </Button>
   <Page item="Tab_Colors">
-	<ScreenID>Tab_Colors</ScreenID>
-	 <RelativePosition>true</RelativePosition>
+    <ScreenID>Tab_Colors</ScreenID>
+    <RelativePosition>true</RelativePosition>
     <!-- Pages are sized and positioned by their parent tab -->
     <Style_VScroll>true</Style_VScroll>
     <Style_HScroll>false</Style_HScroll>
@@ -1242,36 +1301,38 @@
     </TabTextActiveColor>
     <Style_Sizable>true</Style_Sizable>
     <Pieces>Zeal_Color0</Pieces>
-	<Pieces>Zeal_Color1</Pieces>
-	<Pieces>Zeal_Color2</Pieces>
-	<Pieces>Zeal_Color3</Pieces>
-	<Pieces>Zeal_Color4</Pieces>
-	<Pieces>Zeal_Color5</Pieces>
-	<Pieces>Zeal_Color6</Pieces>
-	<Pieces>Zeal_Color7</Pieces>
-	<Pieces>Zeal_Color8</Pieces>
-	<Pieces>Zeal_Color9</Pieces>
-	<Pieces>Zeal_Color10</Pieces>
-	<Pieces>Zeal_Color11</Pieces>
-	<Pieces>Zeal_Color12</Pieces>
-	<Pieces>Zeal_Color13</Pieces>
-	<Pieces>Zeal_Color14</Pieces>
-	<Pieces>Zeal_Color15</Pieces>
-	<Pieces>Zeal_Color16</Pieces>
-	<Pieces>Zeal_Color17</Pieces>
-	<Pieces>Section_Nameplate</Pieces>
-	<Pieces>Section_NameplateNPC</Pieces>
-	<Pieces>Section_ChatColors</Pieces>
-	<Pieces>Zeal_BtnDivider</Pieces>
-	<Pieces>Zeal_BtnDividerNPC</Pieces>
-	<Pieces>Zeal_BtnDividerCC</Pieces>
-	<Pieces>Zeal_Color18</Pieces>
-	<Pieces>Zeal_Color19</Pieces>
-	<Pieces>Zeal_Color20</Pieces>
-	<Pieces>Zeal_Color21</Pieces>
-	<Pieces>Zeal_Color22</Pieces>
-	<Pieces>Zeal_Color23</Pieces>
-	<Pieces>Zeal_Color24</Pieces>
+    <Pieces>Zeal_Color1</Pieces>
+    <Pieces>Zeal_Color2</Pieces>
+    <Pieces>Zeal_Color3</Pieces>
+    <Pieces>Zeal_Color4</Pieces>
+    <Pieces>Zeal_Color5</Pieces>
+    <Pieces>Zeal_Color6</Pieces>
+    <Pieces>Zeal_Color7</Pieces>
+    <Pieces>Zeal_Color8</Pieces>
+    <Pieces>Zeal_Color9</Pieces>
+    <Pieces>Zeal_Color10</Pieces>
+    <Pieces>Zeal_Color11</Pieces>
+    <Pieces>Zeal_Color12</Pieces>
+    <Pieces>Zeal_Color13</Pieces>
+    <Pieces>Zeal_Color14</Pieces>
+    <Pieces>Zeal_Color15</Pieces>
+    <Pieces>Zeal_Color16</Pieces>
+    <Pieces>Zeal_Color17</Pieces>
+    <Pieces>Section_Nameplate</Pieces>
+    <Pieces>Section_NameplateNPC</Pieces>
+    <Pieces>Section_ChatColors</Pieces>
+    <Pieces>Zeal_BtnDivider</Pieces>
+    <Pieces>Zeal_BtnDividerNPC</Pieces>
+    <Pieces>Zeal_BtnDividerCC</Pieces>
+    <Pieces>Zeal_Color18</Pieces>
+    <Pieces>Zeal_Color19</Pieces>
+    <Pieces>Zeal_Color20</Pieces>
+    <Pieces>Zeal_Color21</Pieces>
+    <Pieces>Zeal_Color22</Pieces>
+    <Pieces>Zeal_Color23</Pieces>
+    <Pieces>Zeal_Color24</Pieces>
+    <Pieces>Zeal_Color25</Pieces>
+    <Pieces>Zeal_Color26</Pieces>
     <Pieces>Section_FloatingCombat</Pieces>
     <Pieces>Zeal_BtnDividerFloating</Pieces>
     <Pieces>Zeal_Color30</Pieces>
