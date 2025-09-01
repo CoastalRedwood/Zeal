@@ -197,6 +197,35 @@ ChatCommands::ChatCommands(ZealService *zeal) {
         return true;
       });
 
+  Add("/clienthptick", {"/cht"}, "Toggle client health tick (disabled by default in this client).",
+      [this](std::vector<std::string> &args) {
+        BYTE orig1[9] = {0x55, 0x50, 0x8B, 0xCE, 0xE8, 0x10, 0x65, 0xFF, 0xFF};
+        BYTE orig2[2] = {0x0F, 0x89};
+        BYTE orig3a[2] = {0x55, 0x57};
+        BYTE orig3b[5] = {0xE8, 0x38, 0x64, 0xFF, 0xFF};
+        BYTE orig4[9] = {0x55, 0x57, 0x8B, 0xCE, 0xE8, 0x11, 0x62, 0xFF, 0xFF};
+        if (*(BYTE *)0x4C28B5 == 0x90) {
+          mem::copy(0x4C28B5, (int)orig1, sizeof(orig1));
+          mem::copy(0x4C28EF, (int)orig2, sizeof(orig2));
+          mem::copy(0x4C298B, (int)orig3a, sizeof(orig3a));
+          mem::copy(0x4C2991, (int)orig3b, sizeof(orig3b));
+          mem::copy(0x4C2BB4, (int)orig4, sizeof(orig4));
+          Zeal::Game::print_chat("Client sided heath tick re-enabled");
+        } else {
+          // (1) ModifyCurHP -> nop
+          mem::set(0x4C28B5, 0x90, 9);
+          // (2) skip negative hp check for mez break
+          mem::set(0x4C28EF, 0x90, 1);
+          mem::set(0x4C28EF + 1, 0xE9, 1);
+          // (3) ModifyCurHP -> nop
+          mem::set(0x4C298B, 0x90, 2);
+          mem::set(0x4C2991, 0x90, 5);
+          // (4) ModifyCurHP -> nop
+          mem::set(0x4C2BB4, 0x90, 9);
+          Zeal::Game::print_chat("Client sided health tick disabled");
+        }
+        return true;
+      });
   Add("/clientmanatick", {"/cmt"}, "Toggle client mana tick (disabled by default in this client).",
       [this](std::vector<std::string> &args) {
         BYTE orig1[7] = {0x66, 0x01, 0xBE, 0x9A, 0x0, 0x0, 0x0};  // 0x4C3F93
