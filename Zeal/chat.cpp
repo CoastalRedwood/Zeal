@@ -591,6 +591,29 @@ void Chat::InitPercentReplacements() {
   });
 }
 
+void Chat::handle_incoming_gsay(const char *msg) {
+  for (const auto &callback : gsay_callbacks) callback(msg);
+}
+
+void Chat::handle_incoming_rsay(const char *msg) {
+  for (const auto &callback : rsay_callbacks) callback(msg);
+}
+
+// Intercepts incoming channel messages from the server.
+static void msg_new_text(char *msg_data) {
+  if (!Zeal::Game::get_self()) return;  // Self is null, drop text to avoid potential crashes.
+
+  static constexpr int kGroupTextChannel = 2;  // For chan_num in ChannelMessage_Struct.
+  static constexpr int kRaidTextChannel = 15;  // For chan_num in ChannelMessage_Struct.
+
+  ZealService *zeal = ZealService::get_instance();
+  auto msg = reinterpret_cast<Zeal::Packets::ChannelMessage_Struct *>(msg_data);
+  if (msg && msg->chan_num == kGroupTextChannel) zeal->chat_hook->handle_incoming_gsay(msg->message);
+  if (msg && msg->chan_num == kRaidTextChannel) zeal->chat_hook->handle_incoming_rsay(msg->message);
+
+  zeal->hooks->hook_map["MsgNewText"]->original(msg_new_text)(msg_data);
+}
+
 Chat::Chat(ZealService *zeal) {
   // zeal->callbacks->add_packet([this](UINT opcode, char* buffer, UINT size) {
 
@@ -718,6 +741,9 @@ Chat::Chat(ZealService *zeal) {
   zeal->hooks->Add("GetRGBAFromIndex5", 0x4139eb, GetRGBAFromIndex, hook_type_replace_call);
   zeal->hooks->Add("GetRGBAFromIndex6", 0x438719, GetRGBAFromIndex, hook_type_replace_call);
   InitPercentReplacements();
+
+  // Hook incoming text messages (raid, gsay) to intercept messages.
+  zeal->hooks->Add("MsgNewText", 0x004e25a1, msg_new_text, hook_type_detour);
 
   // Disable the cycle reply forwards and backwards if ZealInput enabled
   zeal->binds_hook->replace_cmd(

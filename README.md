@@ -846,6 +846,16 @@ up the map even in zoom. The keybind to toggle through the label modes is recomm
   - `/map butcherblock` shortcut for above (does not work for terms that match other commands)
   - `/map labels summary` enables the summary labels (other options are `off`, `all`, or `marker`)
 
+#### Map broadcast to rsay and gsay
+The map supports broadcasting map marker and line commands to the rsay or gsay channels which
+will trigger the zeal map on recipients to display those commands on their map. A message is
+put in the target channel with a Zeal map trigger header followed by the command.
+
+* Zeal options combobox to select from available fonts
+* Command examples:
+  - `/map rsay marker 1620 -240 Tunare` puts a marker for Tunare on raid members' maps
+  - `/map gsay line 10 20 30 40` puts a line from (10,20) to (30,40) on group members' maps
+
 #### Map data source
 The map has simple support for external map data files. The map data_mode can be set to `internal`,
 `both`, or `external`. In `both`, the internal maps are combined with any available data from an

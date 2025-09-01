@@ -29,9 +29,21 @@ class Chat {
     print_chat_callbacks.push_back(callback);
   }
 
+  void add_incoming_gsay_callback(std::function<void(const char *data)> callback) {
+    gsay_callbacks.push_back(callback);
+  }
+
+  void add_incoming_rsay_callback(std::function<void(const char *data)> callback) {
+    rsay_callbacks.push_back(callback);
+  }
+
   void handle_print_chat(const char *data, int color_index);
 
   bool handle_key_press(int key, bool down, int modifier);
+
+  void handle_incoming_gsay(const char *msg);
+
+  void handle_incoming_rsay(const char *msg);
 
   void DoPercentReplacements(std::string &str_data);
   Chat(class ZealService *pHookWrapper);
@@ -41,5 +53,7 @@ class Chat {
   void InitPercentReplacements();
   std::vector<std::function<void(std::string &str_data)>> percent_replacements;
   std::vector<std::function<void(const char *data, int color_index)>> print_chat_callbacks;
+  std::vector<std::function<void(const char *data)>> gsay_callbacks;
+  std::vector<std::function<void(const char *data)>> rsay_callbacks;
   std::function<bool(int key, bool down, int modifier)> key_press_callback;
 };
