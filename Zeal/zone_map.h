@@ -193,8 +193,10 @@ class ZoneMap {
   void parse_rect(const std::vector<std::string> &args);
   void parse_size(const std::vector<std::string> &args);
   void parse_alignment(const std::vector<std::string> &args);
-  void parse_marker(const std::vector<std::string> &args);
-  void parse_line(const std::vector<std::string> &args);
+  bool parse_marker(const std::vector<std::string> &args);
+  bool parse_line(const std::vector<std::string> &args);
+  void parse_broadcast(const std::vector<std::string> &args);  // rsay or gsay.
+  bool check_message_for_broadcast(const char *message);
   void parse_background(const std::vector<std::string> &args);
   void parse_zoom(const std::vector<std::string> &args);
   void parse_labels(const std::vector<std::string> &args);

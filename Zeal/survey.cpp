@@ -1,5 +1,6 @@
 #include "survey.h"
 
+#include "chat.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "hook_wrapper.h"
@@ -9,24 +10,10 @@
 #include "zeal.h"
 
 namespace {
-static constexpr int kRaidTextChannel = 15;  // For chan_num in ChannelMessage_Struct.
 static constexpr char kZealSurveyHeader[] = "ZEAL_SURVEY";
 static constexpr char kZealResponseHeader[] = "ZEAL_RESPONSE";
 static constexpr char kDelimiter[] = " | ";
 static constexpr char kZealSurveyPrefix[] = "survey";
-
-// Intercepts incoming channel messages from the server.
-static void msg_new_text(char *msg_data) {
-  if (!Zeal::Game::get_self()) return;  // Self is null, drop text to avoid potential crashes.
-
-  ZealService *zeal = ZealService::get_instance();
-  if (msg_data && zeal->survey) {
-    auto msg = reinterpret_cast<Zeal::Packets::ChannelMessage_Struct *>(msg_data);
-    if (msg->chan_num == kRaidTextChannel) zeal->survey->check_message_for_survey_trigger(msg->message);
-  }
-
-  zeal->hooks->hook_map["MsgNewText"]->original(msg_new_text)(msg_data);
-}
 
 // This replaces the PrintChat call used by incoming chat channel messages.
 static void __fastcall chatPrintChat(int t, int unused, const char *data, short color_index, bool u) {
@@ -52,8 +39,8 @@ std::string extract_quoted_string(const std::string &input) {
 Survey::Survey(ZealService *zeal) {
   if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
 
-  // Hook incoming text messages (raid, chat channels) to intercept survey messages.
-  zeal->hooks->Add("MsgNewText", 0x004e25a1, msg_new_text, hook_type_detour);
+  // Hook incoming text messages on raid and chat channels to intercept survey messages.
+  zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { check_message_for_survey_trigger(msg); });
   zeal->hooks->Add("chatPrintChat", 0x00524ca2, chatPrintChat, hook_type_replace_call);
 
   zeal->commands_hook->Add("/survey", {}, "Handles player surveys",

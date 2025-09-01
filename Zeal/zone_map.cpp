@@ -5,6 +5,7 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 
+#include "chat.h"
 #include "commands.h"
 #include "entity_manager.h"
 #include "game_addresses.h"
@@ -2499,10 +2500,10 @@ void ZoneMap::parse_show_raid(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Showing raid members is %s", is_show_raid_enabled() ? "ON" : "OFF");
 }
 
-void ZoneMap::parse_marker(const std::vector<std::string> &args) {
+bool ZoneMap::parse_marker(const std::vector<std::string> &args) {
   if (args.size() <= 2) {
     clear_markers();  // Remove all markers from the list and screen.
-    return;
+    return true;
   }
 
   int y = 0;
@@ -2511,25 +2512,26 @@ void ZoneMap::parse_marker(const std::vector<std::string> &args) {
     int new_size = 0;
     if (Zeal::String::tryParse(args[3], &new_size)) {
       set_marker_size(new_size, false);
-      return;
+      return true;
     }
   } else if (args.size() >= 4 && args.size() < 6 && Zeal::String::tryParse(args[2], &y) &&
              Zeal::String::tryParse(args[3], &x)) {
     const char *label = (args.size() == 5) ? args[4].c_str() : nullptr;
     set_marker(y, x, label);
     set_enabled(true);
-    return;
+    return true;
   }
 
   Zeal::Game::print_chat("Usage: /map marker (clears all markers");
   Zeal::Game::print_chat("Usage: /map marker <y> <x> [label] (label is optional)");
   Zeal::Game::print_chat("Example: /map marker 500 -1000 (drops a marker at loc 500, -1000)");
+  return false;
 }
 
-void ZoneMap::parse_line(const std::vector<std::string> &args) {
+bool ZoneMap::parse_line(const std::vector<std::string> &args) {
   if (args.size() <= 2) {
     clear_lines();  // Remove all lines from the list and screen.
-    return;
+    return true;
   }
 
   auto pairs = args.size() / 2 - 1;  // # of y, x pairs after "/map line".
@@ -2545,13 +2547,66 @@ void ZoneMap::parse_line(const std::vector<std::string> &args) {
     }
     if (points.size() == pairs) {
       set_line(points);
-      return;
+      return true;
     }
   }
 
   Zeal::Game::print_chat("Usage: /map line (clears all lines");
   Zeal::Game::print_chat("Usage: /map line <y1> <x1> <y2> <x2> (up to <y8> <x8>)");
   Zeal::Game::print_chat("Example: /map line 1 2 3 4 5 6 (draws two lines from (1,2) to (3,4) to (5,6))");
+  return false;
+}
+
+static constexpr char kZealMapBroadCastHeader[] = "ZEAL_MAP:";
+
+void ZoneMap::parse_broadcast(const std::vector<std::string> &args) {
+  if (args.size() > 3 && (args[1] == "rsay" || args[1] == "gsay") && (args[2] == "line" || args[2] == "marker")) {
+    bool rsay = (args[1] == "rsay");
+    if (rsay && !Zeal::Game::RaidInfo->is_in_raid()) {
+      Zeal::Game::print_chat("Must be in a raid to rsay");
+      return;
+    }
+    if (!rsay && !Zeal::Game::GroupInfo->is_in_group()) {
+      Zeal::Game::print_chat("Must be in a group to gsay");
+      return;
+    }
+
+    std::string message = std::string(kZealMapBroadCastHeader) + " /map";
+    for (int i = 2; i < args.size(); ++i) message += " " + args[i];
+
+    // The sender doesn't receive the message, so take advantage of that to test the message before broadcasting.
+    if (check_message_for_broadcast(message.c_str())) {
+      if (rsay)
+        Zeal::Game::send_raid_chat(message);
+      else
+        Zeal::Game::do_gsay(message);
+      return;
+    }
+  }
+  Zeal::Game::print_chat("Usage: /map <gsay | rsay> <marker y x label> <line y1 x1 y2 x2>");
+  Zeal::Game::print_chat("Example: /map rsay marker 1620 -240 Tunare");
+  Zeal::Game::print_chat("Example: /map rsay line 10 20 30 40");
+}
+
+// Scans for a specifically formatted message that triggers start of new survey.
+bool ZoneMap::check_message_for_broadcast(const char *message) {
+  if (!message || !strstr(message, kZealMapBroadCastHeader)) return false;
+
+  std::string message_str = message;
+  if (!message_str.starts_with(kZealMapBroadCastHeader)) return false;
+
+  auto split = Zeal::String::split_text(message_str, " ");
+  if (split.size() < 3) return false;
+
+  if (split[0] != kZealMapBroadCastHeader || split[1] != "/map") return false;
+  split.erase(split.begin());  // Drop the header to get a normal command.
+
+  if (split[1] == "marker" && split[2] != "size")
+    return parse_marker(split);
+  else if (split[1] == "line")
+    return parse_line(split);
+
+  return false;
 }
 
 bool ZoneMap::search_poi(const std::string &search_term) {
@@ -2914,6 +2969,8 @@ bool ZoneMap::parse_command(const std::vector<std::string> &args) {
     parse_marker(args);
   } else if (args[1] == "line") {
     parse_line(args);
+  } else if (args[1] == "rsay" || args[1] == "gsay") {
+    parse_broadcast(args);
   } else if (args[1] == "background") {
     parse_background(args);
   } else if (args[1] == "zoom") {
@@ -3211,6 +3268,9 @@ ZoneMap::ZoneMap(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_clean_ui(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { callback_init_ui(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { callback_deactivate_ui(); }, callback_type::DeactivateUI);
+
+  zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { check_message_for_broadcast(msg); });
+  zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { check_message_for_broadcast(msg); });
 }
 
 ZoneMap::~ZoneMap() {
