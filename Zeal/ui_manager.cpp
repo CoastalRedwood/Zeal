@@ -357,7 +357,7 @@ static bool is_message_an_error(const std::string &message) {
 
   // Ignore some optional missing buttons in the XML that don't cause crashes. We could use some
   // regexp pattern matching here, but just brute force it for clarity.
-  static constexpr std::array<const char *, 13> optionals = {
+  static constexpr std::array<const char *, 14> optionals = {
       // Zeal extra buttons.
       "Error: Could not find child Zeal_ZoneSelect in window CharacterSelectWindow",
       "Error: Could not find child ChangeButton in window BankWnd",
@@ -367,6 +367,7 @@ static bool is_message_an_error(const std::string &message) {
       // UI skins with simplified bag windows.
       "Error: Could not find child Container_Icon in window ContainerWindow",
       "Error: Could not find child DoneButton in window ContainerWindow",
+      "Error: Could not find child Container_Label in window ContainerWindow",
 
       // UI skins with simplified druid / bard tracking window.
       "Error: Could not find child TRW_TrackSortCombobox in window TrackingWnd",

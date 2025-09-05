@@ -346,13 +346,16 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
   } else if (cf->current_string_id == 1218 && cf->setting_suppress_other_fizzles.get() && is_non_group_fizzle(data)) {
     cf->current_string_id = 0;
     return;  // Just drop fizzles from others.
+  } else if (cf->current_string_id == 12117 && cf->settings_suppress_lifetap_feeling.get()) {
+    cf->current_string_id = 0;
+    return;  // Just drop Ahhh, I feel much better now...
   }
 
   if (cf->isMyPetSay)
     color_index = CHANNEL_MYPETSAY;
   else if (cf->isPetMessage)
     color_index = CHANNEL_OTHERPETSAY;
-  else if (color_index == USERCOLOR_MELEE_CRIT && !is_from_me(data))
+  else if (color_index == USERCOLOR_MELEE_CRIT && cf->current_string_id != 143 && !is_from_me(data))
     color_index = CHANNEL_OTHER_MELEE_CRIT;
   else if (is_item_speech(cf->current_string_id))
     color_index = CHANNEL_ITEMSPEECH;
