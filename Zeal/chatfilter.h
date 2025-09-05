@@ -51,6 +51,7 @@ class chatfilter {
                     short spell_id, short damage, char output_text);
   ZealSetting<bool> setting_suppress_missed_notes = {false, "Zeal", "SuppressMissedNotes", false};
   ZealSetting<bool> setting_suppress_other_fizzles = {false, "Zeal", "SupressOtherFizzles", false};
+  ZealSetting<bool> settings_suppress_lifetap_feeling = {false, "Zeal", "SuppressLifeTapFeeling", false};
   bool isExtendedCM(int channelMap, int applyOffset = 0);
   bool isStandardCM(int channelMap, int applyOffset = 0);
   int current_string_id = 0;
