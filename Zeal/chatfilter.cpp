@@ -485,6 +485,7 @@ chatfilter::chatfilter(ZealService *zeal) {
       "Other Pet Say", 0x10005, [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHERPETSAY; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Pet Damage", 0x10006, [this, zeal](short &color, std::string data) {
+        if (isDamage && damageData.target == Zeal::Game::get_self()) return false;  // Don't re-route damage to self.
         if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
             damageData.source->PetOwnerSpawnId != Zeal::Game::get_self()->SpawnId) {
           color = CHANNEL_OTHERPETDMG;

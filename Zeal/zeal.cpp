@@ -350,9 +350,12 @@ void ZealService::AddCommands() {
                              sizeof(Zeal::GameStructures::GAMECHARINFO));
       return true;
     }
-    if (args.size() == 2 && args[1] == "check")  // Report state and do basic debug integrity checks.
-    {
+    if (args.size() == 2 && args[1] == "entities") {
       ZealService::get_instance()->entity_manager.get()->Dump();
+      return true;
+    }
+    if (args.size() == 2 && args[1] == "check")  // Run a heap / memory check.
+    {
       int heap_valid1 = HeapValidate(GetProcessHeap(), 0, NULL);
       Zeal::Game::print_chat("Process HeapValidate: %s", heap_valid1 ? "Pass" : "Fail");
       int heap_valid2 = HeapValidate(*Zeal::Game::Heap, 0, NULL);
@@ -362,9 +365,8 @@ void ZealService::AddCommands() {
       memset(&heap_summary, 0, sizeof(heap_summary));
       heap_summary.cb = sizeof(heap_summary);
       HeapSummary(*Zeal::Game::Heap, 0, &heap_summary);
-      Zeal::Game::print_chat("Game Heap: Alloc: 0x%08x, Commit: 0x%08x", heap_summary.cbAllocated,
-                             heap_summary.cbCommitted);
-
+      Zeal::Game::print_chat("Game Heap: Alloc: %d MB, Commit: %d MB", heap_summary.cbAllocated / 1024 / 1024,
+                             heap_summary.cbCommitted / 1024 / 1024);
       return true;
     }
     if (args.size() == 3 && args[1] == "get_command") {
