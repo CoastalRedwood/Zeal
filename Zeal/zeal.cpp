@@ -401,6 +401,16 @@ void ZealService::AddCommands() {
           if (sprite.MagicValue == sprite.kMagicValidValue)
             Zeal::Game::print_chat("Sprite: %s, len: %i", sprite.Text, sprite.TextLength);
         }
+        Zeal::Game::print_chat("Target: %#08x, Self: %#08x, Controlled: %#08x", target, Zeal::Game::get_self(),
+                               Zeal::Game::get_controlled());
+        if (target->ActorInfo && target->ActorInfo->ViewActor_)
+          Zeal::Game::print_chat("Flags: %#08x", target->ActorInfo->ViewActor_->Flags);
+        if (target->ActorInfo && target->ActorInfo->Mount) {
+          auto mount = target->ActorInfo->Mount;
+          Zeal::Game::print_chat("Mount: %#08x", mount);
+          if (mount->ActorInfo && mount->ActorInfo->ViewActor_)
+            Zeal::Game::print_chat("Mount flags: %#08x", mount->ActorInfo->ViewActor_->Flags);
+        }
       }
       return true;
     }
