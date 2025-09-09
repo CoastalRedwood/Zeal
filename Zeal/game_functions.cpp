@@ -1413,7 +1413,7 @@ float CalcCombatRange(Zeal::GameStructures::Entity *entity1, Zeal::GameStructure
 }
 
 bool is_view_actor_invisible(Zeal::GameStructures::Entity *entity) {
-  // Replicates logic of t3dIsActorInvisible
+  // Replicates logic of t3dIsActorInvisible. Note this more of a 'clickability' check then visibility.
   if (entity && entity->ActorInfo && entity->ActorInfo->ViewActor_)
     return (entity->ActorInfo->ViewActor_->Flags & 0x40000000) != 0;
   return false;
@@ -1440,6 +1440,34 @@ int update_get_world_visible_actor_list(float max_distance) {
                                      &display->VisibleReferenceList);
 }
 
+// Identical logic to CDisplay::IsInvisible with the exception of providing the two boolean flags
+// instead of calculating can i see invis each call.
+static bool is_invisible_to_me(Zeal::GameStructures::Entity *target, bool can_i_see_invis, bool am_i_gm) {
+  bool invisible = false;
+  if (!target) return false;
+
+  if (target->Type >= Zeal::GameEnums::EntityTypes::NPCCorpse || target->HpCurrent <= 0) return false;
+
+  if (target->TargetType > 0x40) return true;
+  if (!target->IsHidden) return false;
+  if (!can_i_see_invis) return true;
+  if (!target->IsGameMaster) return false;
+  if (am_i_gm) return false;
+  return true;
+}
+
+bool is_targetable(Zeal::GameStructures::Entity *ent) {
+  auto self = Zeal::Game::get_self();
+  auto char_info = Zeal::Game::get_char_info();
+  if (!self || !char_info) return false;
+  bool can_see_invis = char_info->can_i_see_invis();
+  if (!ent || ent->StructType != 0x03 || !ent->ActorInfo || ent->ActorInfo->IsInvisible ||
+      is_invisible_to_me(ent, can_see_invis, self->IsGameMaster))
+    return false;
+
+  return true;
+}
+
 std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float max_dist, bool only_targetable) {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   update_get_camera_location();
@@ -1452,13 +1480,13 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
   std::vector<Zeal::GameStructures::Entity *> rEnts;
   for (int i = 0; i < ent_count; i++) {
     if (cObject[i]) {
-      bool add_to_list = !only_targetable;
       current_ent = *(Zeal::GameStructures::Entity **)(cObject[i] + 0x60);
-      if (!current_ent || current_ent == self || current_ent->StructType != 0x03 || current_ent->TargetType > 0x40 ||
-          !current_ent->ActorInfo || current_ent->ActorInfo->IsInvisible || is_view_actor_invisible(current_ent))
+      if (!current_ent || current_ent == self || current_ent->StructType != 0x03 || !current_ent->ActorInfo ||
+          current_ent->ActorInfo->IsInvisible || is_invisible_to_me(current_ent, can_see_invis, self->IsGameMaster))
         continue;  // Skip self, invalid struct or target spawn types, non-visible.
 
       if (current_ent->Position.Dist2D(self->Position) <= max_dist) {
+        bool add_to_list = !only_targetable;
         if (only_targetable) {
           Vec3 result;
           Vec3 ent_head = get_ent_head_pos(current_ent);
@@ -1471,18 +1499,15 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
               {self->Position, ent_head},               // your feet to their face
           };
 
-          for (int i = 0; auto &[pos1, pos2] : collision_checks) {
+          for (auto &[pos1, pos2] : collision_checks) {
             if (!collide_with_world(pos1, pos2, result, 0x3, false))  // had no collision
             {
               add_to_list = true;
               break;  // we don't really care which version of this had no world collision so break the for loop
             }
-            i++;
           }
         }
-        bool is_visible =
-            (current_ent->IsHidden != 0x01) || (can_see_invis && (self->IsGameMaster || !current_ent->IsGameMaster));
-        if (add_to_list && is_visible) rEnts.push_back(current_ent);
+        if (add_to_list) rEnts.push_back(current_ent);
       }
     }
   }
@@ -2170,23 +2195,6 @@ std::string get_player_guild_name(short guild_id) {
   const int fn_GetPlayerGuildName = 0x0054c7e1;
   auto desc = reinterpret_cast<const char *(*)(short)>(fn_GetPlayerGuildName)(guild_id);
   return std::string(desc);
-}
-
-bool is_targetable(Zeal::GameStructures::Entity *ent) {
-  if (!ent || ent->StructType != 0x03 || !ent->ActorInfo || ent->ActorInfo->IsInvisible || ent->TargetType > 0x40 ||
-      is_view_actor_invisible(ent))
-    return false;
-
-  if (ent->IsHidden == 0x01) {
-    auto self = Zeal::Game::get_self();
-    auto char_info = Zeal::Game::get_char_info();
-    if (self && char_info) {
-      bool can_see_invis = char_info && char_info->can_i_see_invis();
-      return (can_see_invis && (self->IsGameMaster || !ent->IsGameMaster));
-    }
-    return false;
-  }
-  return true;
 }
 
 bool is_in_game() {

@@ -275,8 +275,7 @@ void NamePlate::render_ui() {
   const float kMaxDist = 400;  // Quick testing of client extended nameplates was ~ 375.
   auto visible_entities = Zeal::Game::get_world_visible_actor_list(kMaxDist, false);
   auto self = Zeal::Game::get_self();
-  if (self && *Zeal::Game::camera_view != Zeal::GameEnums::CameraView::FirstPerson &&
-      !Zeal::Game::GameInternal::is_invisible(Zeal::Game::get_display(), 0, self, self))
+  if (self && *Zeal::Game::camera_view != Zeal::GameEnums::CameraView::FirstPerson && Zeal::Game::is_targetable(self))
     visible_entities.push_back(self);  // Add self nameplate.
 
   std::vector<RenderInfo> render_list;
