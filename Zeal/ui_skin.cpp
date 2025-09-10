@@ -303,7 +303,6 @@ void UISkin::initialize_mode(ZealService *zeal) {
 
   // The existence of the kBigFontsFilename in the active ui skin path signals the scaling mode.
   auto ui_skin = get_global_default_ui_skin_name();
-  if (ui_skin.empty()) return;  // Just stick with default font size.
   is_big_fonts = is_ui_skin_big_fonts_mode(ui_skin.c_str()) && patch_big_fonts_mode(zeal);
 
   zeal_resources_path = std::filesystem::current_path() / std::filesystem::path("uifiles") /
