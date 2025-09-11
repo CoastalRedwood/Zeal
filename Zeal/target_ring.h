@@ -49,9 +49,6 @@ struct SolidVertex : public BaseVertex {
 
 class TargetRing {
  public:
-  void callback_render();
-  void callback_initui();
-
   std::vector<std::string> get_available_textures() const;
   void load_texture(const std::string &filename);
   void render_ring(Vec3 pos, float size, DWORD color, IDirect3DTexture8 *texture, float rotationAngle);
@@ -85,6 +82,10 @@ class TargetRing {
   void reset_render_states();
 
  private:
+  void callback_render();
+  void callback_initui();
+  void callback_cleanui();
+
   void drawVertices(Vec3 pos, DWORD vertex_count, IDirect3DTexture8 *texture, D3DXMATRIX worldMatrix,
                     SolidVertex *solid_vertices, TexturedVertex *texture_vertices);
   D3DCOLOR get_target_color() const;

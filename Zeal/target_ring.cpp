@@ -459,9 +459,16 @@ std::vector<std::string> TargetRing::get_available_textures() const {
 
 void TargetRing::callback_initui() { load_texture(texture_name.get()); }
 
+void TargetRing::callback_cleanui() {
+  if (targetRingTexture) targetRingTexture->Release();
+  targetRingTexture = nullptr;
+}
+
 TargetRing::TargetRing(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_render(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { callback_initui(); }, callback_type::InitUI);
+  zeal->callbacks->AddGeneric([this]() { callback_cleanui(); }, callback_type::CleanUI);
+  zeal->callbacks->AddGeneric([this]() { callback_cleanui(); }, callback_type::DXReset);  // Just release all resources.
 
   zeal->commands_hook->Add("/targetring", {}, "Toggles target ring", [this](std::vector<std::string> &args) {
     if (args.size() == 2) {
@@ -478,7 +485,4 @@ TargetRing::TargetRing(ZealService *zeal) {
   });
 }
 
-TargetRing::~TargetRing() {
-  if (targetRingTexture) targetRingTexture->Release();
-  targetRingTexture = nullptr;
-}
+TargetRing::~TargetRing() { callback_cleanui(); }
