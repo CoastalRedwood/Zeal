@@ -465,6 +465,9 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_SuppressLifetapFeeling", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->chatfilter_hook->settings_suppress_lifetap_feeling.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_ReportOtherNonMeleeDmg", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->chatfilter_hook->setting_report_other_non_melee_dmg.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_UseZealAssistOn", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->assist->setting_use_zeal_assist_on.set(wnd->Checked);
   });
@@ -1010,6 +1013,8 @@ void ui_options::UpdateOptionsGeneral() {
                  ZealService::get_instance()->chatfilter_hook->setting_suppress_other_fizzles.get());
   ui->SetChecked("Zeal_SuppressLifetapFeeling",
                  ZealService::get_instance()->chatfilter_hook->settings_suppress_lifetap_feeling.get());
+  ui->SetChecked("Zeal_ReportOtherNonMeleeDmg",
+                 ZealService::get_instance()->chatfilter_hook->setting_report_other_non_melee_dmg.get());
   ui->SetChecked("Zeal_UseZealAssistOn", ZealService::get_instance()->assist->setting_use_zeal_assist_on.get());
   ui->SetChecked("Zeal_DetectAssistFailure", ZealService::get_instance()->assist->setting_detect_assist_failure.get());
   ui->SetChecked("Zeal_SingleClickGiveEnable", ZealService::get_instance()->give->setting_enable_give.get());

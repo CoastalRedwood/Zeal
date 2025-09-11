@@ -435,7 +435,7 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
     damageData = {source, target, type, spell_id, damage};
   }
 
-  if (!other_non_melee || (damage == 0)) return;
+  if (!other_non_melee || (damage == 0) || !setting_report_other_non_melee_dmg.get()) return;
 
   bool is_ds_damage_to_non_pet_npcs =
       (damage < 0 && type >= 244 && type <= 249 && target->Type == Zeal::GameEnums::EntityTypes::NPC &&
@@ -444,9 +444,11 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
     if (damage < 0) damage = -damage;
     if ((source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
          target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500) &&
-        std::abs(source->Position.z - Zeal::Game::get_self()->Position.z) < 20)
-      Zeal::Game::print_chat(CHANNEL_OTHER_DAMAGE_SHIELD, "%s hit %s for %i points of non-melee damage.",
+        std::abs(source->Position.z - Zeal::Game::get_self()->Position.z) < 20) {
+      short channel = is_ds_damage_to_non_pet_npcs ? CHANNEL_OTHER_DAMAGE_SHIELD : USERCOLOR_NON_MELEE;
+      Zeal::Game::print_chat(channel, "%s hit %s for %i points of non-melee damage.",
                              Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
+    }
   }
 }
 
