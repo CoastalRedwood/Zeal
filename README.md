@@ -268,6 +268,7 @@ ___
     give, trade, or crafting windows. It only activates when either ctrl or shift are held down.
     The `bag #` sets the target tradeskill inventory target if no world trade/tradeskill windows
     are open. Set # to zero to disable (default). The # is not a persistent setting (clears on camp).
+    Note: /singleclick will not work with `NO DROP` items to avoid unforeseen shenanigans
   - **Example:** `/singleclick bag 2` will set inventory slot bag 2 (1-8) as the target.
 
 - `/sit`

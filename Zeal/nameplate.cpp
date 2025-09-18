@@ -539,7 +539,7 @@ std::string NamePlate::generate_nameplate_text(const Zeal::GameStructures::Entit
       ((is_self && setting_hide_self.get()) || (setting_hide_raid_pets.get() && Zeal::Game::is_raid_pet(entity))))
     return std::string();
 
-  if (is_self && setting_x.get()) return std::string((entity.IsHidden == 0x01) ? "(X)" : "X");
+  if (is_self && setting_x.get()) return std::string((entity.VisibilityState == 0x01) ? "(X)" : "X");
 
   if (entity.Race >= 0x8cd)  // Some sort of magic higher level races w/out name trimming.
     return std::string(entity.Name);
@@ -591,10 +591,10 @@ std::string NamePlate::generate_nameplate_text(const Zeal::GameStructures::Entit
   }
 
   // Finally work on the primary player name with embellishments.
-  if (entity.IsHidden == 0x01)  // Client code only does () on normal invisibility.
+  if (entity.VisibilityState == 0x01)  // Client code only does () on normal invisibility.
     text += "(";
   text += Zeal::Game::trim_name(entity.Name);
-  if (entity.IsHidden == 0x01) text += ")";
+  if (entity.VisibilityState == 0x01) text += ")";
 
   if (should_show_last_name(show_name) && entity.LastName[0]) {
     text += " ";

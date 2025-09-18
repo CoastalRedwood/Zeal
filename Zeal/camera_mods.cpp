@@ -155,51 +155,48 @@ bool CameraMods::handle_proc_mouse() {
   bool lbutton = *Zeal::Game::is_left_mouse_down;
   bool rbutton = *Zeal::Game::is_right_mouse_down;
 
-  if (rbutton || (lbutton && camera_view == Zeal::GameEnums::CameraView::ZealCam)) {
-    float delta_y = delta->y;
-    float delta_x = delta->x;
-    float t = 1.0f / 1.5f;
-    smoothMouseDeltaX = camera_math::lerp(delta_x * sensitivity_x, smoothMouseDeltaX, t);
-    smoothMouseDeltaY = camera_math::lerp(delta_y * sensitivity_y, smoothMouseDeltaY, t);
-    if (fabs(smoothMouseDeltaX) > 5) smoothMouseDeltaY /= 2;
+  const bool is_zeal_cam = (camera_view == Zeal::GameEnums::CameraView::ZealCam);
+  if (!rbutton && !(lbutton && is_zeal_cam)) return true;  // Nothing to do; skip hooked procMouse.
 
-    delta->y = 0;  // May not be necessary but just in case reset to avoid downstream usage.
-    delta->x = 0;
+  float delta_y = delta->y;
+  float delta_x = delta->x;
+  float t = 1.0f / 1.5f;
+  smoothMouseDeltaX = camera_math::lerp(delta_x * sensitivity_x, smoothMouseDeltaX, t);
+  smoothMouseDeltaY = camera_math::lerp(delta_y * sensitivity_y, smoothMouseDeltaY, t);
+  if (fabs(smoothMouseDeltaX) > 5) smoothMouseDeltaY /= 2;
 
-    if (*(BYTE *)0x7985E8)  // invert
-      smoothMouseDeltaY = -smoothMouseDeltaY;
+  delta->y = 0;  // May not be necessary but just in case reset to avoid downstream usage.
+  delta->x = 0;
 
-    if (Zeal::Game::can_move()) {
-      if (rbutton) {
-        if (fabs(smoothMouseDeltaX) > 0.1)
-          self->MovementSpeedHeading = -smoothMouseDeltaX / 1000;
-        else
-          self->MovementSpeedHeading = 0;
+  if (*(BYTE *)0x7985E8)  // invert
+    smoothMouseDeltaY = -smoothMouseDeltaY;
 
-        if (camera_view == Zeal::GameEnums::CameraView::ZealCam) {
-          zeal_cam_yaw -= smoothMouseDeltaX;
-          zeal_cam_yaw = fmodf(zeal_cam_yaw + 512.f, 512.f);  // Wrap within 0 to 512.
-          self->Heading = zeal_cam_yaw;                       // Should only set between 0 to 512.
-        } else
-          self->Heading += -smoothMouseDeltaX;
-      }
-    }
-    if (lbutton || (rbutton && !Zeal::Game::can_move())) {
+  // Right button has highest priority to control direction (when not stunned).
+  if (rbutton && Zeal::Game::can_move()) {
+    if (fabs(smoothMouseDeltaX) > 0.1)
+      self->MovementSpeedHeading = -smoothMouseDeltaX / 1000;
+    else
+      self->MovementSpeedHeading = 0;
+
+    if (is_zeal_cam) {
       zeal_cam_yaw -= smoothMouseDeltaX;
-    }
+      zeal_cam_yaw = fmodf(zeal_cam_yaw + 512.f, 512.f);  // Wrap within 0 to 512.
+      self->Heading = zeal_cam_yaw;                       // Should only be set between 0 to 512.
+    } else
+      self->Heading += -smoothMouseDeltaX;
+  } else {
+    zeal_cam_yaw -= smoothMouseDeltaX;  // Pan camera independent of heading.
+  }
 
-    if (fabs(smoothMouseDeltaY) > 0) {
-      auto self_pitch = get_pitch_control_entity();  // Control entity varies based on mounted state.
-      if (camera_view == Zeal::GameEnums::CameraView::ZealCam) {
-        zeal_cam_pitch -= smoothMouseDeltaY;
-        zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
-        if (Zeal::Game::KeyMods->Shift) self_pitch->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
-      } else {
-        if (self_pitch == Zeal::Game::get_view_actor_entity()) {
-          self_pitch->Pitch -= smoothMouseDeltaY;
-          self_pitch->Pitch = std::clamp(self_pitch->Pitch, -128.f, 128.f);
-        }
-      }
+  if (fabs(smoothMouseDeltaY) > 0) {
+    auto self_pitch = get_pitch_control_entity();  // Control entity varies based on mounted state.
+    if (is_zeal_cam) {
+      zeal_cam_pitch -= smoothMouseDeltaY;
+      zeal_cam_pitch = std::clamp(zeal_cam_pitch, -89.9f, 89.9f);
+      if (Zeal::Game::KeyMods->Shift) self_pitch->Pitch = camera_math::pitch_to_game(zeal_cam_pitch);
+    } else if (self_pitch == Zeal::Game::get_view_actor_entity()) {
+      self_pitch->Pitch -= smoothMouseDeltaY;
+      self_pitch->Pitch = std::clamp(self_pitch->Pitch, -128.f, 128.f);
     }
   }
 

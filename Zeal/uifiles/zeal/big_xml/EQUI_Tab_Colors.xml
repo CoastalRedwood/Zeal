@@ -1280,6 +1280,35 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  <Button item="Zeal_Color40">
+    <ScreenID>Zeal_Color40</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>1160</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>41 - My big hit</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
   <Page item="Tab_Colors">
     <ScreenID>Tab_Colors</ScreenID>
     <RelativePosition>true</RelativePosition>
@@ -1345,6 +1374,7 @@
     <Pieces>Zeal_Color37</Pieces>
     <Pieces>Zeal_Color38</Pieces>
     <Pieces>Zeal_Color39</Pieces>
+    <Pieces>Zeal_Color40</Pieces>
 
     <Location>
       <X>0</X>

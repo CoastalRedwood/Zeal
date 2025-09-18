@@ -228,12 +228,13 @@ void FloatingDamage::render_text() {
   }
 }
 
-D3DCOLOR FloatingDamage::get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell) {
+D3DCOLOR FloatingDamage::get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell,
+                                   bool is_highlight) {
   if (!get_color_callback) return 0xffffffff;  // Defaults to white.
 
   int color_index = 0;
   if (is_my_damage)
-    color_index = is_spell ? 33 : 32;  // Me creating damage.
+    color_index = is_highlight ? 40 : is_spell ? 33 : 32;  // Me creating damage.
   else if (is_damage_to_me)
     color_index = is_spell ? 35 : 34;  // Me getting hit.
   else if (is_damage_to_player)
@@ -314,9 +315,9 @@ void FloatingDamage::add_damage(Zeal::GameStructures::Entity *source, Zeal::Game
 
   bool is_damage_to_me = (target == Zeal::Game::get_controlled());
   bool is_damage_to_player = (target->Type == Zeal::GameEnums::Player);
-  auto color = get_color(is_my_damage, is_damage_to_me, is_damage_to_player, is_spell);
-  auto sp_data = is_spell ? Zeal::Game::get_spell_mgr()->Spells[spell_id] : nullptr;
   bool highlight = (damage >= big_hit_threshold.get()) || (type == 8);  // Backstab as starting point.
+  auto color = get_color(is_my_damage, is_damage_to_me, is_damage_to_player, is_spell, highlight);
+  auto sp_data = is_spell ? Zeal::Game::get_spell_mgr()->Spells[spell_id] : nullptr;
   damage_numbers[target].push_back(DamageData(damage, false, sp_data, color, highlight));
 }
 
