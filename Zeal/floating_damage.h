@@ -62,7 +62,7 @@ class FloatingDamage {
   ~FloatingDamage();
 
  private:
-  D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell);
+  D3DCOLOR get_color(bool is_my_damage, bool is_damage_to_me, bool is_damage_to_player, bool is_spell, bool highlight);
   bool is_visible() const;
   bool add_texture(std::string path);
   std::vector<IDirect3DTexture8 *> textures;

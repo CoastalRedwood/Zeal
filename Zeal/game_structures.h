@@ -1213,11 +1213,11 @@ struct Entity {
   /* 0x00AA */ WORD Race;    // RACE_x
   /* 0x00AC */ BYTE Gender;  // GENDER_x
   /* 0x00AD */ BYTE Level;
-  /* 0x00AE */ BYTE IsHidden;       // 0 = Visible, 1 = Invisible
-  /* 0x00AF */ BYTE IsSneaking;     // sneaking or snared ; 0 = Normal Movement Speed, 1 = Slow Movement Speed
-  /* 0x00B0 */ BYTE IsPlayerKill;   // PVP flagged with red name by Priest of Discord
-  /* 0x00B1 */ BYTE StandingState;  // STANDING_STATE_x
-  /* 0x00B2 */ BYTE LightType;      // LIGHT_TYPE_x
+  /* 0x00AE */ BYTE VisibilityState;  // 0 = Visible, 1 = Invisible, 2 = Invis to animal, 3 = IVU
+  /* 0x00AF */ BYTE IsSneaking;       // sneaking or snared ; 0 = Normal Movement Speed, 1 = Slow Movement Speed
+  /* 0x00B0 */ BYTE IsPlayerKill;     // PVP flagged with red name by Priest of Discord
+  /* 0x00B1 */ BYTE StandingState;    // STANDING_STATE_x
+  /* 0x00B2 */ BYTE LightType;        // LIGHT_TYPE_x
   /* 0x00B3 */ BYTE Face;
   /* 0x00B4 */ WORD EquipmentMaterialType[7];    // EQUIPMENT_MATERIAL_TYPE_x ; Head,Chest,Arms,Wrist,Hands,Legs,Feet
   /* 0x00C2 */ WORD EquipmentPrimaryItemType;    // EQUIPMENT_ITEM_TYPE_x ; Primary

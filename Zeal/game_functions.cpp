@@ -1443,13 +1443,12 @@ int update_get_world_visible_actor_list(float max_distance) {
 // Identical logic to CDisplay::IsInvisible with the exception of providing the two boolean flags
 // instead of calculating can i see invis each call.
 static bool is_invisible_to_me(Zeal::GameStructures::Entity *target, bool can_i_see_invis, bool am_i_gm) {
-  bool invisible = false;
   if (!target) return false;
 
   if (target->Type >= Zeal::GameEnums::EntityTypes::NPCCorpse || target->HpCurrent <= 0) return false;
 
   if (target->TargetType > 0x40) return true;
-  if (!target->IsHidden) return false;
+  if (target->VisibilityState != 0x01) return false;
   if (!can_i_see_invis) return true;
   if (!target->IsGameMaster) return false;
   if (am_i_gm) return false;
