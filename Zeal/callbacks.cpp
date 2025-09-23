@@ -34,12 +34,13 @@ std::string CallbackManager::get_trace() const { return CallbackTrace::get_trace
 
 CallbackManager::~CallbackManager() {}
 
-void __fastcall charselect_loop_hk(int t, int unused) {
+static void __fastcall CDisplayRender_MinWorld_hk(int t, int unused) {
+  // The CDisplay::Render_MinWorld() method is called within the character select processing loop.
   CallbackTrace trace("CharSelectLoop");
   ZealService *zeal = ZealService::get_instance();
   zeal->callbacks->invoke_generic(callback_type::CharacterSelectLoop);
   zeal->callbacks->invoke_delayed();
-  zeal->hooks->hook_map["CharSelectLoop"]->original(charselect_loop_hk)(t, unused);
+  zeal->hooks->hook_map["CDisplayRender_MinWorld"]->original(CDisplayRender_MinWorld_hk)(t, unused);
 }
 
 void __fastcall main_loop_hk(int t, int unused) {
@@ -288,7 +289,7 @@ CallbackManager::CallbackManager(ZealService *zeal) {
                    hook_type_detour);  // render in this hook so damage is displayed behind ui
   zeal->hooks->Add("ExecuteCmd", 0x54050c, executecmd_hk, hook_type_detour);
   zeal->hooks->Add("MainLoop", 0x5473c3, main_loop_hk, hook_type_detour);
-  zeal->hooks->Add("CharSelectLoop", 0x4D54E4, charselect_loop_hk, hook_type_detour);
+  zeal->hooks->Add("CDisplayRender_MinWorld", 0x004abe54, CDisplayRender_MinWorld_hk, hook_type_detour);
   zeal->hooks->Add("Render", 0x4AA8BC, render_hk, hook_type_detour);
   HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
   if (gfx_dx8) zeal->hooks->Add("RenderUI", (DWORD)gfx_dx8 + 0x6b7f0, render_ui, hook_type_detour);
