@@ -12,13 +12,20 @@
 // Singleton-like class that instantiates the Zeal functionality. The dll main should create a
 // single copy of this class to install and activate Zeal.
 class ZealService {
- public:
-  ZealService();  // Public but only to be used by dll main.
-  ~ZealService();
+ private:
+  ZealService();  // Use the create() for this singleton object.
   ZealService(const ZealService &) = delete;
   ZealService &operator=(const ZealService &) = delete;
 
-  // Returns a pointer to this pseudo-singleton object.
+ public:
+  ~ZealService();
+
+  // Creates this singleton object. Split from get_instance() since known when it occurs.
+  static void create() {
+    if (!ptr_service) new ZealService();
+  }
+
+  // Returns a pointer to the singleton object initialized in create.
   static ZealService *get_instance() { return ptr_service; }
 
   // Returns the first line where a heap integrity failure was detected (if any).

@@ -2,42 +2,54 @@
 
 #include "zeal.h"
 
-static bool check_if_already_loaded() {
-  // Simple hack check is to see if client sided mana ticking was disabled (since before 0.3.0).
-  // This only works if this newer Zeal is loaded second, but a 50% detection is better than none.
-  //     mem::set(0x4C3F93, 0x90, 7);
-  const uint8_t *ptr = reinterpret_cast<uint8_t *>(0x004C3F93);
-  bool already_patched = (*ptr == 0x90);                             // Already loaded if set to a nop.
-  return already_patched || ZealService::get_instance() != nullptr;  // Also should be a singleton.
+// The zeal.asi is loaded by the mss which happens in-between the login screen and character select.
+// This is unlike most other libraries that are loaded only once.  In order to avoid
+// loading / unloading with multiple patching cycles, the zeal.asi dll pins itself into memory.
+
+// There are restrictions on what can be done safely in the dll_attach process, so Zeal creates a replace call
+// hook in the loadOptions() call that happens shortly after the SoundManager loads the dll.
+static const int load_options_call_addr = 0x005282f8;
+static int *const ptr_load_options_call_jump_value = reinterpret_cast<int *>(load_options_call_addr + 1);
+static const int load_options_call_addr_jump_value_unpatched = 0x0000e9e3;
+
+static void __fastcall initialize_zeal(void *this_game, int unused_edx) {
+  // Pin the zeal DLL into memory until the process terminates, ignoring FreeLibrary calls.
+  static HMODULE hModule = nullptr;
+  GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                     (LPCSTR)&initialize_zeal,  // An address within this module.
+                     &hModule);
+
+  // Create the zeal super-class that installs patches, hooks, callbacks, and things like
+  // the named pipe thread.
+  ZealService::create();
+
+  // Call the original loadOptions.
+  reinterpret_cast<void(_fastcall *)(void *, int)>(0x00536ce0)(this_game, unused_edx);
+}
+
+static void handle_process_attach() {
+  // Bail out if already patched.
+  if (*ptr_load_options_call_jump_value != load_options_call_addr_jump_value_unpatched) return;
+
+  // Install the patch by replacing the relative jump in a call to loadOptions with a jump
+  // to the initialize_zeal() function.
+  const int end_of_call_addr = load_options_call_addr + 5;
+  const int jump_value = reinterpret_cast<int>(&initialize_zeal) - end_of_call_addr;
+
+  DWORD old;
+  VirtualProtect((LPVOID)ptr_load_options_call_jump_value, 4, PAGE_EXECUTE_READWRITE, &old);
+  *ptr_load_options_call_jump_value = jump_value;
+  VirtualProtect((LPVOID)ptr_load_options_call_jump_value, 4, old, NULL);
+  FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(ptr_load_options_call_jump_value), 4);
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-  static std::unique_ptr<ZealService> zeal = nullptr;
-
   switch (ul_reason_for_call) {
-    case DLL_PROCESS_ATTACH: {
-      if (check_if_already_loaded())
-        MessageBoxA(NULL,
-                    "Error: An extra zeal .asi file is loading. This is bad and could crash. Remove extra .asi files "
-                    "from eq root directory.",
-                    "Zeal installation error", MB_OK | MB_ICONERROR);
-      else {
-        DisableThreadLibraryCalls(hModule);
-        // Experimental use of critical section to try and reduce HeapValidate() failures.
-        // Copy critical section protection used in ProcessMbox() and DoMainLoop().
-        int critical_section = *(int *)0x007914b8;
-        if (critical_section) EnterCriticalSection((LPCRITICAL_SECTION)(0x007914b8));
-        zeal = std::make_unique<ZealService>();  // Construct before game thread is started.
-        if (critical_section) LeaveCriticalSection((LPCRITICAL_SECTION)(0x007914b8));
-      }
+    case DLL_PROCESS_ATTACH:
+      handle_process_attach();
       break;
-    }
     case DLL_PROCESS_DETACH:
-      // Only perform cleanup if the process is not ending.
-      if (lpReserved == nullptr) {
-        zeal.reset();  // Release zeal which will invoke the destructors.
-      }
-      break;
+      break;  // The DLL is pinned and is not unloaded until the process terminates.
     default:
       break;  // Otherwise ignore.
   }
