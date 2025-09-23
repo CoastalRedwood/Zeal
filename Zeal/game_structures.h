@@ -1091,6 +1091,8 @@ struct GameClass {
 
   BYTE IsOkToTransact() { return reinterpret_cast<BYTE(__thiscall *)(GameClass *)>(0x54825C)(this); }
 
+  void SetupCharSelectCamera() { reinterpret_cast<void(__thiscall *)(GameClass *)>(0x0053c7cd)(this); }
+
   void doInspect(struct Zeal::GameStructures::Entity *player) {
     reinterpret_cast<void(__thiscall *)(GameClass *, Zeal::GameStructures::Entity *)>(0x54390E)(this, player);
   }

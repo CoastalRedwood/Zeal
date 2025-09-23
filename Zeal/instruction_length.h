@@ -402,6 +402,7 @@ process_instruction_body:
 
     case 0xF6:  // funny subblock of opcodes
       modrm = *p++;
+      if (modrm == 0x05) return length + 7;  // Fix for Zeal case.
       if ((modrm & 0x20) == 0) length++;  // 8 bit immediate operand
       goto modrm_fetched;
 

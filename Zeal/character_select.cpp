@@ -128,14 +128,6 @@ CharacterSelect::CharacterSelect(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { render(); }, callback_type::RenderUI);
-  zeal->callbacks->AddGeneric(
-      [this]() {
-        if (Zeal::Game::Windows && Zeal::Game::Windows->CharacterSelect &&
-            !Zeal::Game::Windows->CharacterSelect->Explore)
-          *Zeal::Game::camera_view =
-              Zeal::GameEnums::CameraView::CharacterSelect;  // this fixes the camera when camping
-      },
-      callback_type::CharacterSelectLoop);
   zeal->hooks->Add("StartWorldDisplay", 0x4A849E, StartWorldDisplay, hook_type_detour);
   zeal->hooks->Add("SelectCharacter", 0x40F56D, SelectCharacter, hook_type_detour);
 

@@ -137,7 +137,7 @@ void CameraMods::update_desired_zoom(float zoom) {
 }
 
 // Fox delta x, the native procMouse either sets the controlled MovementSpeedHeading (low cameras) or disables strafing
-// and sets the campera specific yaw for the others.
+// and sets the camera specific yaw for the others.
 // For delta y, it skips pitch processing on a horse. Otherwise it sets some camera specific pitch or directly sets
 // the entity pitch.
 bool CameraMods::handle_proc_mouse() {
@@ -418,11 +418,12 @@ static void __fastcall RMouseDown(void *game_this, int unused_edx, int x, int y)
 // Overrides the default FOV when enabled.
 static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
-  fov = zeal->camera_mods->fov.get();
+  bool enabled = zeal->camera_mods->enabled.get();
+  if (enabled) fov = zeal->camera_mods->fov.get();
   int rval = zeal->hooks->hook_map["SetCameraLens"]->original(SetCameraLens)(a1, fov, aspect_ratio, a4, a5);
-  if (Zeal::Game::get_gamestate() != GAMESTATE_PRECHARSELECT) {
+  if (enabled && Zeal::Game::get_gamestate() != GAMESTATE_PRECHARSELECT) {
     Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
-    if (ci) ci->FieldOfView = zeal->camera_mods->fov.get();
+    if (ci) ci->FieldOfView = fov;
   }
   return rval;
 }
@@ -535,6 +536,7 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);  // Also covers char select.
   zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);
+
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) { return callback_packet(opcode, buffer, len); },
       callback_type::WorldMessage);
