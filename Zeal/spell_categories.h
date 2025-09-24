@@ -1242,7 +1242,7 @@ static constexpr std::array<SpellCatEntry, 2151> spell_cat_lut = {{
     {1737, {123, 54, "Wind of the South (EJ)"}},    // Wind of the South,
     {1738, {123, 54, "Tishan's Relocation (SF)"}},  // Tishan' s Relocation,
     {1739, {123, 54, "Markar's Relocation (EJ)"}},  // Markar's Relocation,
-    {1740, {25, 58}},                               // Dustdevil,
+    {1740, {25, 38}},                               // Calefaction,
     {1741, {126, 53}},                              // Jolt,
     {1742, {125, 55}},                              // Bobbing Corpse,
     {1743, {45, 47}},                               // Divine Favor,
