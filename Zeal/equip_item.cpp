@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "hook_wrapper.h"
 #include "zeal.h"
 

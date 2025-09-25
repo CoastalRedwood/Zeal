@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "game_functions.h"
 #include "game_packets.h"
 #include "zeal_settings.h"
 
@@ -14,14 +15,9 @@ class Assist {
 
   // Assist on/off per character support.
   ZealSetting<bool> setting_assist_on = {false, "Zeal", "AssistOn", true};
-  ZealSetting<bool> setting_use_zeal_assist_on = {false,
-                                                  "Zeal",
-                                                  "UseZealAssistOn",
-                                                  true,
-                                                  [this](bool val) {
+  ZealSetting<bool> setting_use_zeal_assist_on = {false, "Zeal", "UseZealAssistOn", true, [this](bool val) {
                                                     if (val) Zeal::Game::set_attack_on_assist(setting_assist_on.get());
-                                                  },
-                                                  true};
+                                                  }};
 
   // Support for detecting / reporting that /assist failed to update to a new target.
   ZealSetting<bool> setting_detect_assist_failure = {false, "Zeal", "DetectAssistFailure", true};

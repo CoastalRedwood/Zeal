@@ -2,7 +2,9 @@
 
 #include <random>
 
+#include "callbacks.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
 #include "ui_manager.h"

@@ -944,7 +944,7 @@
     <Style_Transparent>false</Style_Transparent>
     <Style_Checkbox>true</Style_Checkbox>
     <TooltipReference>Enable Zeal /follow mode (reliability, distance, and pitch)</TooltipReference>
-    <Text>Enhance /follow</Text>
+    <Text>Enhanced /follow</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>

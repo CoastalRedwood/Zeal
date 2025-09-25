@@ -70,6 +70,7 @@ void _fastcall charselect_hk(int t, int u) {
   ZealService *zeal = ZealService::get_instance();
   zeal->callbacks->invoke_generic(callback_type::CharacterSelect);
   zeal->hooks->hook_map["DoCharacterSelection"]->original(charselect_hk)(t, u);
+  zeal->callbacks->invoke_generic(callback_type::CharacterSelectExit);
 }
 
 void CallbackManager::eml() { invoke_generic(callback_type::EndMainLoop); }

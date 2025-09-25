@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "hook_wrapper.h"

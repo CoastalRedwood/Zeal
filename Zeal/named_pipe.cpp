@@ -5,6 +5,7 @@
 
 #include <thread>
 
+#include "callbacks.h"
 #include "chat.h"
 #include "commands.h"
 #include "entity_manager.h"

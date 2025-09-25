@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 
+#include "callbacks.h"
 #include "entity_manager.h"
 #include "game_addresses.h"
 #include "hook_wrapper.h"

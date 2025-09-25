@@ -1,9 +1,11 @@
 #include "player_movement.h"
 
 #include "binds.h"
+#include "callbacks.h"
 #include "camera_math.h"
 #include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "string_util.h"

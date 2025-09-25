@@ -64,7 +64,7 @@ void RestoreWindowState(Zeal::GameUI::ChatWnd *wnd) {
 Zeal::GameUI::ChatWnd *__fastcall GetActiveChatWindow(Zeal::GameUI::CChatManager *cm, int unused) {
   // fix up a little bit so the active window for things like linking items don't go to your always chat here if you are
   // using tell windows
-  if (ZealService::get_instance()->tells && ZealService::get_instance()->tells->enabled) {
+  if (ZealService::get_instance()->tells && ZealService::get_instance()->tells->setting_enabled.get()) {
     Zeal::GameUI::ChatWnd *wnd = cm->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
     if (ZealService::get_instance()->tells->IsTellWindow(wnd)) return wnd;
   }
@@ -99,7 +99,7 @@ Zeal::GameUI::ChatWnd *TellWindows::FindNextTellWnd() {
 }
 
 bool TellWindows::HandleKeyPress(int key, bool down, int modifier) {
-  if (!enabled || !Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager) return false;
+  if (!setting_enabled.get() || !Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager) return false;
   Zeal::GameUI::ChatWnd *wnd =
       Zeal::Game::Windows->ChatManager->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
   if (IsTellWindow(wnd)) {
@@ -121,7 +121,7 @@ bool TellWindows::HandleKeyPress(int key, bool down, int modifier) {
 }
 
 std::string TellWindows::GetTellWindowName() const {
-  if (!enabled) return "";
+  if (!setting_enabled.get()) return "";
   if (Zeal::Game::Windows && Zeal::Game::Windows->ChatManager) {
     Zeal::GameUI::ChatWnd *wnd =
         Zeal::Game::Windows->ChatManager->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
@@ -184,7 +184,7 @@ void replaceNameLinks(std::string &message) {
 }
 
 void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short channel) {
-  if (!ZealService::get_instance()->tells->enabled)  // just early out if tell windows are not enabled
+  if (!ZealService::get_instance()->tells->setting_enabled.get())  // just early out if tell windows are not enabled
     return;
 
   replaceNameLinks(msg);
@@ -207,7 +207,7 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
         tell_window = ZealService::get_instance()->tells->FindTellWnd(name);
         wnd = tell_window;
 
-        if (wnd && hist_enabled && tell_cache.count(name)) {
+        if (wnd && setting_hist_enabled.get() && tell_cache.count(name)) {
           for (auto &[color, hist_msg] : tell_cache[name])
             Zeal::Game::print_chat_wnd(wnd, color, "<c \"#666666\">%s</c>", hist_msg.c_str());
         }
@@ -215,7 +215,7 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
         wnd = tell_window;
         RestoreWindowState(wnd);
       }
-      if (hist_enabled) tell_cache[name].push_back(std::make_pair(channel, msg));
+      if (setting_hist_enabled.get()) tell_cache[name].push_back(std::make_pair(channel, msg));
     }
   }
 }
@@ -231,7 +231,7 @@ bool TellWindows::IsTellWindow(Zeal::GameUI::ChatWnd *wnd) const {
 }
 
 void TellWindows::CloseAllWindows() {
-  if (!Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager || !enabled) return;
+  if (!Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager || !setting_enabled.get()) return;
   for (int i = 0; i < Zeal::Game::Windows->ChatManager->MaxChatWindows; i++) {
     Zeal::GameUI::ChatWnd *cwnd = Zeal::Game::Windows->ChatManager->ChatWindows[i];
     if (cwnd && cwnd->IsVisible && IsTellWindow(cwnd))
@@ -240,36 +240,11 @@ void TellWindows::CloseAllWindows() {
 }
 
 void TellWindows::CleanUI() {
-  if (!Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager || !enabled) return;
+  if (!Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager || !setting_enabled.get()) return;
   for (int i = 0; i < Zeal::Game::Windows->ChatManager->MaxChatWindows; i++) {
     Zeal::GameUI::ChatWnd *cwnd = Zeal::Game::Windows->ChatManager->ChatWindows[i];
     if (IsTellWindow(cwnd)) cwnd->show(false, false);
   }
-}
-
-void TellWindows::SetEnabled(bool val) {
-  enabled = val;
-  if (Zeal::Game::get_char_info() && ZealService::get_instance()->ini)
-    ZealService::get_instance()->ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindows", val);
-  if (update_options_ui_callback) update_options_ui_callback();
-}
-
-void TellWindows::SetHist(bool val) {
-  hist_enabled = val;
-  if (Zeal::Game::get_char_info() && ZealService::get_instance()->ini)
-    ZealService::get_instance()->ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist", val);
-  if (update_options_ui_callback) update_options_ui_callback();
-}
-
-void TellWindows::LoadUI() {
-  IO_ini *ini = ZealService::get_instance()->ini.get();
-  if (!ini->exists(Zeal::Game::get_char_info()->Name, "TellWindows"))
-    ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindows", false);
-  if (!ini->exists(Zeal::Game::get_char_info()->Name, "TellWindowsHist"))
-    ini->setValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist", true);
-  enabled = ini->getValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindows");
-  hist_enabled = ini->getValue<bool>(Zeal::Game::get_char_info()->Name, "TellWindowsHist");
-  if (update_options_ui_callback) update_options_ui_callback();
 }
 
 void __fastcall DeactivateChatManager(Zeal::GameUI::CChatManager *t, int u) {
@@ -309,7 +284,6 @@ TellWindows::TellWindows(ZealService *zeal) {
   // zeal->hooks->Add("DeactivateMainUI", 0x4a7705, DeactivateMainUI, hook_type_detour); //clean up tell windows just
   // before they save zeal->callbacks->AddGeneric([this]() { Deactivate_Window(); }, callback_type::DeactivateUI);
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
-  zeal->callbacks->AddGeneric([this]() { LoadUI(); }, callback_type::InitUI);
   zeal->callbacks->AddOutputText(
       [this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short channel) { this->AddOutputText(wnd, msg, channel); });
   zeal->chat_hook->add_key_press_callback(
@@ -321,7 +295,7 @@ TellWindows::TellWindows(ZealService *zeal) {
               (Zeal::GameUI::ListWnd *)Zeal::Game::Windows->Raid->GetChildItem("RAID_PlayerList");
           if (players) {
             std::string reply_who = (char *)(0x7CE45C);
-            if (enabled) {
+            if (setting_enabled.get()) {
               if (Zeal::Game::Windows && Zeal::Game::Windows->ChatManager) {
                 Zeal::GameUI::ChatWnd *wnd =
                     Zeal::Game::Windows->ChatManager->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
@@ -342,7 +316,7 @@ TellWindows::TellWindows(ZealService *zeal) {
           }
         }
 
-        if (enabled) {
+        if (setting_enabled.get()) {
           if (Zeal::Game::Windows && Zeal::Game::Windows->ChatManager) {
             Zeal::GameUI::ChatWnd *wnd =
                 Zeal::Game::Windows->ChatManager->ChatWindows[Zeal::Game::Windows->ChatManager->ActiveChatWnd];
@@ -356,18 +330,18 @@ TellWindows::TellWindows(ZealService *zeal) {
         return false;
       });
   zeal->commands_hook->Add("/tellwindows", {}, "Toggle tell windows", [this](std::vector<std::string> &args) {
-    enabled = !enabled;
-    if (enabled)
+    setting_enabled.toggle();
+    if (setting_enabled.get())
       Zeal::Game::print_chat("Tell windows enabled.");
     else
       Zeal::Game::print_chat("Tell windows disabled.");
 
-    SetEnabled(enabled);
+    if (update_options_ui_callback) update_options_ui_callback();
     return true;
   });
 
   zeal->binds_hook->replace_cmd(0x3B, [this](int state) {
-    if (!enabled) return false;
+    if (!setting_enabled.get()) return false;
     if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
       int last_tell_index = *(int *)0x7cf0dc;
       char *reply_to = (char *)(0x7CE45C + (last_tell_index * 0x40));
@@ -384,7 +358,7 @@ TellWindows::TellWindows(ZealService *zeal) {
   });  // reply hotkey
 
   zeal->binds_hook->replace_cmd(0xCE, [this](int state) {
-    if (!enabled) return false;
+    if (!setting_enabled.get()) return false;
 
     if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
       if (Zeal::Game::Windows->ChatManager->AlwaysChatHereIndex >= 0)

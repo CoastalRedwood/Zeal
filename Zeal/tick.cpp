@@ -1,6 +1,9 @@
 #include "tick.h"
 
+#include "callbacks.h"
 #include "commands.h"
+#include "game_functions.h"
+#include "game_packets.h"
 #include "game_structures.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"

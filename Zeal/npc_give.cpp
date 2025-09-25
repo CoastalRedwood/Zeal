@@ -1,5 +1,6 @@
 #include "npc_give.h"
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
@@ -201,6 +202,12 @@ void NPCGive::tick() {
 
 NPCGive::NPCGive(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { tick(); });
+  zeal->callbacks->AddGeneric(
+      [this]() {
+        ClearItem();
+        bag_index = 0;
+      },
+      callback_type::CharacterSelect);
   zeal->hooks->Add("QtyPickupItem", 0x42F65A, QtyPickupItem, hook_type_detour);
   zeal->hooks->Add("CInvSlotMgrMoveItem", 0x00422b1c, CInvSlotMgrMoveItem, hook_type_detour);
   zeal->commands_hook->Add(

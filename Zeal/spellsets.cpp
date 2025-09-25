@@ -337,9 +337,9 @@ static int __fastcall SpellsMenuNotification(void *menu_this, int unused_edx, Ze
 
 // Creates the spells_menus context menus used in spell gem selection.
 void SpellSets::create_spells_menus() {
-  if (!Zeal::Game::is_new_ui()) {
+  if (!Zeal::Game::is_new_ui() || !Zeal::Game::Windows->ContextMenuManager) {
     return;
-  }  // prevent callback crashing oldui
+  }  // prevent callback crashing oldui or an early setting update.
 
   destroy_menus(spells_menus);
 
@@ -413,6 +413,9 @@ void SpellSets::callback_init_ui() {
 void SpellSets::callback_clean_ui() {
   destroy_menus(spells_menus);
   destroy_menus(spellsets_menus);
+  spellsets_map.clear();
+  mem_buffer.clear();
+  last_gem_clicked = nullptr;
 }
 
 // Main processing loop callback to handle various reasons why memorization could be aborted.

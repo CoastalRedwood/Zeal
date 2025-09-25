@@ -1,5 +1,6 @@
 #include "assist.h"
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_functions.h"
 #include "game_structures.h"

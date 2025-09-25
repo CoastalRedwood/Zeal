@@ -7,6 +7,7 @@
 
 #include "bitmap_font.h"
 #include "game_structures.h"
+#include "memory.h"
 #include "zeal_settings.h"
 
 class NamePlate {
@@ -56,15 +57,12 @@ class NamePlate {
   ZealSetting<bool> setting_attack_only = {false, "Zeal", "NameplateAttackOnly", false};
   ZealSetting<bool> setting_inline_guild = {false, "Zeal", "NameplateInlineGuild", false};
 
-  ZealSetting<bool> setting_extended_nameplate = {
-      true, "Zeal", "NameplateExtended", false, [this](bool &val) { mem::write<BYTE>(0x4B0B3D, val ? 0 : 1); }, true};
+  ZealSetting<bool> setting_extended_nameplate = {true, "Zeal", "NameplateExtended", false,
+                                                  [this](const bool &val) { mem::write<BYTE>(0x4B0B3D, val ? 0 : 1); }};
 
   // Extended shownames (allows /shownames 5-7)
-  ZealSetting<bool> setting_extended_shownames = {true,
-                                                  "Zeal",
-                                                  "NameplateExtendedShownames",
-                                                  false,
-                                                  [this](bool &val) {
+  ZealSetting<bool> setting_extended_shownames = {true, "Zeal", "NameplateExtendedShownames", false,
+                                                  [this](const bool &val) {
                                                     if (val) {
                                                       // Verify we have the expected byte before patching
                                                       BYTE target_val = val ? 0x08 : 0x05;
@@ -75,8 +73,7 @@ class NamePlate {
                                                     } else {
                                                       mem::write<BYTE>(0x004ff8ff, 0x05);  // Restore original value
                                                     }
-                                                  },
-                                                  true};
+                                                  }};
   // Local AA Title Choice
   ZealSetting<int> setting_local_aa_title = {3, "Zeal", "NameplateLocalAATitle", true};
 

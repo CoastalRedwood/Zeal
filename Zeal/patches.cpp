@@ -1,6 +1,9 @@
 #include "patches.h"
 
 #include "commands.h"
+#include "game_functions.h"
+#include "game_packets.h"
+#include "game_structures.h"
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "string_util.h"

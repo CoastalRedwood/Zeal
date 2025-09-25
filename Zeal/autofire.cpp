@@ -7,46 +7,6 @@
 #include "game_str.h"
 #include "zeal.h"
 
-// #include "hook_wrapper.h"
-// #include "memory.h"
-
-//
-// bool AutoFire::HandleDoAttack(Zeal::GameStructures::Entity* player, uint8_t type, uint8_t p2,
-// Zeal::GameStructures::Entity* target)
-//{
-//    Zeal::GameStructures::_GAMEITEMINFO* ranged_item = Zeal::Game::get_char_info()->Inventory.Ranged;
-//    if (!autofire || !ranged_item)
-//        return false;
-//    static bool disabled_auto = false;
-//    if (type == 13 || type == 14)
-//    {
-//        ZealService::get_instance()->gamestr_hook->str_noprint[124] = true; //don't print too far away messaging
-//        if (!Zeal::Game::CanIHitTarget(0.f))
-//        {
-//            if (player->Position.Dist2D(target->Position) > 30.f )
-//            {
-//                if (!do_autofire)
-//                {
-//                    was_autoattacking = *(BYTE*)0x7f6ffe;
-//                    *(BYTE*)0x7f6ffe = 0; //disable auto attack
-//                    do_autofire = true;
-//                }
-//                else
-//                {
-//                    do_autofire = false;
-//                }
-//                ZealService::get_instance()->gamestr_hook->str_noprint[124] = false;
-//                return true;
-//            }
-//        }
-//        else
-//        {
-//            do_autofire = false;
-//        }
-//    }
-//    return false;
-//}
-
 static void suppress_autofire_fault_messages(bool flag) {
   ZealService::get_instance()->gamestr_hook->str_noprint[108] = flag;    // You cannot see your target.
   ZealService::get_instance()->gamestr_hook->str_noprint[123] = flag;    // You can't hit them from here.

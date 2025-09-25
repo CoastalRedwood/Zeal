@@ -562,7 +562,7 @@ void ZealService::AddBinds() {
       return true;
     }
 
-    if (!zeal->ini->getValue<bool>("Zeal", "EscapeRaidLock")) {
+    if (!zeal->ui->options->setting_escape_raid_lock.get()) {
       if (Zeal::Game::Windows && Zeal::Game::Windows->RaidOptions && Zeal::Game::Windows->RaidOptions->IsVisible) {
         Zeal::Game::Windows->RaidOptions->show(0, false);
         return true;
@@ -574,7 +574,7 @@ void ZealService::AddBinds() {
       }
     }
 
-    if (zeal->ini->getValue<bool>("Zeal", "Escape"))  // toggle is set to not close any windows
+    if (zeal->ui->options->setting_escape.get())  // toggle is set to not close any windows
       return true;
 
     if (zeal->item_displays && zeal->item_displays->close_latest_window()) return true;

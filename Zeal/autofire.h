@@ -12,6 +12,5 @@ class AutoFire {
   ~AutoFire();
 
  private:
-  bool was_autoattacking = false;
   bool do_autofire = false;
 };

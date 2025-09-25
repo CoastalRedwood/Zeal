@@ -3,6 +3,7 @@
 #include <deque>
 #include <vector>
 
+#include "callbacks.h"
 #include "character_select.h"
 #include "game_addresses.h"
 #include "game_functions.h"

@@ -1,7 +1,9 @@
 #pragma once
 #include <Windows.h>
 
+#include "game_functions.h"
 #include "game_packets.h"
+#include "game_structures.h"
 #include "zeal_settings.h"
 
 class HelmManager {
@@ -25,6 +27,7 @@ class HelmManager {
 
   // Toggles ShowHelm status
   ZealSetting<bool> ShowHelmEnabled = {true, "Zeal", "ShowHelm", true, [this](bool v) {
+                                         if (Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
                                          SyncShowHelm(false);
                                          RefreshHelm(false, 0);
                                        }};

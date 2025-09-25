@@ -5,7 +5,9 @@
 #include <fstream>
 #include <regex>
 
+#include "callbacks.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "ui_skin.h"
@@ -710,6 +712,7 @@ void ItemDisplay::CleanUI() {
     }
   }
   windows.clear();
+  item_cache.clear();
 }
 
 void ItemDisplay::DeactivateUI() {

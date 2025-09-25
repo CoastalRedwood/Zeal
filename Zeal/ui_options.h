@@ -37,6 +37,8 @@ class ui_options {
   ZealSetting<std::string> setting_tell_sound = {"", "Zeal", "TellSound", false,
                                                  [this](const std::string &) { PlayTellSound(); }};
   ZealSetting<bool> setting_slash_not_poke = {false, "Zeal", "SlashNotPoke", false};
+  ZealSetting<bool> setting_escape = {false, "Zeal", "Escape", false};
+  ZealSetting<bool> setting_escape_raid_lock = {false, "Zeal", "EscapeRaidLock", false};
 
  private:
   void InitUI();
@@ -56,7 +58,7 @@ class ui_options {
   void UpdateComboBox(const std::string &name, const std::string &label, const std::string &default_label);
 
   Zeal::GameUI::SidlWnd *wnd = nullptr;
-  std::unordered_map<int, Zeal::GameUI::BasicWnd *> color_buttons;
+  std::vector<Zeal::GameUI::BasicWnd *> color_buttons;
   UIManager *const ui;
   std::vector<std::pair<int, std::string>> sound_list;  // WavePlay index table.
 };

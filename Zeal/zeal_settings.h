@@ -4,96 +4,45 @@
 #include <functional>
 #include <string>
 
-#include "callbacks.h"
-#include "game_functions.h"
-#include "io_ini.h"
-
-class ZealService;
-
 template <typename T>
 class ZealSetting {
  public:
-  void set(T val, bool store = true) {
-    if (store && section.length() && key.length()) {
-      IO_ini ini(IO_ini::kZealIniFilename);
-      ini.setValue<T>(get_section_name(), key, val);
-    }
-    value = val;
-    if (set_callback) set_callback(value);
+  ZealSetting() = delete;  // Prevent default construction.
+
+  // Supports storing the setting in the kZealIniFilename file with options for per character
+  // stored settings and a callback method when set. Note the callback method is executed when
+  // exiting character select, so the callback must ensure it is compatible with GAMESTATE_ENTERWORLD.
+  // The default_value is also copied back (if no persistent setting) when exiting character select.
+  ZealSetting(T default_value, const std::string &ini_section, const std::string &ini_key,
+              bool save_per_character = false, const std::function<void(const T &value)> &callback_on_set = nullptr);
+
+  // Support a simple set/get/toggle memory-only mode (no persistent ini file storage or set call back).
+  ZealSetting(T _default_value);
+
+  // Sets the value in memory and optionally updates the ini file value.
+  void set(T val, bool store = true);
+
+  // Toggles the current value and optionally stores the new value to the ini file.
+  void toggle(bool store = true)
+    requires std::is_same_v<T, bool>
+  {
+    set(!value, store);
   }
 
-  void toggle(bool store = true) { set(!value, store); }
-
+  // Returns the current value.
   T get() const { return value; }
 
-  std::string get_section_name() const {
-    if (!per_character) return section;
-
-    Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
-    std::string suffix = (c) ? std::string(c->Name) : "Unknown";
-    return section + "_" + suffix;
-  }
-
-  /*
-   *   save_per_character if true saves in player names ini rather than game client.ini
-   *	read and write ini as well as a callback with new value
-   */
-  ZealSetting(T default_value, const std::string &ini_section, const std::string &ini_key, bool save_per_character,
-              std::function<void(T &value)> onset_callback, bool callback_on_init = false) {
-    set_callback = onset_callback;
-    value = default_value;
-    section = ini_section;
-    key = ini_key;
-    per_character = save_per_character;
-    if (save_per_character) {
-      needs_callback = callback_on_init;
-      ZealService::get_instance()->callbacks->AddGeneric(
-          [this]() {
-            init();
-            if (needs_callback && set_callback) set_callback(value);
-            needs_callback = false;
-          },
-          callback_type::InitUI);
-    } else {
-      init();
-      if (callback_on_init && set_callback) set_callback(value);
-    }
-  }
-
-  // read and write ini
-  ZealSetting(T default_value, const std::string &ini_section, const std::string &ini_key, bool save_per_character) {
-    value = default_value;
-    section = ini_section;
-    key = ini_key;
-    per_character = save_per_character;
-    if (save_per_character) {
-      ZealService::get_instance()->callbacks->AddGeneric([this]() { init(); }, callback_type::InitUI);
-    } else
-      init();
-  }
-
-  // no ini settings;
-  ZealSetting(T default_value) {
-    value = default_value;
-    section = "";
-    key = "";
-  }
-
-  ZealSetting() {}
-
  private:
-  std::function<void(T &value)> set_callback;
-  T value;
-  std::string section;
-  std::string key;
-  bool per_character = false;
-  bool needs_callback = false;
+  // Initializes the setting by attempting to fetch the persistent value and then executing the set callback.
+  void init();
 
-  void init() {
-    if (section.length() && key.length()) {
-      IO_ini ini(IO_ini::kZealIniFilename);
-      std::string section_name = get_section_name();
-      if (ini.exists(section_name, key)) value = ini.getValue<T>(section_name, key);
-    }
-  }
+  // Returns the ini section (category) name, optionally with a character specific suffix.
+  std::string get_section_name() const;
+
+  std::function<void(const T &value)> set_callback;
+  T default_value;             // Default value (when persisted value isn't set).
+  T value;                     // Live value.
+  std::string section;         // Ini file section name.
+  std::string key;             // Ini file key name within section.
+  bool per_character = false;  // Whether persisted value is stored per character (vs global).
 };

@@ -2,10 +2,12 @@
 
 #include <array>
 
+#include "callbacks.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
+#include "io_ini.h"
 #include "memory.h"
 #include "zeal.h"
 
@@ -210,6 +212,10 @@ void chatfilter::callback_clean_ui() {
   }
   menuIndex = -1;
   ZealMenu = NULL;
+  current_string_id = 0;
+  isDamage = false;
+  isMyPetSay = false;
+  isPetMessage = false;
 }
 
 void chatfilter::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string msg, short &channel) {

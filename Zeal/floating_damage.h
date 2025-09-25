@@ -7,6 +7,8 @@
 
 #include "bitmap_font.h"
 #include "d3dx8/d3d8.h"
+#include "game_packets.h"
+#include "game_structures.h"
 #include "zeal_settings.h"
 
 struct DamageData {

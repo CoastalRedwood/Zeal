@@ -8,8 +8,8 @@
 
 class Chat {
  public:
-  ZealSetting<bool> UseClassicClassNames = {false, "Zeal", "ClassicClasses", false, [this](bool val) { set_classes(); },
-                                            true};
+  ZealSetting<bool> UseClassicClassNames = {false, "Zeal", "ClassicClasses", false,
+                                            [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseBlueCon = {true, "Zeal", "Bluecon", false};
   ZealSetting<bool> UseZealInput = {true, "Zeal", "ZealInput", false};
   ZealSetting<bool> UseUniqueNames = {false, "Zeal", "UniqueNames", false};

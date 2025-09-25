@@ -122,6 +122,8 @@ void CycleTarget::main_loop() {
 void CycleTarget::on_zone() {
   last_targets.first = 0;
   last_targets.second = 0;
+  last_index = -1;
+  near_ents.clear();
 }
 
 CycleTarget::CycleTarget(ZealService *zeal) {

@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
@@ -92,11 +93,9 @@ void Looting::link_all(const char *channel) const {
 }
 
 void Looting::set_hide_looted(bool val) {
-  hide_looted = val;
-  auto zeal = ZealService::get_instance();
-  zeal->ini->setValue<bool>("Zeal", "HideLooted", hide_looted);
+  setting_hide_looted.set(val);
   if (update_options_ui_callback) update_options_ui_callback();
-  if (hide_looted)
+  if (setting_hide_looted.get())
     Zeal::Game::print_chat("Corpses will be hidden after looting.");
   else
     Zeal::Game::print_chat("Corpses will no longer be hidden after looting.");
@@ -153,7 +152,7 @@ void __fastcall release_loot(int uk, int lootwnd_ptr) {
 }
 
 void Looting::handle_hide_looted() {
-  if (!hide_looted) return;
+  if (!setting_hide_looted.get()) return;
 
   Zeal::GameStructures::Entity *corpse = Zeal::Game::get_active_corpse();
   if (hide_npc_corpse(corpse)) set_last_hidden_corpse(corpse);
@@ -557,7 +556,6 @@ bool Looting::parse_protect(const std::vector<std::string> &args) {
 }
 
 Looting::Looting(ZealService *zeal) {
-  hide_looted = zeal->ini->getValue<bool>("Zeal", "HideLooted");  // just remembers the state
   zeal->callbacks->AddGeneric([this]() { init_ui(); }, callback_type::InitUI);
   zeal->callbacks->AddEntity(
       [this](Zeal::GameStructures::Entity *ent) {
@@ -587,7 +585,7 @@ Looting::Looting(ZealService *zeal) {
   zeal->commands_hook->Add("/hidecorpse", {"/hc", "/hideco", "/hidec"}, "Adds looted argument to hidecorpse.",
                            [this](std::vector<std::string> &args) {
                              if (args.size() > 1 && Zeal::String::compare_insensitive(args[1], "looted")) {
-                               set_hide_looted(!hide_looted);
+                               set_hide_looted(!setting_hide_looted.get());
                                return true;
                              } else if (args.size() == 2 && args[1] == "showlast") {
                                unhide_last_hidden();
