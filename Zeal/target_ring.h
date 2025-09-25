@@ -60,9 +60,7 @@ class TargetRing {
   TargetRing(class ZealService *zeal);
   ~TargetRing();
 
-  ZealSetting<bool> enabled = {false, "TargetRing", "Enabled", true, [](bool val) {
-                                 Zeal::Game::print_chat("Target ring is %s", val ? "Enabled" : "Disabled");
-                               }};
+  ZealSetting<bool> enabled = {false, "TargetRing", "Enabled", true};
   ZealSetting<bool> hide_with_gui = {false, "TargetRing", "HideWithGui", true};
   ZealSetting<bool> disable_for_self = {false, "TargetRing", "DisableForSelf", true};
   ZealSetting<bool> attack_indicator = {false, "TargetRing", "AttackIndicator", true};

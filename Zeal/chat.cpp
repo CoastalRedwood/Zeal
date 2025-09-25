@@ -1,6 +1,7 @@
 #include "chat.h"
 
 #include <algorithm>
+#include <iostream>
 #include <regex>
 
 #include "binds.h"
@@ -9,6 +10,7 @@
 #include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
+#include "game_packets.h"
 #include "game_structures.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"

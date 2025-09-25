@@ -170,6 +170,7 @@
     <ClCompile Include="ui_skin.cpp" />
     <ClCompile Include="ui_zoneselect.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="zeal_settings.cpp" />
     <ClCompile Include="zone_map.cpp" />
     <ClCompile Include="miniz.c" />
     <ClCompile Include="named_pipe.cpp" />

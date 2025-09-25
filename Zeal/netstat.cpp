@@ -1,6 +1,7 @@
 #include "netstat.h"
 
 #include "callbacks.h"
+#include "game_functions.h"
 #include "memory.h"
 #include "zeal.h"
 

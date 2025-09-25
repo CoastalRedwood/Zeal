@@ -5,12 +5,12 @@
 #include <vector>
 
 #include "game_structures.h"
+#include "game_ui.h"
 #include "zeal_settings.h"
 
 class Looting {
  public:
   void set_hide_looted(bool val);
-  bool hide_looted;
   void link_all(const char *channel = nullptr) const;
   void init_ui();
   bool loot_all = false;
@@ -23,6 +23,7 @@ class Looting {
 
   ZealSetting<bool> setting_alt_delimiter = {false, "Zeal", "LinkAllAltDelimiter", false};
   ZealSetting<bool> setting_ctrl_rightclick_loot = {false, "Zeal", "CtrlRightClickLoot", true};
+  ZealSetting<bool> setting_hide_looted = {false, "Zeal", "HideLooted", false};
 
   // /protect functionality.  Command line-only for now.
   bool is_cursor_protected(const Zeal::GameStructures::GAMECHARINFO *char_info) const;

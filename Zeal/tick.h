@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 
+#include "game_ui.h"
 #include "zeal_settings.h"
 
 class Tick {

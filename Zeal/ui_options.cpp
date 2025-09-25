@@ -1,6 +1,9 @@
 #include "ui_options.h"
 
+#include <array>
+
 #include "assist.h"
+#include "callbacks.h"
 #include "camera_mods.h"
 #include "chat.h"
 #include "chatfilter.h"
@@ -58,6 +61,7 @@ int Shownames_Combobox_dropdown() {
 }
 
 void ui_options::PlayTellSound() const {
+  if (Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
   // For now at least just copy the same sound list from invites. A future goal is to
   // support custom wave sounds for tells.
   const auto &sound_name = setting_tell_sound.get();
@@ -68,6 +72,7 @@ void ui_options::PlayTellSound() const {
 }
 
 void ui_options::PlayInviteSound() const {
+  if (Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
   const auto &sound_name = setting_invite_sound.get();
   if (sound_name.empty() || sound_name == kDefaultSoundNone) return;
   const auto it = std::find_if(sound_list.begin(), sound_list.end(),
@@ -157,186 +162,80 @@ int __fastcall WndNotification(Zeal::GameUI::BasicWnd *wnd, int unused, Zeal::Ga
                                             int data)>(0x56e920)(wnd, sender, message, data);
 }
 
+// Hard-coded defaults table also used as the initialization list.  Must keep in sync with xml.
+struct ColorButtonEntry {
+  const char *name;
+  D3DCOLOR color;
+};
+
+static constexpr int num_color_buttons = 41;
+static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_defaults = {{
+    {"AFK", D3DCOLOR_XRGB(0xff, 0x80, 0x00)},            // 0: Orange
+    {"LFG", D3DCOLOR_XRGB(0xcf, 0xff, 0x00)},            // 1: Yellow
+    {"LinkDead", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},       // 2: Red
+    {"GuildMember", D3DCOLOR_XRGB(0xff, 0x80, 0x80)},    // 3: White Red
+    {"RaidMember", D3DCOLOR_XRGB(0xff, 0x80, 0xff)},     // 4: Bright Purple
+    {"GroupMember", D3DCOLOR_XRGB(0x00, 0xff, 0x32)},    // 5: Light Green
+    {"PVP", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},            // 6: Red
+    {"Roleplay", D3DCOLOR_XRGB(0x85, 0x48, 0x9c)},       // 7: Dark Purple
+    {"OtherGuild", D3DCOLOR_XRGB(0xff, 0xff, 0x80)},     // 8: Light Yellow
+    {"OtherDefault", D3DCOLOR_XRGB(0x3d, 0x6b, 0xdc)},   // 9: Default Blue
+    {"NPCCorpse", D3DCOLOR_XRGB(0x20, 0x20, 0x20)},      // 10: Dark gray
+    {"PlayerCorpse", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 11: White
+    {"Con_Green", D3DCOLOR_XRGB(0x00, 0xf0, 0x00)},      // 12: Light Green
+    {"Con_LightBlue", D3DCOLOR_XRGB(0x00, 0xf0, 0xf0)},  // 13: Light Blue
+    {"Con_Blue", D3DCOLOR_XRGB(0x00, 0x40, 0xf0)},       // 14: Blue
+    {"Con_White", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},      // 15: White
+    {"Con_Yellow", D3DCOLOR_XRGB(0xf0, 0xf0, 0x00)},     // 16: Yellow
+    {"Con_Red", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},        // 17: Red
+    {"Target", D3DCOLOR_XRGB(0xff, 0x80, 0xff)},         // 18: Pink
+    {"MyPetDmg", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},       // 19: White
+    {"OtherPetDmg", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},    // 20: White
+    {"MyPetSay", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},       // 21: White
+    {"OtherPetSay", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},    // 22: White
+    {"MyMeleeSpec", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},    // 23: White
+    {"OtherSpecial", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 24: White
+    {"OtherCritical", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},  // 25: White
+    {"OtherDmgShld", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 26: White
+    {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 27: Unused
+    {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 28: Unused
+    {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 29: Unused
+    {"GuildLFG", D3DCOLOR_XRGB(0xcf, 0xff, 0x00)},       // 30: Yellow
+    {"PVPAlly", D3DCOLOR_XRGB(0x3d, 0x6b, 0xdc)},        // 31: Default blue
+    {"MyMelee", D3DCOLOR_XRGB(0x00, 0xf0, 0xf0)},        // 32: Light blue
+    {"MySpell", D3DCOLOR_XRGB(0x00, 0xf0, 0xf0)},        // 33: Light blue
+    {"MeleeDmgToMe", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},   // 34: Red
+    {"SpellDmgToMe", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},   // 35: Red
+    {"MeleeToOthers", D3DCOLOR_XRGB(0xff, 0x80, 0x00)},  // 36: Orange
+    {"SpellToOthers", D3DCOLOR_XRGB(0xff, 0x80, 0x00)},  // 37: Orange
+    {"MeleeToNpcs", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},    // 38: White
+    {"SpellToNpcs", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},    // 39: White
+    {"MyBitHits", D3DCOLOR_XRGB(0xf9, 0x9b, 0xff)},      // 40: Pink
+}};
+
 void ui_options::SaveColors() const {
   IO_ini *ini = ZealService::get_instance()->ini.get();
-  for (auto &[index, btn] : color_buttons) {
-    ini->setValue("ZealColors", "Color" + std::to_string(index), std::to_string(btn->TextColor.ARGB));
+  for (auto i = 0; i < color_buttons.size(); ++i) {
+    if (!color_buttons[i]) continue;
+    ini->setValue("ZealColors", "Color" + std::to_string(i), std::to_string(color_buttons[i]->TextColor.ARGB));
   }
 }
 
 DWORD ui_options::GetColor(int index) const {
-  auto it = color_buttons.find(index);
-  return (it == color_buttons.end()) ? 0xFFFFFFFF : it->second->TextColor.ARGB;
+  if (index >= 0 && index < color_buttons.size()) {
+    return color_buttons[index] ? color_buttons[index]->TextColor.ARGB : color_button_defaults[index].color;
+  }
+  return D3DCOLOR_XRGB(0xff, 0xff, 0xff);
 }
 
 void ui_options::LoadColors() {
   IO_ini *ini = ZealService::get_instance()->ini.get();
-
-  if (!ini->exists("ZealColors", "Color0"))  // Adds default Nameplate Color to Button1  for new users
-  {
-    if (color_buttons.count(0)) color_buttons[0]->TextColor.ARGB = 0xFFFF8000;  // AFK - Orange
-  }
-  if (!ini->exists("ZealColors", "Color1"))  // Adds default Nameplate Color to Button2 for new users
-  {
-    if (color_buttons.count(1)) color_buttons[1]->TextColor.ARGB = 0xFFCFFF00;  // LFG - Yellow
-  }
-  if (!ini->exists("ZealColors", "Color2"))  // Adds default Nameplate Color to Button3 for new users
-  {
-    if (color_buttons.count(2)) color_buttons[2]->TextColor.ARGB = 0xFFFF0000;  // LinkDead - Red
-  }
-  if (!ini->exists("ZealColors", "Color3"))  // Adds default Nameplate Color to Button4 for new users
-  {
-    if (color_buttons.count(3)) color_buttons[3]->TextColor.ARGB = 0xFFFF8080;  // Guild Member - White Red
-  }
-  if (!ini->exists("ZealColors", "Color4"))  // Adds default Nameplate Color to Button5 for new users
-  {
-    if (color_buttons.count(4)) color_buttons[4]->TextColor.ARGB = 0xFFFFFFFF;  // Raid Member - White Light Purple
-  }
-  if (!ini->exists("ZealColors", "Color5"))  // Adds default Nameplate Color to Button6 for new users
-  {
-    if (color_buttons.count(5)) color_buttons[5]->TextColor.ARGB = 0xFF00FF32;  // Group Member - Light Green
-  }
-  if (!ini->exists("ZealColors", "Color6"))  // Adds default Nameplate Color to Button7 for new users
-  {
-    if (color_buttons.count(6)) color_buttons[6]->TextColor.ARGB = 0xFFFF0000;  // PVP - Red
-  }
-  if (!ini->exists("ZealColors", "Color7"))  // Adds default Nameplate Color to Button8 for new users
-  {
-    if (color_buttons.count(7)) color_buttons[7]->TextColor.ARGB = 0xFF85489C;  // Roleplay - Purple
-  }
-  if (!ini->exists("ZealColors", "Color8"))  // Adds default Nameplate Color to Button9 for new users
-  {
-    if (color_buttons.count(8)) color_buttons[8]->TextColor.ARGB = 0xFFFFFF80;  // OtherGuild Member - White Yellow
-  }
-  if (!ini->exists("ZealColors", "Color9"))  // Adds default Nameplate Color to Button10 for new users
-  {
-    if (color_buttons.count(9)) color_buttons[9]->TextColor.ARGB = 0xFF3D6BDC;  // DefaultAdventurer - Default Blue
-  }
-  if (!ini->exists("ZealColors", "Color10"))  // Adds default Nameplate Color to Button11 for new users
-  {
-    if (color_buttons.count(10)) color_buttons[10]->TextColor.ARGB = 0xFF202020;  // Npc Corpse - Dark gray
-  }
-  if (!ini->exists("ZealColors", "Color11"))  // Adds default Nameplate Color to Button12 for new users
-  {
-    if (color_buttons.count(11)) color_buttons[11]->TextColor.ARGB = 0xFFFFFFFF;  // Players Corpse - White Light Purple
-  }
-  if (!ini->exists("ZealColors", "Color12"))  // Adds default Nameplate Color to Button13 for new users
-  {
-    if (color_buttons.count(12)) color_buttons[12]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0x0);  // CON_GREEN
-  }
-  if (!ini->exists("ZealColors", "Color13"))  // Adds default Nameplate Color to Button14 for new users
-  {
-    if (color_buttons.count(13))
-      color_buttons[13]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0x0, 0xf0, 0xf0);  // CON_LIGHTBLUE
-  }
-  if (!ini->exists("ZealColors", "Color14"))  // Adds default Nameplate Color to Button15 for new users
-  {
-    if (color_buttons.count(14))
-      color_buttons[14]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0x0, 0x40, 0xf0);  // CON_BLUE (lightened).
-  }
-  if (!ini->exists("ZealColors", "Color15"))  // Adds default Nameplate Color to Button16 for new users
-  {
-    if (color_buttons.count(15))
-      color_buttons[15]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // CON_WHITE
-  }
-  if (!ini->exists("ZealColors", "Color16"))  // Adds default Nameplate Color to Button17 for new users
-  {
-    if (color_buttons.count(16))
-      color_buttons[16]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0x0);  // CON_YELLOW
-  }
-  if (!ini->exists("ZealColors", "Color17"))  // Adds default Nameplate Color to Button18 for new users
-  {
-    if (color_buttons.count(17)) color_buttons[17]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0x0, 0x0);  // CON_RED
-  }
-  if (!ini->exists("ZealColors", "Color18"))  // Adds default Nameplate Color to Button18 for new users
-  {
-    if (color_buttons.count(18))
-      color_buttons[18]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xff, 0x80, 0xff);  // Target Pink Default
-  }
-  if (!ini->exists("ZealColors", "Color19"))  // My Pet Damage
-  {
-    if (color_buttons.count(19))
-      color_buttons[19]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  if (!ini->exists("ZealColors", "Color20"))  // Other Pet Damage
-  {
-    if (color_buttons.count(20))
-      color_buttons[20]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  if (!ini->exists("ZealColors", "Color21"))  // My Pet Say
-  {
-    if (color_buttons.count(21))
-      color_buttons[21]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  if (!ini->exists("ZealColors", "Color22"))  // Other Pet Say
-  {
-    if (color_buttons.count(22))
-      color_buttons[22]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  if (!ini->exists("ZealColors", "Color23"))  // My Melee Special
-  {
-    if (color_buttons.count(23))
-      color_buttons[23]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  if (!ini->exists("ZealColors", "Color24"))  // Other Melee Special
-  {
-    if (color_buttons.count(24))
-      color_buttons[24]->TextColor.ARGB = D3DCOLOR_ARGB(0xff, 0xf0, 0xf0, 0xf0);  // Default White
-  }
-  // Color25: Unused
-  // Color26: Unused
-  // Color27: Unused
-  // Color28: Unused
-  // Color29: Unused
-  if (!ini->exists("ZealColors", "Color30"))  // Nameplate: Guild LFG
-  {
-    if (color_buttons.count(30)) color_buttons[30]->TextColor.ARGB = 0xFFCFFF00;  // LFG - Yellow
-  }
-  if (!ini->exists("ZealColors", "Color31"))  // Nameplate: PvP Ally
-  {
-    if (color_buttons.count(31)) color_buttons[31]->TextColor.ARGB = 0xFF3D6BDC;  // Default Blue
-  }
-  if (!ini->exists("ZealColors", "Color32"))  // FCD: My melee damage
-  {
-    if (color_buttons.count(32)) color_buttons[32]->TextColor.ARGB = D3DCOLOR_XRGB(0x00, 0xf0, 0xf0);  // Light blue
-  }
-  if (!ini->exists("ZealColors", "Color33"))  // FCD: My spell damage
-  {
-    if (color_buttons.count(33)) color_buttons[33]->TextColor.ARGB = D3DCOLOR_XRGB(0x00, 0xf0, 0xf0);  // Light blue
-  }
-  if (!ini->exists("ZealColors", "Color34"))  // FCD: Melee hitting me
-  {
-    if (color_buttons.count(34)) color_buttons[34]->TextColor.ARGB = D3DCOLOR_XRGB(0xf0, 0x00, 0x00);  // Red
-  }
-  if (!ini->exists("ZealColors", "Color35"))  // FCD: Spells hitting me
-  {
-    if (color_buttons.count(35)) color_buttons[35]->TextColor.ARGB = D3DCOLOR_XRGB(0xf0, 0x00, 0x00);  // Red
-  }
-  if (!ini->exists("ZealColors", "Color36"))  // FCD: Melee hitting others
-  {
-    if (color_buttons.count(36)) color_buttons[36]->TextColor.ARGB = D3DCOLOR_XRGB(0xff, 0x80, 0x00);  // Orange
-  }
-  if (!ini->exists("ZealColors", "Color37"))  // FCD: Spells hitting others
-  {
-    if (color_buttons.count(37)) color_buttons[37]->TextColor.ARGB = D3DCOLOR_XRGB(0xff, 0x80, 0x00);  // Orange
-  }
-  if (!ini->exists("ZealColors", "Color38"))  // FCD: Melee hitting NPCs
-  {
-    if (color_buttons.count(38)) color_buttons[38]->TextColor.ARGB = D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0);  // White
-  }
-  if (!ini->exists("ZealColors", "Color39"))  // FCD: Spells hitting NPCs
-  {
-    if (color_buttons.count(39)) color_buttons[39]->TextColor.ARGB = D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0);  // White
-  }
-  if (!ini->exists("ZealColors", "Color40"))  // FCD: My big hits
-  {
-    if (color_buttons.count(40))
-      color_buttons[40]->TextColor.ARGB = D3DCOLOR_XRGB(0xf9, 0x9b, 0xff);  // Light purple/pink.
-  }
-
-  for (auto &[index, btn] : color_buttons) {
-    if (ini->exists("ZealColors", "Color" + std::to_string(index)))
-      btn->TextColor.ARGB = ini->getValue<DWORD>("ZealColors", "Color" + std::to_string(index));
+  const std::string section = "ZealColors";
+  for (int i = 0; i < color_buttons.size(); ++i) {
+    if (!color_buttons[i]) continue;
+    std::string name = "Color" + std::to_string(i);
+    color_buttons[i]->TextColor.ARGB =
+        ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : color_button_defaults[i].color;
   }
 }
 
@@ -391,12 +290,17 @@ float ScaleSliderToFloat(int ivalue, float fmin, float fmax, Zeal::GameUI::Slide
 void ui_options::InitColors() {
   if (!wnd) return;
 
-  for (int i = 0; i < 100; i++) {
-    Zeal::GameUI::BasicWnd *btn = ui->AddButtonCallback(
-        wnd, "Zeal_Color" + std::to_string(i),
-        [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); },
-        false);
-    if (btn) color_buttons[i] = btn;
+  // The color_buttons vector is loaded here with the maximum number of color buttons (nullptr if not present).
+  color_buttons.clear();
+  for (int i = 0; i < num_color_buttons; i++) {
+    if (!color_button_defaults[i].name) {
+      color_buttons.push_back(nullptr);  // Do not attempt to load if no default value.
+    } else {
+      color_buttons.push_back(ui->AddButtonCallback(
+          wnd, "Zeal_Color" + std::to_string(i),
+          [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); },
+          false));
+    }
   }
   LoadColors();
 }
@@ -416,17 +320,15 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_Input", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->chat_hook->UseZealInput.set(wnd->Checked);
   });
-  ui->AddCheckboxCallback(wnd, "Zeal_Escape", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->ini->setValue<bool>("Zeal", "Escape", wnd->Checked);
-  });
-  ui->AddCheckboxCallback(wnd, "Zeal_RaidEscapeLock", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->ini->setValue<bool>("Zeal", "EscapeRaidLock", wnd->Checked);
-  });
+  ui->AddCheckboxCallback(wnd, "Zeal_Escape",
+                          [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_RaidEscapeLock",
+                          [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape_raid_lock.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_ShowHelm", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->helm->ShowHelmEnabled.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_AltContainerTooltips", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->tooltips->set_alt_all_containers(wnd->Checked);
+    ZealService::get_instance()->tooltips->all_containers.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_SpellbookAutoStand", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->movement->SpellBookAutoStand.set(wnd->Checked);
@@ -441,10 +343,10 @@ void ui_options::InitGeneral() {
     ZealService::get_instance()->chat_hook->UseClassicClassNames.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_TellWindows", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->tells->SetEnabled(wnd->Checked);
+    ZealService::get_instance()->tells->setting_enabled.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_TellWindowsHist", [](Zeal::GameUI::BasicWnd *wnd) {
-    ZealService::get_instance()->tells->SetHist(wnd->Checked);
+    ZealService::get_instance()->tells->setting_hist_enabled.set(wnd->Checked);
   });
   ui->AddCheckboxCallback(wnd, "Zeal_BuffTimers", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->ui->buffs->BuffTimers.set(wnd->Checked);
@@ -556,7 +458,7 @@ void ui_options::InitGeneral() {
   });
   ui->AddSliderCallback(wnd, "Zeal_HoverTimeout_Slider", [this](Zeal::GameUI::SliderWnd *wnd, int value) {
     int val = value * 5;
-    ZealService::get_instance()->tooltips->set_timer(val);
+    ZealService::get_instance()->tooltips->hover_timeout.set(val);
     ui->SetLabelValue("Zeal_HoverTimeout_Value", "%i ms", val);
   });
   ui->AddLabel(wnd, "Zeal_HoverTimeout_Value");
@@ -984,9 +886,9 @@ void ui_options::UpdateOptionsGeneral() {
                                                      ? ZealService::get_instance()->tooltips->hover_timeout.get() / 5
                                                      : 0);
   ui->SetLabelValue("Zeal_HoverTimeout_Value", "%d ms", ZealService::get_instance()->tooltips->hover_timeout.get());
-  ui->SetChecked("Zeal_HideCorpse", ZealService::get_instance()->looting_hook->hide_looted);
-  ui->SetChecked("Zeal_TellWindows", ZealService::get_instance()->tells->enabled);
-  ui->SetChecked("Zeal_TellWindowsHist", ZealService::get_instance()->tells->hist_enabled);
+  ui->SetChecked("Zeal_HideCorpse", ZealService::get_instance()->looting_hook->setting_hide_looted.get());
+  ui->SetChecked("Zeal_TellWindows", ZealService::get_instance()->tells->setting_enabled.get());
+  ui->SetChecked("Zeal_TellWindowsHist", ZealService::get_instance()->tells->setting_hist_enabled.get());
   ui->SetChecked("Zeal_LinkAllAltDelimiter", ZealService::get_instance()->looting_hook->setting_alt_delimiter.get());
   ui->SetChecked("Zeal_CtrlRightClickCorpse",
                  ZealService::get_instance()->looting_hook->setting_ctrl_rightclick_loot.get());
@@ -1001,7 +903,8 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_BlueCon", ZealService::get_instance()->chat_hook->UseBlueCon.get());
   ui->SetChecked("Zeal_Timestamp", ZealService::get_instance()->chat_hook->TimeStampsStyle.get());
   ui->SetChecked("Zeal_Input", ZealService::get_instance()->chat_hook->UseZealInput.get());
-  ui->SetChecked("Zeal_Escape", ZealService::get_instance()->ini->getValue<bool>("Zeal", "Escape"));
+  ui->SetChecked("Zeal_Escape", setting_escape.get());
+  ui->SetChecked("Zeal_RaidEscapeLock", setting_escape_raid_lock.get());
   ui->SetChecked("Zeal_ShowHelm", ZealService::get_instance()->helm->ShowHelmEnabled.get());
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
   ui->SetChecked("Zeal_SpellbookAutoStand", ZealService::get_instance()->movement->SpellBookAutoStand.get());
@@ -1077,6 +980,7 @@ void ui_options::UpdateOptionsTargetRing() {
 
   ui->SetChecked("Zeal_TargetRing", ZealService::get_instance()->target_ring->enabled.get());
   ui->SetChecked("Zeal_TargetRingDisableForSelf", ZealService::get_instance()->target_ring->disable_for_self.get());
+  ui->SetChecked("Zeal_TargetRingHideWithGui", ZealService::get_instance()->target_ring->hide_with_gui.get());
   ui->SetChecked("Zeal_TargetRingAttackIndicator", ZealService::get_instance()->target_ring->attack_indicator.get());
   ui->SetChecked("Zeal_TargetRingForward", ZealService::get_instance()->target_ring->rotate_match_heading.get());
   ui->SetChecked("Zeal_TargetRingCone", ZealService::get_instance()->target_ring->use_cone.get());
@@ -1149,6 +1053,7 @@ void ui_options::UpdateOptionsNameplate() {
 void ui_options::UpdateOptionsFloatingDamage() {
   ui->SetChecked("Zeal_FloatingDamage", ZealService::get_instance()->floating_damage->enabled.get());
   ui->SetChecked("Zeal_FloatingSelf", ZealService::get_instance()->floating_damage->show_self.get());
+  ui->SetChecked("Zeal_FloatingHideWithGui", ZealService::get_instance()->floating_damage->hide_with_gui.get());
   ui->SetChecked("Zeal_FloatingPets", ZealService::get_instance()->floating_damage->show_pets.get());
   ui->SetChecked("Zeal_FloatingOthers", ZealService::get_instance()->floating_damage->show_others.get());
   ui->SetChecked("Zeal_FloatingNpcs", ZealService::get_instance()->floating_damage->show_npcs.get());

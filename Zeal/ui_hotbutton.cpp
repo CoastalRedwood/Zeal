@@ -1,5 +1,6 @@
 #include "ui_hotbutton.h"
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"

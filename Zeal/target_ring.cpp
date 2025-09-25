@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "target_ring.h"
 
+#include "callbacks.h"
 #include "commands.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
@@ -76,7 +77,7 @@ void TargetRing::load_texture(const std::string &filename) {
 
     targetRingTexture = nullptr;
 
-    if (!filename.length() || filename == "None") return;
+    if (!filename.length() || filename == "None" || Zeal::Game::get_gamestate() == GAMESTATE_ENTERWORLD) return;
 
     // Full texture path
     std::filesystem::path texturePath = UISkin::get_zeal_resources_path() /
@@ -478,8 +479,10 @@ TargetRing::TargetRing(ZealService *zeal) {
         float pct = 0;
         if (Zeal::String::tryParse(args[1], &pct)) inner_percent.set(pct);
       }
-    } else
+    } else {
       enabled.toggle();
+      Zeal::Game::print_chat("Target ring is %s", enabled.get() ? "Enabled" : "Disabled");
+    }
     if (update_options_ui_callback) update_options_ui_callback();
     return true;
   });

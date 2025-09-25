@@ -3,10 +3,14 @@
 
 class Tooltip {
  public:
-  void set_timer(int hover_timeout);
-  void set_alt_all_containers(bool enabled);
-  ZealSetting<bool> all_containers = {false, "Zeal", "alt_all_containers", false};
-  ZealSetting<int> hover_timeout = {500, "Zeal", "TooltipTime", false};
-  Tooltip(class ZealService *pHookWrapper);
+  ZealSetting<bool> all_containers = {false, "Zeal", "alt_all_containers", false,
+                                      [this](const bool& val) { synchronize_alt_all_containers(); }};
+  ZealSetting<int> hover_timeout = {500, "Zeal", "TooltipTime", false,
+                                    [this](const int& val) { synchronize_hover_timeout(); }};
+  Tooltip(class ZealService* pHookWrapper);
   ~Tooltip();
+
+ private:
+  void synchronize_hover_timeout();
+  void synchronize_alt_all_containers();
 };

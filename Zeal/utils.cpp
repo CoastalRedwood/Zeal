@@ -5,6 +5,7 @@
 
 #include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "game_structures.h"
 #include "game_ui.h"
 #include "string_util.h"

@@ -3,6 +3,7 @@
 #include "chat.h"
 #include "commands.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "ui_inputdialog.h"

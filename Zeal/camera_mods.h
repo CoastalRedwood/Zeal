@@ -18,10 +18,7 @@ class CameraMods {
   ZealSetting<float> user_sensitivity_y = {0.1f, "Zeal", "MouseSensitivityY", false};
   ZealSetting<float> user_sensitivity_x_3rd = {0.1f, "Zeal", "MouseSensitivityX3rd", false};
   ZealSetting<float> user_sensitivity_y_3rd = {0.1f, "Zeal", "MouseSensitivityY3rd", false};
-  ZealSetting<float> fov = {45.f, "Zeal", "Fov", false, [this](float val) {
-                              Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
-                              if (ci) ci->FieldOfView = val;
-                            }};
+  ZealSetting<float> fov = {45.f, "Zeal", "Fov", false, [this](float val) { synchronize_fov(); }};
   ZealSetting<int> pan_delay = {0, "Zeal", "PanDelay", false};
   ZealSetting<bool> setting_selfclickthru = {false, "Zeal", "SelfClickThru", false};
   ZealSetting<bool> setting_leftclickcon = {false, "Zeal", "LeftClickCon", false};
@@ -66,6 +63,7 @@ class CameraMods {
   void callback_main();
   bool callback_packet(UINT opcode, char *buffer, UINT len);
   void update_desired_zoom(float zoom);
+  void synchronize_fov();
   void set_zeal_cam_active(bool activate);
   bool is_zeal_cam_active() const;
   bool calc_camera_positions(Vec3 &head_pos, Vec3 &wanted_pos) const;

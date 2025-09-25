@@ -2,9 +2,8 @@
 
 #include <random>
 
+#include "callbacks.h"
 #include "commands.h"
-#include "game_packets.h"
-#include "game_structures.h"
 #include "string_util.h"
 #include "target_ring.h"
 #include "zeal.h"
@@ -408,6 +407,7 @@ void FloatingDamage::clean_ui() {
     if (texture) texture->Release();
   textures.clear();
   bitmap_font.reset();
+  damage_numbers.clear();
 }
 
 std::vector<std::string> FloatingDamage::get_available_fonts() const {

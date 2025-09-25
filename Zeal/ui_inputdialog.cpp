@@ -1,5 +1,6 @@
 #include "ui_inputdialog.h"
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_functions.h"
 #include "hook_wrapper.h"

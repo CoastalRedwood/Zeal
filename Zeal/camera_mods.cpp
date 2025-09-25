@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "binds.h"
+#include "callbacks.h"
 #include "camera_math.h"
 #include "commands.h"
 #include "game_addresses.h"
@@ -205,10 +206,8 @@ bool CameraMods::handle_proc_mouse() {
 
 // This callback is invoked when the enabled setting is changed. It synchronizes the state.
 void CameraMods::synchronize_set_enable() {
+  if (Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
   set_zeal_cam_active(get_camera_view() == Zeal::GameEnums::CameraView::ZealCam);
-
-  auto zeal = ZealService::get_instance();
-  if (update_options_ui_callback) update_options_ui_callback();  // Handle command line updates.
 }
 
 // Interpolate zoom is called repeatedly in main_callback(). The alpha coefficient below acts as a
@@ -415,6 +414,14 @@ static void __fastcall RMouseDown(void *game_this, int unused_edx, int x, int y)
   zeal->hooks->hook_map["RMouseDown"]->original(RMouseDown)(game_this, unused_edx, x, y);
 }
 
+void CameraMods::synchronize_fov() {
+  if (!enabled.get() || Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
+
+  // TODO: This is not setting the camera lens, so is it accurate?
+  Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
+  if (ci) ci->FieldOfView = fov.get();
+}
+
 // Overrides the default FOV when enabled.
 static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
@@ -574,6 +581,7 @@ CameraMods::CameraMods(ZealService *zeal) {
                                  }
 
                                  fov.set(_fov);
+                                 if (update_options_ui_callback) update_options_ui_callback();
                                } else {
                                  Zeal::Game::print_chat("Current FOV [%f]", ci->FieldOfView);
                                }
@@ -674,6 +682,7 @@ CameraMods::CameraMods(ZealService *zeal) {
             Zeal::Game::print_chat("Zealcam disabled");
           }
         }
+        if (update_options_ui_callback) update_options_ui_callback();
         return true;
       });
 }

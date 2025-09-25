@@ -1,5 +1,6 @@
 #include "ui_loot.h"
 
+#include "callbacks.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_ui.h"

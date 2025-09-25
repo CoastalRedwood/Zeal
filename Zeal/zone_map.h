@@ -9,6 +9,8 @@
 
 #include "bitmap_font.h"
 #include "directx.h"
+#include "game_functions.h"
+#include "game_ui.h"
 #include "vectors.h"
 #include "zeal_settings.h"
 #include "zone_map_data.h"

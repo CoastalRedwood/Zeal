@@ -1,5 +1,6 @@
 #include "directx.h"
 
+#include "callbacks.h"
 #include "hook_wrapper.h"
 #include "zeal.h"
 #pragma comment(lib, "d3dx8/d3d8.lib")

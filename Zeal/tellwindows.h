@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "game_ui.h"
+#include "zeal_settings.h"
 
 class TellWindows {
  public:
@@ -14,16 +15,14 @@ class TellWindows {
   bool IsTellWindow(struct Zeal::GameUI::ChatWnd *wnd) const;
   TellWindows(class ZealService *zeal);
   ~TellWindows();
-  void SetEnabled(bool val);
-  void SetHist(bool val);
   Zeal::GameUI::ChatWnd *FindTellWnd(std::string &name);
   void AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short channel);
   void CloseAllWindows();
 
   void AddOptionsCallback(std::function<void()> callback) { update_options_ui_callback = callback; };
 
-  bool enabled = false;
-  bool hist_enabled = true;
+  ZealSetting<bool> setting_enabled = {false, "TellWindows", "Enabled", true};
+  ZealSetting<bool> setting_hist_enabled = {false, "TellWindows", "HistoryEnabled", true};
 
  private:
   Zeal::GameUI::ChatWnd *FindPreviousTellWnd();
@@ -31,5 +30,4 @@ class TellWindows {
   std::unordered_map<std::string, std::vector<std::pair<short, std::string>>> tell_cache;
   std::function<void()> update_options_ui_callback;
   void CleanUI();
-  void LoadUI();
 };

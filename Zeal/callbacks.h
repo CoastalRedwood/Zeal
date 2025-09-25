@@ -15,6 +15,7 @@ enum class callback_type {
   CleanUI,
   Render,
   CharacterSelect,
+  CharacterSelectExit,
   InitUI,
   EndMainLoop,
   WorldMessage,

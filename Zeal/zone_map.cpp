@@ -5,13 +5,16 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 
+#include "callbacks.h"
 #include "chat.h"
 #include "commands.h"
 #include "entity_manager.h"
 #include "game_addresses.h"
+#include "game_functions.h"
 #include "game_structures.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
+#include "io_ini.h"
 #include "string_util.h"
 #include "ui_manager.h"
 #include "ui_skin.h"

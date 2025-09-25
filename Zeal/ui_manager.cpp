@@ -4,6 +4,7 @@
 #include <array>
 #include <fstream>
 
+#include "callbacks.h"
 #include "commands.h"
 #include "crash_handler.h"
 #include "game_addresses.h"
