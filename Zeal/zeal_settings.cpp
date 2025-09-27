@@ -17,7 +17,8 @@ ZealSetting<T>::ZealSetting(T default_value_in, const std::string &ini_section, 
   key = ini_key;
   per_character = save_per_character;
   init();
-  ZealService::get_instance()->callbacks->AddGeneric([this]() { init(); }, callback_type::CharacterSelectExit);
+  // Add a callback that executes when exiting CharacterSelect to trigger a refresh init of settings.
+  ZealService::get_instance()->callbacks->AddGeneric([this]() { init(); }, callback_type::CleanCharSelectUI);
 }
 
 // The memory only setting just sets the section and key names blank to avoid use of ini io. It
@@ -55,8 +56,9 @@ void ZealSetting<T>::set(T val, bool store) {
 
 static const char *get_character_name() {
   // In order to properly reset everything to the defaults and reload the per character settings,
-  // this method is accessed in GAMESTATE_ENTERWORLD where charinfo has not been updated. In
-  // that state it peeks at the character select result.
+  // this method may be accessed in GAMESTATE_ENTERWORLD where charinfo has not yet been updated.
+  // We peek at the character select results to retrieve the name, which is similar to what
+  // StartNetworkGame() does to set g_next_player at 0x00795274.
   const char *name = nullptr;
   if (Zeal::Game::get_gamestate() == GAMESTATE_INGAME) {
     Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();

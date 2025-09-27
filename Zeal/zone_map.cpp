@@ -3264,7 +3264,7 @@ ZoneMap::ZoneMap(ZealService *zeal) {
 
   zeal->callbacks->AddGeneric([this]() { callback_render(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { callback_dx_reset(); }, callback_type::DXReset);
-  zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::EnterZone);
   zeal->commands_hook->Add("/map", {}, "Controls map overlay",
                            [this](const std::vector<std::string> &args) { return parse_command(args); });
 

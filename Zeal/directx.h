@@ -9,15 +9,19 @@
 
 class DirectX {
  public:
+  DirectX();
+  void InitializeDevice();
+  void CleanDevice();
+
+  IDirect3DDevice8 *GetDevice() { return device; }
+
   bool WorldToScreen(Vec3 worldPos, Vec2 &screenPos);
   Vec2 GetScreenRect();
-  IDirect3DDevice8 *GetDevice();
+
   ZealSetting<int> fps_limit = {0, "Zeal", "FPS", false};
-  DirectX();
 
  private:
   IDirect3DDevice8 *device;
-  void update_device();
 };
 
 // Convenience class for stashing the active D3D render state before modifying

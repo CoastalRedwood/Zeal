@@ -588,7 +588,7 @@ HelmManager::HelmManager(ZealService *zeal) {
   zeal->hooks->Add("EntityChangeForm", 0x005074FA, EntityChangeForm_hk, hook_type_detour);
   zeal->hooks->Add("WearChangeArmor", 0x004A2A7A, WearChangeArmor_hk, hook_type_detour);
 
-  zeal->callbacks->AddGeneric([this]() { OnZone(); }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([this]() { OnZone(); }, callback_type::EnterZone);
 
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {

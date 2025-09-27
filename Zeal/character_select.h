@@ -32,6 +32,12 @@ class CharacterSelect {
  public:
   CharacterSelect(class ZealService *zeal);
   ~CharacterSelect();
+
+  void handle_character_select_exit();
+
+  float get_last_heading() const { return last_heading; }
+
+  float last_heading = -1.f;
   ZealSetting<int> ZoneIndex = {-1, "CharacterSelect", "ZoneIndex", false};
   std::unordered_map<int, ExploreZoneData> ZoneData;
 };

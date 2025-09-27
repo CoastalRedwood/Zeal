@@ -70,10 +70,8 @@ void _fastcall charselect_hk(int t, int u) {
   ZealService *zeal = ZealService::get_instance();
   zeal->callbacks->invoke_generic(callback_type::CharacterSelect);
   zeal->hooks->hook_map["DoCharacterSelection"]->original(charselect_hk)(t, u);
-  zeal->callbacks->invoke_generic(callback_type::CharacterSelectExit);
+  zeal->callbacks->invoke_generic(callback_type::CleanCharSelectUI);
 }
-
-void CallbackManager::eml() { invoke_generic(callback_type::EndMainLoop); }
 
 void CallbackManager::invoke_generic(callback_type fn) {
   for (auto &f : generic_functions[fn]) f();
@@ -104,7 +102,7 @@ void __fastcall enterzone_hk(int t, int unused, int hwnd) {
   CallbackTrace trace("EnterZone");
   ZealService *zeal = ZealService::get_instance();
   zeal->hooks->hook_map["EnterZone"]->original(enterzone_hk)(t, unused, hwnd);
-  zeal->callbacks->invoke_generic(callback_type::Zone);
+  zeal->callbacks->invoke_generic(callback_type::EnterZone);
 }
 
 void __fastcall initgameui_hk(int t, int u) {
@@ -199,7 +197,7 @@ void executecmd_hk(UINT cmd, bool isdown, int unk2) {
   if (cmd == 0x8 && Zeal::Game::is_new_ui() && Zeal::Game::Windows && !Zeal::Game::Windows->SpellBook)
     return;  // don't allow auto attack to happen when spellbook is nullptr (happens in explore mode).. will cause a
              // crash
-  if (cmd == 0xd2) zeal->callbacks->invoke_generic(callback_type::EndMainLoop);
+  if (cmd == 0xd2 && isdown == 1 && unk2 == 1) zeal->callbacks->invoke_generic(callback_type::EndMainLoop);
   if (zeal->callbacks->invoke_command(callback_type::ExecuteCmd, cmd, isdown)) return;
 
   zeal->hooks->hook_map["ExecuteCmd"]->original(executecmd_hk)(cmd, isdown, unk2);

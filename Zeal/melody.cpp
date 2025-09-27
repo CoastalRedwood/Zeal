@@ -309,7 +309,7 @@ Melody::Melody(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { tick(); });
   zeal->callbacks->AddGeneric([this]() { end(); }, callback_type::CharacterSelect);
   zeal->callbacks->AddGeneric([this]() { handle_deactivate_ui(); }, callback_type::DeactivateUI);
-  zeal->callbacks->AddGeneric([this]() { enter_zone_time = GetTickCount64(); }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([this]() { enter_zone_time = GetTickCount64(); }, callback_type::EnterZone);
   zeal->hooks->Add("StopCast", 0x4cb510, StopCast, hook_type_detour);  // Hook in to end melody as well.
   zeal->commands_hook->Add(
       "/melody", {"/mel"}, "Bard only, auto cycles 5 songs of your choice.", [this](std::vector<std::string> &args) {

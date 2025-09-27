@@ -128,5 +128,5 @@ void CycleTarget::on_zone() {
 
 CycleTarget::CycleTarget(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { main_loop(); }, callback_type::MainLoop);
-  zeal->callbacks->AddGeneric([this]() { on_zone(); }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([this]() { on_zone(); }, callback_type::EnterZone);
 }

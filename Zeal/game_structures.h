@@ -20,8 +20,8 @@
 #define GAME_NUM_CONTAINER_SLOTS 10
 #define GAMESTATE_STARTUP 0
 #define GAMESTATE_CHARSELECT 1
-#define GAMESTATE_ENTERWORLD 3
-#define GAMESTATE_SOMETHING 4
+#define GAMESTATE_ENTERWORLD 3   // Character selected, waiting to connect to zone.
+#define GAMESTATE_GETZONEINFO 4  // Transitions to 0xfd (253) when entity list has my player.
 #define GAMESTATE_INGAME 5
 #define GAMESTATE_PRECHARSELECT 6
 #define GAMESTATE_LOGGINGIN 253

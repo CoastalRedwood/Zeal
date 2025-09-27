@@ -9,32 +9,30 @@
 #include "game_structures.h"
 #include "game_ui.h"
 
+// Types used for generic notification or for signaling in custom handlers.
 enum class callback_type {
-  MainLoop,
-  Zone,
-  CleanUI,
-  Render,
-  CharacterSelect,
-  CharacterSelectExit,
-  InitUI,
-  EndMainLoop,
-  WorldMessage,
-  SendMessage_,
-  ExecuteCmd,
-  Delayed,
-  RenderUI,
-  EndScene,
-  DrawWindows,
-  DXReset,
-  DXResetComplete,
-  EntitySpawn,
-  EntityDespawn,
-  AddOutputText,
-  ReportSuccessfulHit,      // Generic not implemented. Use AddReportSuccessfulHit().
-  ReportSuccessfulHitPost,  // Generic notification after client hooked call executes.
-  DeactivateUI,
-  CharacterSelectLoop,
-  InitCharSelectUI
+  CharacterSelect,      // Called at entry of DoCharacterSelect
+  InitCharSelectUI,     // Called after allocation of new ui objects for character select.
+  CharacterSelectLoop,  // Hooked into Render_MinWorld that is repeatedly called in character select.
+  CleanCharSelectUI,    // Called at exit of DoCharacterSelect
+  EnterZone,            // Called before entering a zone (character is known at this point).
+  InitUI,               // Called after allocation of new UI objects. Happens after EnterZone.
+  MainLoop,             // Called at start of inner DoMainLoop loop.
+  DrawWindows,          // Called in DoMainLoop and character select loop (CXWndManager::DrawWindows).
+  Render,               // Called at end of inner DoMainLoop loop (Hooks CDisplay::Render_World).
+  RenderUI,             // Called internally by t3dUpdateDisplay and t3dRenderPartialScene (char select and in game).
+  DeactivateUI,         // Called upon exiting zone (and elsewhere)
+  CleanUI,              // Called before deallocation of new UI objects (before InitUI and in Display destructor).
+  EndMainLoop,          // Called after return of DoMainLoop (exiting zone).
+  WorldMessage,         // Incoming server message.
+  SendMessage_,         // Outgoing server message.
+  ExecuteCmd,           // Intercepts commands (e.g. keybinds) for optional overriding.
+  DXReset,              // Hooked into d3d driver's Reset (before call).
+  DXResetComplete,      // Hooked into d3d driver's Reset (after call).
+  EndScene,             // Hooked into d3d driver's EndScene vtable call.
+  ReportSuccessfulHitPost,  // Called after client hooked call executes.
+  EntitySpawn,              // New entity object added to the world.
+  EntityDespawn,            // Existing entity object removed from the world.
 };
 
 class CallbackManager {
@@ -61,7 +59,6 @@ class CallbackManager {
   std::string get_trace() const;
   CallbackManager(class ZealService *zeal);
   ~CallbackManager();
-  void eml();
 
  private:
   std::vector<std::pair<ULONGLONG, std::function<void()>>> delayed_functions;
