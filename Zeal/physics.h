@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 
-#include <unordered_map>
+#include <vector>
 
 class Physics {
  public:
@@ -10,7 +10,7 @@ class Physics {
   bool can_move(short spawn_id);
 
  private:
-  bool did_physics = false;
-  ULONGLONG last_physic_calc = 0;
-  std::unordered_map<short, UINT> move_timers;
+  void clear_timers();
+
+  std::vector<UINT> move_timers;  // Per spawn ID timestamp of last movement.
 };

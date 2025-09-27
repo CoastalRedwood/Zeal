@@ -30,9 +30,9 @@ const int CMD_TOGGLE_CAM = 20;
 
 // Workaround for mouse hovering state check.
 static bool is_explore_mode() {
-  if (Zeal::Game::get_gamestate() == GAMESTATE_CHARSELECT) {
-    DWORD character_select = *(DWORD *)0x63D5D8;
-    if (character_select) return *(BYTE *)(character_select + 0x171) != 0;
+  if (Zeal::Game::is_in_char_select()) {
+    const auto char_select = Zeal::Game::Windows ? Zeal::Game::Windows->CharacterSelect : nullptr;
+    return (char_select && char_select->Explore);
   }
   return false;
 }
@@ -540,9 +540,10 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::MainLoop);
   zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::CharacterSelectLoop);
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitUI);
+  zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
-  zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);  // Also covers char select.
-  zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanCharSelectUI);
+  zeal->callbacks->AddGeneric([this]() { callback_zone(); }, callback_type::EnterZone);
 
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) { return callback_packet(opcode, buffer, len); },

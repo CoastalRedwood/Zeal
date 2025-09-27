@@ -56,32 +56,49 @@ HRESULT WINAPI Local_Reset(IDirect3DDevice8 *pDevice, D3DPRESENT_PARAMETERS *pPr
   return ret;
 }
 
-void DirectX::update_device() {
-  HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
-  if (gfx_dx8)
-    device = *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c);
-  else
+void DirectX::InitializeDevice() {
+  if (device != nullptr) {
+    MessageBoxA(NULL, "D3D device initialization is out of sync, may crash later", "Zeal initialization error",
+                MB_OK | MB_ICONWARNING);
     device = nullptr;
-
-  if (device) {
-    uintptr_t *vtable = *(uintptr_t **)device;
-    if (vtable) {
-      DWORD endscene_addr = (DWORD)vtable[35];
-      DWORD beginscene_addr = (DWORD)vtable[34];
-      DWORD reset_addr = (DWORD)vtable[14];
-      if (!ZealService::get_instance()->hooks->hook_map.count("EndScene"))
-        ZealService::get_instance()->hooks->Add("EndScene", endscene_addr, Local_EndScene, hook_type_detour);
-      if (!ZealService::get_instance()->hooks->hook_map.count("BeginScene"))
-        ZealService::get_instance()->hooks->Add("BeginScene", beginscene_addr, Local_BeginScene, hook_type_detour);
-      if (!ZealService::get_instance()->hooks->hook_map.count("Reset"))
-        ZealService::get_instance()->hooks->Add("Reset", reset_addr, Local_Reset, hook_type_detour);
-    }
-    //   ZealService::get_instance()->hooks->Add("Reset", reset_addr, Local_Reset, hook_type_detour);
   }
+  HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
+  if (!gfx_dx8) {
+    MessageBoxA(NULL, "Failed to access gfx dll, may crash later", "Zeal initialization error", MB_OK | MB_ICONWARNING);
+    return;
+  }
+
+  device = *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c);
+  uintptr_t *vtable = device ? *(uintptr_t **)device : nullptr;
+  if (!device || !vtable) {
+    MessageBoxA(NULL, "DirectX device is not available, may crash later", "Zeal initialization error",
+                MB_OK | MB_ICONWARNING);
+    return;
+  }
+  DWORD endscene_addr = (DWORD)vtable[35];
+  DWORD beginscene_addr = (DWORD)vtable[34];
+  DWORD reset_addr = (DWORD)vtable[14];
+  ZealService::get_instance()->hooks->Add("EndScene", endscene_addr, Local_EndScene, hook_type_detour);
+  ZealService::get_instance()->hooks->Add("BeginScene", beginscene_addr, Local_BeginScene, hook_type_detour);
+  ZealService::get_instance()->hooks->Add("Reset", reset_addr, Local_Reset, hook_type_detour);
+}
+
+void DirectX::CleanDevice() {
+  // Remove our hooks.
+  HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
+  uintptr_t *vtable = device ? *(uintptr_t **)device : nullptr;
+  if (gfx_dx8 && device && vtable) {
+    if (device == *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c)) {
+      ZealService::get_instance()->hooks->Remove("Reset");
+      ZealService::get_instance()->hooks->Remove("BeginScene");
+      ZealService::get_instance()->hooks->Remove("EndScene");
+    }
+  }
+
+  device = nullptr;
 }
 
 Vec2 DirectX::GetScreenRect() {
-  update_device();
   if (!device) return {0, 0};
   D3DVIEWPORT8 viewport;
   device->GetViewport(&viewport);
@@ -91,15 +108,6 @@ Vec2 DirectX::GetScreenRect() {
 bool IsOffScreen(Vec2 screenPos, const D3DVIEWPORT8 &viewport) {
   return screenPos.x < viewport.X || screenPos.x > viewport.X + viewport.Width || screenPos.y < viewport.Y ||
          screenPos.y > viewport.Y + viewport.Height;
-}
-
-IDirect3DDevice8 *DirectX::GetDevice() {
-  HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
-  if (gfx_dx8)
-    device = *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c);
-  else
-    device = nullptr;
-  return device;
 }
 
 bool DirectX::WorldToScreen(Vec3 worldPos, Vec2 &screenPos) {
@@ -119,12 +127,6 @@ bool DirectX::WorldToScreen(Vec3 worldPos, Vec2 &screenPos) {
   screenPos.x = screen.y;
   screenPos.y = screen.x;
   return true;
-  // if (IsOffScreen(screenPos, viewport)) {
-  //     return false;
-  // }
-  // else {
-  //     return true;
-  // }
 }
 
 // int RenderPartialScene(float a, int* b, int c, int d)
@@ -134,10 +136,22 @@ bool DirectX::WorldToScreen(Vec3 worldPos, Vec2 &screenPos) {
 //     ZealService::get_instance()->hooks->hook_map["RenderPartialScene"]->original(RenderPartialScene)(a, b, c, d);
 // }
 
+static void __fastcall CDisplayInitDDraw(int this_display, int unused_edx) {
+  ZealService::get_instance()->hooks->hook_map["CDisplayInitDDraw"]->original(CDisplayInitDDraw)(this_display,
+                                                                                                 unused_edx);
+  ZealService::get_instance()->dx->InitializeDevice();  // Plug in hooks now device should exist.
+}
+
+static void __fastcall CDisplayCleanUpDDraw(int this_display, int unused_edx) {
+  ZealService::get_instance()->dx->CleanDevice();  // Unplug before device is cleaned below.
+  ZealService::get_instance()->hooks->hook_map["CDisplayCleanUpDDraw"]->original(CDisplayCleanUpDDraw)(this_display,
+                                                                                                       unused_edx);
+}
+
+// The DirectX interface is initialized after the Zeal DLL is loaded (even the first time) and then cleaned up
+// (deleted) when dropping back to the login screen. So we add hooks in those functions to insert and remove
+// our hooks.
 DirectX::DirectX() {
-  /*  FARPROC partial_scene = GetProcAddress(GetModuleHandleA("eqgfx_dx8.dll"), "t3dRenderPartialScene");
-    if (partial_scene)
-        ZealService::get_instance()->hooks->Add("RenderPartialScene", (int)partial_scene, RenderPartialScene,
-    hook_type_detour);*/
-  update_device();
+  ZealService::get_instance()->hooks->Add("CDisplayInitDDraw", 0x004a5171, CDisplayInitDDraw, hook_type_detour);
+  ZealService::get_instance()->hooks->Add("CDisplayCleanUpDDraw", 0x004a954b, CDisplayCleanUpDDraw, hook_type_detour);
 }

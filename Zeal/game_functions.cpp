@@ -2197,15 +2197,9 @@ std::string get_player_guild_name(short guild_id) {
   return std::string(desc);
 }
 
-bool is_in_game() {
-  if (Zeal::Game::Windows && Zeal::Game::Windows->CharacterSelect &&
-      Zeal::Game::Windows->CharacterSelect->Explore)  // allow most zeal features to work while in explore mode
-    return true;
-  if (get_gamestate() != -1)
-    return get_gamestate() == GAMESTATE_INGAME;
-  else
-    return false;
-}
+bool is_in_game() { return get_gamestate() == GAMESTATE_INGAME; }
+
+bool is_in_char_select() { return get_gamestate() == GAMESTATE_CHARSELECT; }
 
 bool is_new_ui() { return *(BYTE *)0x8092D8; }
 

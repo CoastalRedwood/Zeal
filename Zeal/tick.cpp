@@ -61,7 +61,7 @@ void __cdecl Handle_OP_Stamina(Zeal::Packets::Stamina_Struct *packet) {
 
 Tick::Tick(ZealService *zeal) {
   zeal->hooks->Add("Handle_OP_Stamina", 0x4E47A2, Handle_OP_Stamina, hook_type_detour);
-  zeal->callbacks->AddGeneric([]() { LastKnownServerTick = 0; }, callback_type::Zone);
+  zeal->callbacks->AddGeneric([]() { LastKnownServerTick = 0; }, callback_type::EnterZone);
 
   zeal->commands_hook->Add("/tickreverse", {}, "Swaps the direction of the tick progress.",
                            [this](std::vector<std::string> &args) {

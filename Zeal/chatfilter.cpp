@@ -207,7 +207,7 @@ void __fastcall Deactivate(Zeal::GameUI::CChatManager *cman, int u) {
 }
 
 void chatfilter::callback_clean_ui() {
-  if (ZealMenu and menuIndex != -1) {
+  if (ZealMenu && menuIndex != -1) {
     Zeal::Game::Windows->ContextMenuManager->RemoveMenu(menuIndex, true);
   }
   menuIndex = -1;

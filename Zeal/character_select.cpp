@@ -21,19 +21,20 @@
 // }
 
 static const float max_view_distance = 5000.f;
+static const int kDefaultZoneIndex = 0xb9;
 
 static int get_zone_index_setting() {
   if (ZealService::get_instance()->charselect) {
     int zone_index = ZealService::get_instance()->charselect->ZoneIndex.get();
-    if (zone_index > 0 && zone_index != 0xb9 && ZealService::get_instance()->charselect->ZoneData.count(zone_index) &&
+    if (zone_index > 0 && ZealService::get_instance()->charselect->ZoneData.count(zone_index) &&
         Zeal::Game::get_zone_name_from_index(zone_index).length())
       return zone_index;
   }
-  return 0;
+  return kDefaultZoneIndex;
 }
 
 static void __fastcall StartWorldDisplay(DWORD t, DWORD unused, DWORD zone_index, DWORD uhh) {
-  if (zone_index == 0xB9 && get_zone_index_setting() > 0) zone_index = get_zone_index_setting();
+  if (zone_index == kDefaultZoneIndex) zone_index = get_zone_index_setting();
   ZealService::get_instance()->hooks->hook_map["StartWorldDisplay"]->original(StartWorldDisplay)(t, unused, zone_index,
                                                                                                  uhh);
 }
@@ -71,8 +72,18 @@ static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused
     ZealService::get_instance()->ui->zoneselect->ShowButton();  // Put dynamic button (if present) on top.
 
   int zone_index = get_zone_index_setting();
-  if (zone_index <= 0) return;
-  SetSafeCoordsAndMovePlayer(ZealService::get_instance()->charselect->ZoneData[zone_index].Position);
+
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (self) {
+    float heading = (zone_index == kDefaultZoneIndex)
+                        ? self->Heading
+                        : ZealService::get_instance()->charselect->ZoneData[zone_index].Heading;
+    self->Heading = heading;
+
+    // Workaround patch where we nudge the heading to trigger change detect and client t3d updates.
+    float last_heading = ZealService::get_instance()->charselect->get_last_heading();
+    if (self->Heading == last_heading) self->Heading += (self->Heading < 256.f ? 0.01f : -0.01f);  // Nudge it.
+  }
 
   if (Zeal::Game::Windows && Zeal::Game::Windows->CharacterSelect && Zeal::Game::Windows->CharacterSelect->Explore)
     *Zeal::Game::camera_view = prev_cam;  // if you happen to click yourself this keeps the camera from going to the
@@ -80,9 +91,11 @@ static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused
   else
     *Zeal::Game::camera_view = Zeal::GameEnums::CameraView::CharacterSelect;
 
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (zone_index == kDefaultZoneIndex) return;  // No further modifications if default character select room.
+
+  SetSafeCoordsAndMovePlayer(ZealService::get_instance()->charselect->ZoneData[zone_index].Position);
+
   if (self) {
-    self->Heading = ZealService::get_instance()->charselect->ZoneData[zone_index].Heading;
     self->Position = ZealService::get_instance()->charselect->ZoneData[zone_index].Position;
     self->MovementForwardSpeedMultiplier = 2.5f;
     self->MovementBackwardSpeedMultiplier = 2.5f;
@@ -109,13 +122,13 @@ void CharacterSelect::load_bmp_font() {
 }
 
 void CharacterSelect::render() {
-  if (Zeal::Game::get_gamestate() != GAMESTATE_CHARSELECT) return;
+  if (!Zeal::Game::is_in_char_select()) return;
   if (Zeal::Game::Windows && Zeal::Game::Windows->CharacterSelect && Zeal::Game::Windows->CharacterSelect->Explore) {
-    std::stringstream Location;
     Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
     if (self) {
       if (!bmp_font) load_bmp_font();
       if (!bmp_font) return;
+      std::stringstream Location;
       Location << std::fixed << std::setprecision(0) << std::dec << "[" << self->Position.x << ", " << self->Position.y
                << ", " << self->Position.z << "] Heading: " << self->Heading << std::endl;
       bmp_font->queue_string(Location.str().c_str(), {10, 50, 0}, false, D3DCOLOR_XRGB(0x00, 0xff, 0x00));
@@ -124,10 +137,22 @@ void CharacterSelect::render() {
   }
 }
 
+void CharacterSelect::handle_character_select_exit() {
+  bmp_font.reset();
+
+  // We cache the heading of the last character in character select to work around a client bug that
+  // results in a bad initial render if rotation is disabled. Assuming some sort of cached change detection
+  // is not getting flushed and is corrupted after the reinitialization of D3D.
+  auto self = Zeal::Game::get_self();
+  if (self) last_heading = self->Heading;
+}
+
 CharacterSelect::CharacterSelect(ZealService *zeal) {
   load_zonedata();
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::InitUI);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::CleanUI);
+  zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::CharacterSelect);
+  zeal->callbacks->AddGeneric([this]() { handle_character_select_exit(); }, callback_type::CleanCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { render(); }, callback_type::RenderUI);
   zeal->hooks->Add("StartWorldDisplay", 0x4A849E, StartWorldDisplay, hook_type_detour);

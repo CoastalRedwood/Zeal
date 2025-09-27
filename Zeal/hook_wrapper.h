@@ -75,4 +75,6 @@ class HookWrapper {
   void Add(std::string name, X addr, T fnc, hook_type_ type) {
     hook_map[name] = std::make_unique<hook>(addr, fnc, type);
   }
+
+  void Remove(std::string name) { hook_map.erase(name); }
 };

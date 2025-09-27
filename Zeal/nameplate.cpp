@@ -117,6 +117,8 @@ NamePlate::NamePlate(ZealService *zeal) {
 
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::InitUI);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
+  zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::InitCharSelectUI);
+  zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { render_ui(); }, callback_type::RenderUI);
 
@@ -262,7 +264,7 @@ static int get_stamina_percent(const Zeal::GameStructures::Entity *entity) {
 }
 
 void NamePlate::render_ui() {
-  if (!setting_zeal_fonts.get() || Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
+  if (!setting_zeal_fonts.get() || (!Zeal::Game::is_in_game() && !Zeal::Game::is_in_char_select())) return;
 
   if (!sprite_font) load_sprite_font();
   if (!sprite_font) {
@@ -405,7 +407,7 @@ NamePlate::ColorIndex NamePlate::get_color_index(const Zeal::GameStructures::Ent
   if (!entity.ActorInfo) return ColorIndex::UseClient;
 
   // Special handling for character select.
-  if (Zeal::Game::get_gamestate() == GAMESTATE_CHARSELECT)
+  if (Zeal::Game::is_in_char_select())
     return setting_char_select.get() ? ColorIndex::Adventurer : ColorIndex::UseClient;
 
   // Target setting overrides all other choices.
@@ -442,7 +444,7 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
 
   auto color_index = get_color_index(*entity);
 
-  bool zeal_fonts = setting_zeal_fonts.get() && Zeal::Game::get_gamestate() != GAMESTATE_CHARSELECT;
+  bool zeal_fonts = setting_zeal_fonts.get() && !Zeal::Game::is_in_char_select();
   if (color_index == ColorIndex::UseClient && !zeal_fonts) return false;
 
   auto color = D3DCOLOR_XRGB(128, 255, 255);  // Approximately the default nameplate color.
@@ -634,7 +636,8 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
 
   std::string text = generate_nameplate_text(*entity, show);
   const char *string_sprite_text = text.c_str();
-  if (setting_zeal_fonts.get() && Zeal::Game::get_gamestate() != GAMESTATE_CHARSELECT) {
+  if (setting_zeal_fonts.get() &&
+      (Zeal::Game::is_in_game() || (setting_char_select.get() && Zeal::Game::is_in_char_select()))) {
     if (!text.empty())
       nameplate_info_map[entity] = {.text = text, .color = D3DCOLOR_XRGB(255, 255, 255)};
     else {
