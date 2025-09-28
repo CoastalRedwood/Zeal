@@ -470,6 +470,7 @@ TargetRing::TargetRing(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { callback_initui(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { callback_cleanui(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { callback_cleanui(); }, callback_type::DXReset);  // Just release all resources.
+  zeal->callbacks->AddGeneric([this]() { callback_cleanui(); }, callback_type::DXCleanDevice);
 
   zeal->commands_hook->Add("/targetring", {}, "Toggles target ring", [this](std::vector<std::string> &args) {
     if (args.size() == 2) {

@@ -29,6 +29,7 @@ enum class callback_type {
   ExecuteCmd,           // Intercepts commands (e.g. keybinds) for optional overriding.
   DXReset,              // Hooked into d3d driver's Reset (before call).
   DXResetComplete,      // Hooked into d3d driver's Reset (after call).
+  DXCleanDevice,        // Called before CDisplay::CleanUpDDraw() that releases the entire DX interface.
   EndScene,             // Hooked into d3d driver's EndScene vtable call.
   ReportSuccessfulHitPost,  // Called after client hooked call executes.
   EntitySpawn,              // New entity object added to the world.

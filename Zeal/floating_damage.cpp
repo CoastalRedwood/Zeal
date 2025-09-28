@@ -148,7 +148,7 @@ bool FloatingDamage::is_visible() const {
 }
 
 void FloatingDamage::callback_render() {
-  if (!enabled.get() || !Zeal::Game::is_in_game() || !is_visible()) return;
+  if (!enabled.get() || !Zeal::Game::is_in_game() || !is_visible() || damage_numbers.empty()) return;
 
   load_bitmap_font();
   if (bitmap_font) render_text();
@@ -178,7 +178,7 @@ void FloatingDamage::render_spells() {
 
 void FloatingDamage::callback_deferred() {
   // This callback only happens if is_gui_visible().
-  if (enabled.get() && Zeal::Game::is_in_game() && bitmap_font == nullptr)
+  if (enabled.get() && Zeal::Game::is_in_game() && bitmap_font == nullptr && !damage_numbers.empty())
     render_text();  // Bitmap fonts were disabled, so use the client CTextureFont.
 }
 
@@ -447,6 +447,7 @@ FloatingDamage::FloatingDamage(ZealService *zeal) {
     zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
   }
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
+  zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXCleanDevice);
 
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {

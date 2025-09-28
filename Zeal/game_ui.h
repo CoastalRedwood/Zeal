@@ -454,7 +454,8 @@ struct CharSelect : SidlWnd {
   /*0x16C*/ SidlWnd *ExploreModeWnd;
   /*0x170*/ BYTE Rotate;
   /*0x171*/ BYTE Explore;
-  /*0x172*/ BYTE Unknown0x172[2];
+  /*0x172*/ BYTE SetLocationByClass;
+  /*0x173*/ BYTE Unknown0x173;
   /*0x174*/ DWORD SelectIndex;       // Set to 0xffffffff (-1) at ActivateStart().
   /*0x178*/ BYTE Unknown0x178[0x8];  // 0x180 allocated.
 };

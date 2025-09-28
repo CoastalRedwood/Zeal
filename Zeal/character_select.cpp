@@ -47,21 +47,7 @@ static void SetSafeCoordsAndMovePlayer(const Vec3 &position) {
   reinterpret_cast<void (*)()>(0x004B459C)();  // Call MovePlayerLocalSafeCoords().
 }
 
-static void SetDayPeriod(int period) {
-  auto display = Zeal::Game::get_display();
-  if (display) display->SetDayPeriod(period);
-}
-
-static void SetSunLight() {
-  auto display = Zeal::Game::get_display();
-  if (display) display->SetSunLight();
-}
-
-static void SetYon(float clip) {
-  auto display = Zeal::Game::get_display();
-  if (display) display->SetYon(clip);
-}
-
+// This is called near the end of of CCharacterSelect::Activate() and also by multiple other pathways.
 static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused, DWORD character_slot, DWORD unk2) {
   int prev_cam = *Zeal::Game::camera_view;
   ZealService::get_instance()->hooks->hook_map["SelectCharacter"]->original(SelectCharacter)(t, unused, character_slot,
@@ -71,7 +57,10 @@ static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused
       ZealService::get_instance()->ui->zoneselect)
     ZealService::get_instance()->ui->zoneselect->ShowButton();  // Put dynamic button (if present) on top.
 
-  int zone_index = get_zone_index_setting();
+  // Fetch the zone index actually loaded in StartWorldDisplay (ignore setting which can get changed).
+  unsigned int *StartWorldDisplayZoneIndex = reinterpret_cast<unsigned int *>(0x007b9648);
+  int zone_index = *StartWorldDisplayZoneIndex;
+  zone_index = (zone_index == 0) ? kDefaultZoneIndex : zone_index;
 
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   if (self) {
@@ -93,18 +82,25 @@ static void __fastcall SelectCharacter(Zeal::GameUI::CharSelect *t, DWORD unused
 
   if (zone_index == kDefaultZoneIndex) return;  // No further modifications if default character select room.
 
+  // Fix the zone starting (safe) location and move the player to it.
   SetSafeCoordsAndMovePlayer(ZealService::get_instance()->charselect->ZoneData[zone_index].Position);
 
+  // Fix the viewing distance, clipping, and lighting.
+  Zeal::Game::ZoneInfo->Unknown0184 = max_view_distance - 100.f;
+  Zeal::Game::ZoneInfo->Unknown0194 = max_view_distance;
+  auto display = Zeal::Game::get_display();
+  if (display) {
+    display->SetDayPeriod(0x10);  // Fix lighting to bright daytime.
+    display->SetSunLight();
+    display->SetYon(max_view_distance + 100.f);
+    display->UpdatePlayerActor(self);  // May be unnecessary / redundant with the MovePlayer call above.
+  }
+
+  // Speed up movement in explore mode.
   if (self) {
-    self->Position = ZealService::get_instance()->charselect->ZoneData[zone_index].Position;
     self->MovementForwardSpeedMultiplier = 2.5f;
     self->MovementBackwardSpeedMultiplier = 2.5f;
   }
-  Zeal::Game::ZoneInfo->Unknown0184 = max_view_distance - 100.f;
-  Zeal::Game::ZoneInfo->Unknown0194 = max_view_distance;
-  SetDayPeriod(0x10);  // Fix lighting to bright daytime.
-  SetSunLight();
-  SetYon(max_view_distance + 100.f);
 }
 
 void CharacterSelect::load_bmp_font() {
@@ -154,6 +150,7 @@ CharacterSelect::CharacterSelect(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::CharacterSelect);
   zeal->callbacks->AddGeneric([this]() { handle_character_select_exit(); }, callback_type::CleanCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::DXReset);  // Just release all resources.
+  zeal->callbacks->AddGeneric([this]() { bmp_font.reset(); }, callback_type::DXCleanDevice);
   zeal->callbacks->AddGeneric([this]() { render(); }, callback_type::RenderUI);
   zeal->hooks->Add("StartWorldDisplay", 0x4A849E, StartWorldDisplay, hook_type_detour);
   zeal->hooks->Add("SelectCharacter", 0x40F56D, SelectCharacter, hook_type_detour);
@@ -233,7 +230,7 @@ void CharacterSelect::load_zonedata() {
       {65, {{1145.f, 322.f, -66.3f}, 506}},          // guktop
       {66, {{1498.f, -749.f, -178.2f}, 252}},        // gukbot
       {67, {{704.f, 133.f, 3.7f}, 252}},             // kaladimb
-      {68, {{2674.f, -230.f, 49.4f}, 260}},          // butcher
+      {68, {{2782.f, -211.f, 3.f}, 260}},            // butcher
       {69, {{589.f, -6605.f, 11.3f}, 288}},          // oot
       {70, {{1447.f, -154.f, 179.6f}, 502}},         // cauldron
       {71, {{743.f, -325.f, 127.3f}, 126}},          // airplane

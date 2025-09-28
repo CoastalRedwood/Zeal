@@ -100,6 +100,10 @@ Patches::Patches() {
   mem::write<BYTE>(0x40f07a, 0);     // disable character select rotation by default
   mem::write<BYTE>(0x40f07d, 0xEB);  // uncheck rotate button defaultly
 
+  // Replace "Spawning_Your_Characters01" with exact size string.
+  const char zeal_patch[27] = "Patching_random_Zeal_crash";
+  mem::write<char[27]>(0x005ff96c, zeal_patch);
+
   // the following does not work entirely needs more effort
   // mem::write<BYTE>(0x4A594B, 15); //load font sizes 1 to 14 (default is 6)
   // mem::write<BYTE>(0X4FDB6A, 15); //allow /chatfontsize to be larger than 5

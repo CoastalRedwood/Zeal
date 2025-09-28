@@ -84,15 +84,19 @@ void DirectX::InitializeDevice() {
 }
 
 void DirectX::CleanDevice() {
+  if (!device) return;  // Nothing to clean.
+
   // Remove our hooks.
   HMODULE gfx_dx8 = GetModuleHandleA("eqgfx_dx8.dll");
-  uintptr_t *vtable = device ? *(uintptr_t **)device : nullptr;
-  if (gfx_dx8 && device && vtable) {
-    if (device == *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c)) {
-      ZealService::get_instance()->hooks->Remove("Reset");
-      ZealService::get_instance()->hooks->Remove("BeginScene");
-      ZealService::get_instance()->hooks->Remove("EndScene");
-    }
+  auto gfx_device = gfx_dx8 ? *(IDirect3DDevice8 **)((DWORD)gfx_dx8 + 0xa4f92c) : nullptr;
+  uintptr_t *vtable = *(uintptr_t **)device;
+  if (vtable && gfx_device && (gfx_device == device)) {
+    ZealService::get_instance()->hooks->Remove("Reset");
+    ZealService::get_instance()->hooks->Remove("BeginScene");
+    ZealService::get_instance()->hooks->Remove("EndScene");
+  } else {
+    MessageBoxA(NULL, "Error cleaning up zeal patches in dx8, recommend you close the client", "Zeal shutdown error",
+                MB_OK | MB_ICONWARNING);
   }
 
   device = nullptr;
@@ -143,6 +147,8 @@ static void __fastcall CDisplayInitDDraw(int this_display, int unused_edx) {
 }
 
 static void __fastcall CDisplayCleanUpDDraw(int this_display, int unused_edx) {
+  if (ZealService::get_instance()->callbacks)
+    ZealService::get_instance()->callbacks->invoke_generic(callback_type::DXCleanDevice);
   ZealService::get_instance()->dx->CleanDevice();  // Unplug before device is cleaned below.
   ZealService::get_instance()->hooks->hook_map["CDisplayCleanUpDDraw"]->original(CDisplayCleanUpDDraw)(this_display,
                                                                                                        unused_edx);
