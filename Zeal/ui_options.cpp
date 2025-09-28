@@ -179,7 +179,7 @@ static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_de
     {"PVP", D3DCOLOR_XRGB(0xf0, 0x00, 0x00)},            // 6: Red
     {"Roleplay", D3DCOLOR_XRGB(0x85, 0x48, 0x9c)},       // 7: Dark Purple
     {"OtherGuild", D3DCOLOR_XRGB(0xff, 0xff, 0x80)},     // 8: Light Yellow
-    {"OtherDefault", D3DCOLOR_XRGB(0x3d, 0x6b, 0xdc)},   // 9: Default Blue
+    {"DefaultForPC", D3DCOLOR_XRGB(0x3d, 0x6b, 0xdc)},   // 9: Default Blue
     {"NPCCorpse", D3DCOLOR_XRGB(0x20, 0x20, 0x20)},      // 10: Dark gray
     {"PlayerCorpse", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 11: White
     {"Con_Green", D3DCOLOR_XRGB(0x00, 0xf0, 0x00)},      // 12: Light Green

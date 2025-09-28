@@ -15,19 +15,27 @@ class CallbackTrace {
   CallbackTrace(const char *_trace) {
     trace = _trace;
     status = "Enter";
+    addr = 0;
   }
 
-  ~CallbackTrace() { status = "Exit"; }
+  static void SetAddress(int address) { addr = address; }
 
-  static std::string get_trace() { return std::string(trace) + ": " + status; }
+  ~CallbackTrace() {
+    status = "Exit";
+    addr = 0;
+  }
+
+  static std::string get_trace() { return std::format("{} : {} (0x{:x})", trace, status, addr); }
 
  private:
   static const char *trace;
   static const char *status;
+  static int addr;
 };
 
 const char *CallbackTrace::trace = "Startup";
 const char *CallbackTrace::status = "Unknown";
+int CallbackTrace::addr = 0;
 }  // namespace
 
 std::string CallbackManager::get_trace() const { return CallbackTrace::get_trace(); }
@@ -74,7 +82,10 @@ void _fastcall charselect_hk(int t, int u) {
 }
 
 void CallbackManager::invoke_generic(callback_type fn) {
-  for (auto &f : generic_functions[fn]) f();
+  for (auto &f : generic_functions[fn]) {
+    CallbackTrace::SetAddress(reinterpret_cast<int>(&f));  // Pointer to std::function<> state, not the function.
+    f();
+  }
 }
 
 void CallbackManager::AddDelayed(std::function<void()> callback_function, int ms) {

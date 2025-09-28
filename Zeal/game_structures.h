@@ -1141,6 +1141,10 @@ struct Display {
         this, toggle, distance, unknown, r, g, b);
   }
 
+  bool UpdatePlayerActor(Entity *actor) {
+    return reinterpret_cast<bool(__thiscall *)(Display *, Entity *)>(0x004af76e)(this, actor);
+  }
+
   void SetSunLight() { reinterpret_cast<void(__thiscall *)(Display *)>(0x004b18b1)(this); }
 
   void SetYon(float clip) { reinterpret_cast<void(__thiscall *)(Display *, float)>(0x004aca7f)(this, clip); }

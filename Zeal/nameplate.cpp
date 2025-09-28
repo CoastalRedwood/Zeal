@@ -120,6 +120,7 @@ NamePlate::NamePlate(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::InitCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanCharSelectUI);
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
+  zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXCleanDevice);
   zeal->callbacks->AddGeneric([this]() { render_ui(); }, callback_type::RenderUI);
 
   // Ensure our local entity cache is flushed when an entity despawns.
@@ -638,9 +639,10 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
   const char *string_sprite_text = text.c_str();
   if (setting_zeal_fonts.get() &&
       (Zeal::Game::is_in_game() || (setting_char_select.get() && Zeal::Game::is_in_char_select()))) {
-    if (!text.empty())
-      nameplate_info_map[entity] = {.text = text, .color = D3DCOLOR_XRGB(255, 255, 255)};
-    else {
+    if (!text.empty()) {
+      auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
+      nameplate_info_map[entity] = {.text = text, .color = color};
+    } else {
       auto it = nameplate_info_map.find(entity);
       if (it != nameplate_info_map.end()) nameplate_info_map.erase(it);
     }
