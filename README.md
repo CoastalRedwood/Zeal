@@ -64,8 +64,9 @@ ___
   - **Description:** Change your aspect ratio.
 
 - `/assist`
-  - **Arguments:** `on`, `off`
-  - **Description:** Supports per character assist auto-attack on/off, also supports failure message.
+  - **Arguments:** `on`, `off` (Zeal extends these to per character if option set)
+  - **Description:** In addition to adding per character support, a second option will generate warnings
+    and clear the target if the assist fails (assistee out of range).
 
 - `/autobank`
   - **Aliases:** `/autoba`, `/ab`
