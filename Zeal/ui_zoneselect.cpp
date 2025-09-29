@@ -151,7 +151,7 @@ ui_zoneselect::~ui_zoneselect() {}
 
 ui_zoneselect::ui_zoneselect(ZealService *zeal, UIManager *mgr) {
   ui = mgr;
-  // The CleanUI and DeactivateUI should not really every do anything since zoneselect is intended
+  // The CleanUI and DeactivateUI should not really ever do anything since zoneselect is intended
   // for charselect only but added here "just in case" to ensure no leaks.
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { Deactivate(); }, callback_type::DeactivateUI);

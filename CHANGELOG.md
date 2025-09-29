@@ -2,6 +2,183 @@
 
 Summarizes notable changes to Zeal
 
+## [1.2.2] - 2025/09/20
+
+The 1.2 release includes some significant boot stability fixes and a
+number of quality of life enhancements.
+
+## Feature updates
+
+* Spellsets
+  - Added spellset categorization for the new Druid Zephyr spells
+    - Appended (EJ) and (SF) to Wizard Kunark portals (like Druid)
+  - Fixed Transon's Phantasmal Protection (2539) categorization
+    to Regen from HP Buffs
+  - Added a new Zeal general tab options (Alt Transport Cats) that
+    switches the Transport subcategories to Self, Group, Others, Area
+    from the default continent based subcategories
+    - The new subcats are alphabetized by name vs ordered by level
+
+* Added an option (use /resetexp ding, /resetexp off to control)
+  to play a ding sound when gaining an AA level
+
+* Chat filter updates
+  - Added a new chat filter category for routing item speech (aka 'glow' messages)
+  - Added new Zeal chat filter options to route critical hits from others
+    and damage shield damage from others
+  - Reduced the damage shield non-melee range message to only
+    broadcast when within +/- 20 z-vertical of the source to reduce
+    spam in multi-level dungeons like Velks
+  - Fixed routing of other 'other pet damage' to prevent re-routing
+    of damage to self to that channel.
+  - New zeal option checkbox to suppress the Ahh, I feel better... messages
+  - Added a /mystats chat filter channel option (hardcoded white color)
+  - Also added a new Zeal general options tab button to completely suppress the
+    reporting of other non-melee damage (includes damage shields)
+
+* Map updates
+  - Added map support for a new /map line command that will add
+    additional line segments to the map using pairs of loc coords
+  - Added new map commands(/map rsay, /map gsay) to broadcast map marker
+    or line commands to the rsay or gsay channels and the recipient Zeal
+    will intercept a special zeal header and execute those commands
+
+* Disabled client-sided health tick for more accurate HP changes
+  - New "/clienthptick", {"/cht"} command can be used to re-enable
+    client side HP ticks (but not a persistent setting)
+
+* /follow improvements
+  - When auto-follow is enabled, ZealCam will lock to the player's
+    heading in chase mode
+    - Left panning is allowed with the mouse down then snaps back
+  - Player pitch will now track the leader's position when zeal
+    auto-follow is enabled (for use when following with lev)
+
+* Added a /locktogglebag command and linked Zeal general options
+  tab combobox that can select a single inventory bag slot
+  to lock open (ignores the toggle close)
+
+* Improved/fixed spell descriptions in spell/item info Window
+  - Shows effective casting level more correctly for various items/spells, including AAs modifiers.
+  - More accurately calculates values directly from spell formulas.
+  - Generates/overrides some spell effect text that was missing, confusing, or exported inaccurately.
+  - Shows dynamic value and value ranges for modifiable bard song effects.
+    - Shows bard-modified dynamic value for buffs (beneficial only)
+
+* Mounts
+  - Slow Turn now works on mounts (slow keybinds now match the unmounted behavior)
+  - Fixed visibility of the zeal font nameplates of other mounted players
+    (and also F7 targeting of them)
+
+* Added /leftclickcon <on | off> command that enables generating
+  a consider message when left clicking on a npc (like right click)
+  - Also did a minor clean up of the Zeal general options tab
+
+* Added a new "My big hits" Zeal color (41) for setting the color
+  of big hits (spells or melee above the threshold plus all backstabs) in
+  floating combat text
+
+* Added four new checkboxes to the Zeal options tab for enabling/disabling
+  camera views in the F9 Toggle Camera keybind cycle loop
+  - Checkboxes allow disabling all views except first person
+
+* Fix horizontal sensitivity of Zeal cam when left and right mouse buttons were
+  held simultaneously (long-standing behavior had effectively doubled it)
+
+* Restored Old Stone UI basic support (see fixes below)
+
+* Initial "big fonts" 4k mode support
+  - Primarily designed for running at native 4k resolution
+  - The larger fonts requires the use of custom 2x upscaled ui skins
+  - The "big fonts" mode is enabled if the active ui skin folder
+    contains a file named 'zeal_ui_skin.ini' in it (can be empty)
+    - Note: Big fonts are activated at boot and requires a client
+      re-start to transition
+  - To switch modes:
+    - Use `load <skin> 0` to select the new UI skin
+    - Quit and restart client
+    - Run `load <skin> 0` again to reset your ini file sizes
+
+* Usability
+  - Added Zeal blocking of the /load skin if the selected skin
+    folder doesn't exist or the skin has contents known to be
+    incompatible with Zeal or the server xml files
+
+* Improved UI error messaging to reduce configuration confusion
+  - New UI dialog that that makes UI errors more obvious
+  - Can be disabled through either the new command
+   '/show_ui_errors <on | off>' command or using the Cancel
+    button on the dialogs
+  - Reduced chances for installation confusion by adding explicit 
+    whitelist for including zeal xml files w/better messaging
+
+* Limit autofire spam
+  - Added message `123 You can't hit them from here.` to the rate limiting
+    message list in autofire
+  - Added the 'You are stunned!' message to the rate limiting
+    filter in autofire
+
+## Infrastructure
+
+* Fix to a memory allocation in hook wrapper (boot heap corruption fix)
+
+* Refactored the dll to eliminate the separate Zeal lifetime thread and
+  instantiate Zeal on the primary calling attach thread
+
+* Refactored headers to reduce compile time and make dependencies more obvious
+  - Eliminated catch-all "framework.h" and added module specific headers
+
+* Refactored the ZealService initialization sequence to try and fix the
+  persistent boot heap corruption check failures
+  - Simplified core classes by removing dependencies on
+    later initialized modules
+  - Reviewed and updated the module initialization sequence
+    in zeal.cpp to minimize the risk of a call to an
+    uninitialized / partially initialized object
+  - Moved the named pipe instantiation to the end so that
+    thread spawn happens after everything else is initialized
+
+* Cleaned up hook_wrapper classes with no raw mallocs, smart
+  unique pointers for memory management, encapsulation of internal
+  details, fixes to some jump calcs, and ensured that the
+  trampoline and original bytes were valid for all paths
+
+* Added a `generate_big_xml.py` to handle 4k auto-upscaling of Zeal UI XML files
+
+* New UISkin class to centralize zeal file resource access and handles big fonts
+  - Zeal now uses a hard-coded whitelist of required xml files and no longer tries
+    to load other random xmls from the zeal/ folder
+
+* Added changes to help reduce UI installation / configuration confusion
+  - Reduce 'normal' errors to 'Info' (fallback to default, song buffs)
+  - Filter out common UI mods (optimized bags, tracking window) from error dialogs
+  - Added the error dialogs with a cancel button to disable the /uierrors setting
+  - Added an XML error count field to the crash handler dialog box
+
+* Updated xml and resource file path accesses to use std::filesystem::path
+
+* Changed WDT_Def2 to WDT_Def in two Zeal xml files to reduce zeal xml
+  template dependencies
+
+* Refactored GameClass and Display classes to add methods and expand fields
+
+- Also made it so `/zeal check` just does the memory check and
+  reports current allocations in MB vs hex
+ 
+* Old (Stone) UI fixes
+  - Fixed an issue with the attack keybind / button that was introduced
+    when explore mode support was added
+  - Fixed an issue with enabling the Zeal camera introduced with 1.1
+  - Fixed an old off by one bug in floating combat damage that happened
+    when textures failed to load in the old ui
+    - Changed the default for fcd to disabled like target ring
+  - Disabled modules that heavily rely on the new ui to function
+    (like melody, tell windows, item_display, ui_manager)
+  - Scanned through and tried to protect against inactive new_ui
+    objects
+  - Functional: Zeal camera, nameplates (mostly), target ring (no
+    textures), fcd (zeal fonts only), etc
+
 ## [1.1.0] - 2025/08/11
 
 ### New Features:
