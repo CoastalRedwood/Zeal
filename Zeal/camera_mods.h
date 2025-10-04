@@ -36,6 +36,7 @@ class CameraMods {
   bool handle_mouse_wheel(int delta);
   bool handle_proc_mouse();
   void handle_proc_rmousedown(int x, int y);
+  void handle_proc_rmouseup();
   void handle_do_cam_ai();
 
   void add_options_callback(std::function<void()> callback) { update_options_ui_callback = callback; };
@@ -48,6 +49,8 @@ class CameraMods {
   float desired_zoom = 0.f;
   ULONGLONG lmouse_time = 0;
   POINT lmouse_cursor_pos;
+  POINT rmouse_start_pos = {0, 0};
+  bool rmouse_drag_active = false;
   bool hide_cursor = false;
   float sensitivity_x = 0.7f;
   float sensitivity_y = 0.4f;
@@ -72,4 +75,5 @@ class CameraMods {
   void interpolate_zoom();
   void process_time_tick();
   void update_fps_sensitivity();
+  bool should_handle_mouse_input();
 };

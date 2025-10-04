@@ -149,6 +149,8 @@ bool CameraMods::handle_proc_mouse() {
   if (camera_view != Zeal::GameEnums::CameraView::ZealCam && camera_view != Zeal::GameEnums::CameraView::FirstPerson)
     return false;
 
+  if (!should_handle_mouse_input()) return false;  // don't handle if window doesn't have focus
+
   static float smoothMouseDeltaX = 0;
   static float smoothMouseDeltaY = 0;
   Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
@@ -201,6 +203,10 @@ bool CameraMods::handle_proc_mouse() {
     }
   }
 
+  if (rmouse_drag_active) {
+    SetCursorPos(rmouse_start_pos.x, rmouse_start_pos.y);
+  }
+
   return true;  // Skip hooked procMouse.
 }
 
@@ -222,10 +228,51 @@ static bool is_over_title_bar(void) {
   return (mouse_y >= 0xE6FF && mouse_y <= 0xFFFF);
 }
 
+bool CameraMods::should_handle_mouse_input() {
+  constexpr int border_tolerance =
+      5;  // gutter tolerance for window border, otherwise mouse is trapped in weird bounds limbo
+
+  HWND gwnd = Zeal::Game::get_game_window();
+  if (!gwnd) return false;
+
+  HWND focused = GetForegroundWindow();
+  if (focused != gwnd) return false;
+
+  POINT cursor_pos;
+  GetCursorPos(&cursor_pos);
+
+  RECT client_rect;
+  if (!GetClientRect(gwnd, &client_rect)) return false;
+
+  POINT top_left = {client_rect.left, client_rect.top};
+  POINT bottom_right = {client_rect.right, client_rect.bottom};
+  ClientToScreen(gwnd, &top_left);
+  ClientToScreen(gwnd, &bottom_right);
+
+  top_left.x -= border_tolerance;
+  top_left.y -= border_tolerance;
+  bottom_right.x += border_tolerance;
+  bottom_right.y += border_tolerance;
+
+  if (cursor_pos.x < top_left.x || cursor_pos.x >= bottom_right.x || cursor_pos.y < top_left.y ||
+      cursor_pos.y >= bottom_right.y) {
+    return false;
+  }
+
+  return true;
+}
+
 // Periodic call to handle left button panning in ZealCam.
 void CameraMods::update_left_pan(DWORD camera_view) {
   if (!*Zeal::Game::is_right_mouse_down && *Zeal::Game::is_left_mouse_down && is_zeal_cam_active() &&
       !is_over_title_bar() && !Zeal::Game::is_game_ui_window_hovered()) {
+    if (!should_handle_mouse_input()) {
+      if (lmouse_time) mem::write<BYTE>(0x53edef, 0x75);  // Restore showcursor check.
+      lmouse_time = 0;
+      hide_cursor = true;
+      return;
+    }
+
     if (!lmouse_time) {
       GetCursorPos(&lmouse_cursor_pos);
       hide_cursor = true;
@@ -233,21 +280,17 @@ void CameraMods::update_left_pan(DWORD camera_view) {
     }
 
     if (GetTickCount64() - lmouse_time > pan_delay.get()) {
-      HWND gwnd = Zeal::Game::get_game_window();
-      POINT cursor_pos_for_window;
-      GetCursorPos(&cursor_pos_for_window);
-      if (gwnd == WindowFromPoint(cursor_pos_for_window)) {
-        if (hide_cursor && GetTickCount64() - lmouse_time > pan_delay.get()) {
-          mem::write<BYTE>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
-          hide_cursor = false;
-        }
-        handle_proc_mouse();
-        SetCursorPos(lmouse_cursor_pos.x, lmouse_cursor_pos.y);
+      if (hide_cursor) {
+        mem::write<BYTE>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
+        hide_cursor = false;
       }
+      handle_proc_mouse();
+      SetCursorPos(lmouse_cursor_pos.x, lmouse_cursor_pos.y);
     }
   } else {
     if (lmouse_time) mem::write<BYTE>(0x53edef, 0x75);  // Restore showcursor check.
     lmouse_time = 0;
+    hide_cursor = true;
   }
 }
 
@@ -279,7 +322,6 @@ void CameraMods::process_time_tick() {
     set_zeal_cam_active(true);  // Activates if enabled.
     zoom_out = false;           // Reset zoom key press so not double-counted below.
   }
-
   update_left_pan(camera_view);  // Call to keep cursor visibility updated.
 
   if (!is_zeal_cam_active()) return;
@@ -384,11 +426,23 @@ void CameraMods::callback_main() {
 }
 
 void CameraMods::handle_proc_rmousedown(int x, int y) {
-  if (!is_zeal_cam_active() || !Zeal::Game::can_move()) return;
+  if (!is_zeal_cam_active() || !Zeal::Game::can_move() || !should_handle_mouse_input()) return;
+
+  rmouse_drag_active = true;
+  GetCursorPos(&rmouse_start_pos);
 
   // Support chase control mode: Shift the player to track the camera yaw if more than a 5 degree difference.
   if (fabs(camera_math::angle_difference(zeal_cam_yaw, Zeal::Game::get_controlled()->Heading)) > 5) {
     Zeal::Game::get_controlled()->Heading = zeal_cam_yaw;
+  }
+}
+
+void CameraMods::handle_proc_rmouseup() {
+  if (!is_zeal_cam_active() || !should_handle_mouse_input()) return;
+
+  if (rmouse_drag_active) {
+    SetCursorPos(rmouse_start_pos.x, rmouse_start_pos.y);
+    rmouse_drag_active = false;
   }
 }
 
@@ -477,6 +531,7 @@ static int __fastcall EQ3DView_MouseUp(int this_view, int unused_edx, int right_
   auto zeal = ZealService::get_instance();
   int result = zeal->hooks->hook_map["EQ3DView_MouseUp"]->original(GetClickedActor)(this_view, unused_edx, right_button,
                                                                                     mouse_x, mouse_y);
+  if (right_button) zeal->camera_mods->handle_proc_rmouseup();
   auto target = Zeal::Game::get_target();
   if (!right_button && target && target != pre_target && target != Zeal::Game::get_self() &&
       target->Type == Zeal::GameEnums::EntityTypes::NPC && Zeal::Game::is_in_game() &&
