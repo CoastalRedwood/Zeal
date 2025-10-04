@@ -58,29 +58,28 @@ static int __fastcall SetNameSpriteTint_UpdateState(void *this_display, void *no
 bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   if (!setting_extended_nameplate.get()) return false;
 
-  int value = -1;
-  bool valid_value =
-      (args.size() == 2) && Zeal::String::tryParse(args[1], &value, true) && (value >= 1) && (value <= 7);
-
-  if (args.size() != 2 || (args[1] != "off" && !valid_value)) {
+  if (args.size() <= 1) {
     Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
-    return true;  // Suppress the original command
+    return true;  // Suppress original command so only showing new usage above.
   }
+
+  int value = -1;
+  if (!Zeal::String::tryParse(args[1], &value, true) || (value < 1) || (value > 7))
+    value = (args[1].starts_with("off")) ? 0 : 4;  // Show all is the default except for "off".
 
   // Add some confirmation text missing for the extended nameplates.
-  if (valid_value) {
-    if (value == 5)
-      Zeal::Game::print_chat("Showing title and first names.");
-    else if (value == 6)
-      Zeal::Game::print_chat("Showing title, first, and last names.");
-    else if (value == 7)
-      Zeal::Game::print_chat("Showing first and guild names.");
-  }
+  if (value == 5)
+    Zeal::Game::print_chat("Showing title and first names.");
+  else if (value == 6)
+    Zeal::Game::print_chat("Showing title, first, and last names.");
+  else if (value == 7)
+    Zeal::Game::print_chat("Showing first and guild names.");
 
   // Keep the UI options in sync. Immediately write to some globals now that the original command will perform
-  // later so the update options call below works correctly.
-  if (valid_value) *reinterpret_cast<int32_t *>(0x007d01e4) = value;  // Update the current shownames level.
-  *reinterpret_cast<int *>(0x00798af4) = valid_value;  // Update the depressed button Show PC Names button state.
+  // later so the update options call below works correctly. The original command will update the Show PC
+  // Names
+  *reinterpret_cast<int32_t *>(0x007d01e4) = value;   // Update the current shownames level.
+  *reinterpret_cast<int *>(0x00798af4) = value != 0;  // Update the depressed button Show PC Names button state.
   if (update_options_ui_callback) update_options_ui_callback();
 
   return false;  // Let the original command run fully update (beyond shortcuts above).
