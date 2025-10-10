@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <map>
 #include <regex>
 
 #include "binds.h"
@@ -18,6 +19,20 @@
 #include "memory.h"
 #include "string_util.h"
 #include "zeal.h"
+
+std::map<std::string, std::string> channelPrefixes = {
+  {"guild", "G"},             // Guild
+  {"party", "P"},             // Group (Received)
+  {"group", "P"},             // Group (Sent)
+  {"shout", "Sh"},            // Shout
+  {"auction", "A"},           // Auction
+  {"out of character", "O"},  // OOC
+  {"BROADCASTS", "B"},        // Broadcast
+  {"tell", "<<"},             // Tell (Received)
+  {"say", "S"},               // Say
+  {"told", ">>"},             // TellEcho (Sent)
+  {"raid", "R"},             // Raid
+};
 
 std::string ReadFromClipboard() {
   std::string text;
@@ -63,6 +78,82 @@ std::string StripSpecialCharacters(const std::string &input) {
   result.erase(std::remove_if(result.begin(), result.end(), [](char c) { return c == '\n' || c == '\r'; }),
                result.end());
   return result;
+}
+
+std::string abbreviateChat(const std::string &original_message) {
+  // Pattern to look for chat messages
+  std::regex chat_pattern(
+    R"(^([\w ]+) (?:(?:say to your |says? |tells? the |tell your |(told|tell)s? )(say)?([\w\d: ]+)|(auction|say|shout)s?),? '(.*)'$)",
+    std::regex::icase);
+
+  std::smatch match;
+
+  if (std::regex_search(original_message, match, chat_pattern)) {
+
+    // match[1] is always the sender
+    // match[6] is always the message
+    // The channel can be one of the folllowing
+    //   match[5] if it exists
+    //   match[4] if it contains ':' (e.g. 'General:1')
+    //   match[4] if it's a known (e.g. 'party', 'guild')
+    //   otherwise, match[2] is the channel
+
+    std::string sender  = match[1].str();
+    std::string message = match[6].str();
+    std::string channel;
+    if (match[5].matched) {
+      channel = match[5].str();
+    } else if (match[4].matched) {
+      if (match[4].str().find(':') != std::string::npos) {
+        channel = match[4].str();
+      // if match[4] is 'party/group/guild/raid/out of character' then it's a channel
+      } else if ( match[4].str() == "party" || match[4].str() == "group" || match[4].str() == "guild" ||
+        match[4].str() == "raid" || match[4].str() == "out of character") {
+        channel = match[4].str();
+      } else {
+        channel = match[2].str();
+      }
+    }
+  
+    // Match known channels with prefixes
+    std::string channel_prefix;
+    if (channelPrefixes.count(channel)) {
+      channel_prefix = channelPrefixes[channel];
+    // If channel has a ':', use the channel number
+    } else if (channel.find(':') != std::string::npos) {
+      size_t colon_pos = channel.find(':');
+      if (colon_pos != std::string::npos && colon_pos + 1 < channel.length()) {
+        channel_prefix = channel.substr(colon_pos + 1);
+      }
+    }
+
+    // Abort if a prefix wasn't found
+    if (channel_prefix.empty()) {
+      return original_message;
+    }
+
+    if (channel == "told") {
+      // For told, match[4] is the sender
+      sender = match[4].str();
+    }
+
+    // Replace you with your actual name
+    if (sender == "You") {
+      Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+      if (self) {
+        sender = self->Name;
+      }
+    }
+    
+    std::string newMessage;
+    if (channel == "tell" || channel == "told") {
+        newMessage = channel_prefix + " [" + sender + "]: " + message;
+    } else {
+      newMessage = "[" + channel_prefix + "] [" + sender + "]: " + message;
+    }
+    return newMessage;
+  }
+  return original_message;
 }
 
 std::string generateTimestampedString(const std::string &message, bool longform = true) {
@@ -144,24 +235,43 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
 
   // Perform extra copies to protect unwary callers against the potential buffer size growth.
   char buffer[2048];  // Client maximum buffer size for print chat calls.
+  const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
   const auto &timestamp_style = ZealService::get_instance()->chat_hook->TimeStampsStyle;
-  if (timestamp_style.get()) {
-    std::string timestamp_buffer = generateTimestampedString(data, timestamp_style.get() == 1);
-    strncpy_s(buffer, timestamp_buffer.c_str(), sizeof(buffer));
-    ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
-                                                                                   false);
 
-    if (add_log && *Zeal::Game::is_logging_enabled)  // Repeat without timestamping.
+  std::string log_buffer = "";
+  std::string chat_buffer = "";
+  
+  std::string abbreviated_buffer;
+  if (abbreviated_chat.get()) {
+    abbreviated_buffer = abbreviateChat(std::string(data));
+    if (abbreviated_chat.get() == 1) {
+      chat_buffer = abbreviated_buffer;
+      log_buffer = data;
+    } else {
+      chat_buffer = abbreviated_buffer;
+      log_buffer = abbreviated_buffer;
+    }
+  } else {
+    chat_buffer = data;
+    log_buffer = data;
+  }
+
+  std::string timestamp_buffer;
+  if (timestamp_style.get()) {
+    timestamp_buffer = generateTimestampedString("", timestamp_style.get() == 1);
+    chat_buffer = timestamp_buffer + chat_buffer;
+  }
+
+  strncpy_s(buffer, chat_buffer.c_str(), sizeof(buffer));
+  ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
+                                                                                   false);
+  if (add_log && *Zeal::Game::is_logging_enabled)  // Repeat without timestamping.
     {
-      strncpy_s(buffer, data, sizeof(buffer));
+      strncpy_s(buffer, log_buffer.c_str(), sizeof(buffer));
       Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
       Zeal::Game::log(buffer);
     }
-  } else {
-    strncpy_s(buffer, data, sizeof(buffer));
-    ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
-                                                                                   add_log);
-  }
+
 }
 
 char *__fastcall StripName(int t, int unused, char *data) {
@@ -633,6 +743,24 @@ Chat::Chat(ZealService *zeal) {
   //
   // return false;
   //}, callback_type::WorldMessage);
+  zeal->commands_hook->Add("/abbreviatedchat", {"/abc"}, "Abbreviates chat messages.",
+                           [this](std::vector<std::string> &args) {
+                             // 0 = Off
+                             // 1 = Chat Only
+                             // 2 = Chat and Log
+                             if (args.size() > 1) {
+                               int abbreviated_option;
+                               if (Zeal::String::tryParse(args[1], &abbreviated_option)) {
+                                 abbreviated_option = std::clamp(abbreviated_option, 0, 2);
+                                 UseAbbreviatedChat.set(abbreviated_option);
+                               }
+                               
+                             } else {
+                               UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
+                             }
+                             return true;  // return true to stop the game from processing any further on this command,
+                                           // false if you want to just add features to an existing cmd
+                           });
   zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles timestamps on chat windows.",
                            [this](std::vector<std::string> &args) {
                              if (args.size() > 1 && args[1] == "2") {
