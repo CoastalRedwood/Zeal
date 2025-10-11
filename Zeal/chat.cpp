@@ -27,7 +27,7 @@ std::map<std::string, std::string> channelPrefixes = {
   {"shout", "Sh"},            // Shout
   {"auction", "A"},           // Auction
   {"out of character", "O"},  // OOC
-  {"BROADCASTS", "B"},        // Broadcast
+  {"BROADCAST", "B"},         // Broadcast
   {"tell", "<<"},             // Tell (Received)
   {"say", "S"},               // Say
   {"told", ">>"},             // TellEcho (Sent)
@@ -83,7 +83,7 @@ std::string StripSpecialCharacters(const std::string &input) {
 std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
   std::regex chat_pattern(
-    R"(^([\w ]+) (?:(?:say to your |says? |tells? the |tell your |(told|tell)s? )(say)?([\w\d: ]+)|(auction|say|shout)s?),? '(.*)'$)",
+    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)",
     std::regex::icase);
 
   std::smatch match;
@@ -94,19 +94,21 @@ std::string abbreviateChat(const std::string &original_message) {
     // match[6] is always the message
     // The channel can be one of the folllowing
     //   match[5] if it exists
-    //   match[4] if it contains ':' (e.g. 'General:1')
+    //   match[4] if it's a number (e.g. 1 from 'General:1')
     //   match[4] if it's a known (e.g. 'party', 'guild')
     //   otherwise, match[2] is the channel
 
     std::string sender  = match[1].str();
     std::string message = match[6].str();
     std::string channel;
+    std::string channel_prefix;
     if (match[5].matched) {
       channel = match[5].str();
     } else if (match[4].matched) {
-      if (match[4].str().find(':') != std::string::npos) {
+      if (std::regex_match(match[4].str(), std::regex(R"(\d+)"))) {
         channel = match[4].str();
-      // if match[4] is 'party/group/guild/raid/out of character' then it's a channel
+        channel_prefix = channel; // Use the number for the prefix
+      // Could be a channel or a player, so need to be specific
       } else if ( match[4].str() == "party" || match[4].str() == "group" || match[4].str() == "guild" ||
         match[4].str() == "raid" || match[4].str() == "out of character") {
         channel = match[4].str();
@@ -115,16 +117,9 @@ std::string abbreviateChat(const std::string &original_message) {
       }
     }
   
-    // Match known channels with prefixes
-    std::string channel_prefix;
-    if (channelPrefixes.count(channel)) {
+    // Match known channels with prefixes (if not already set)
+    if (channel_prefix.empty() && channelPrefixes.count(channel)) {
       channel_prefix = channelPrefixes[channel];
-    // If channel has a ':', use the channel number
-    } else if (channel.find(':') != std::string::npos) {
-      size_t colon_pos = channel.find(':');
-      if (colon_pos != std::string::npos && colon_pos + 1 < channel.length()) {
-        channel_prefix = channel.substr(colon_pos + 1);
-      }
     }
 
     // Abort if a prefix wasn't found
