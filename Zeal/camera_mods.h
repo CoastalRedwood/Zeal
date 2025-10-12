@@ -33,6 +33,7 @@ class CameraMods {
 
   CameraMods(class ZealService *pHookWrapper);
   ~CameraMods();
+  void handle_process_mouse_and_get_key();
   bool handle_mouse_wheel(int delta);
   bool handle_proc_mouse();
   void handle_proc_rmousedown(int x, int y);
@@ -60,7 +61,6 @@ class CameraMods {
   void synchronize_old_ui();
   void handle_toggle_cam();
   void callback_zone();
-  void callback_main();
   bool callback_packet(UINT opcode, char *buffer, UINT len);
   void update_desired_zoom(float zoom);
   void synchronize_fov();
