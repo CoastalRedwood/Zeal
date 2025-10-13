@@ -154,7 +154,7 @@ bool CameraMods::handle_proc_mouse() {
   Zeal::GameStructures::CameraInfo *cam = Zeal::Game::get_camera();
   Zeal::GameStructures::MouseDelta *delta = (Zeal::GameStructures::MouseDelta *)0x798586;
   bool lbutton = *Zeal::Game::is_left_mouse_down;
-  bool rbutton = *Zeal::Game::is_right_mouse_down;
+  bool rbutton = *Zeal::Game::is_right_mouse_look_down;
 
   const bool is_zeal_cam = (camera_view == Zeal::GameEnums::CameraView::ZealCam);
   if (!rbutton && !(lbutton && is_zeal_cam)) return true;  // Nothing to do; skip hooked procMouse.
@@ -214,40 +214,85 @@ void CameraMods::synchronize_set_enable() {
 // first order IIR low pass filter for smoothing out the transitions.
 void CameraMods::interpolate_zoom() { zeal_cam_zoom = zeal_cam_zoom + (desired_zoom - zeal_cam_zoom) * 0.3f; }
 
-// check to help fix left mouse panning from preventing repositioning the game in windowed mode.
-static bool is_over_title_bar(void) {
-  // was going to reuse Zeal::GameStructures::MouseDelta* but the values flow over INT16
-  // Zeal::GameStructures::MouseDelta* mouse_pos = (Zeal::GameStructures::MouseDelta*)0x798580;
-  WORD mouse_y = *(WORD *)0x798582;
-  return (mouse_y >= 0xE6FF && mouse_y <= 0xFFFF);
+// Returns true if the mouse is over a visible client window.
+static bool is_over_client_rect(void) {
+  auto hwnd = Zeal::Game::get_game_window();
+  if (!::IsWindowVisible(hwnd)) return false;
+
+  POINT cursor;
+  ::GetCursorPos(&cursor);  // This returns absolute screen x, y.
+
+  POINT offset = {0, 0};
+  ::ClientToScreen(hwnd, &offset);
+  cursor.x -= offset.x;
+  cursor.y -= offset.y;
+
+  RECT rect;
+  ::GetClientRect(hwnd, &rect);
+
+  return ::PtInRect(&rect, cursor);
 }
 
-// Periodic call to handle left button panning in ZealCam.
+// Setting enable allows the game to control the display or hiding of the game cursor.
+static void set_internal_cursor_enable(bool enable) {
+  const int draw_cursor_jump_addr = 0x0053edef;
+  BYTE opcode = enable ? 0x75 : 0xEB;  // Toggle conditional vs unconditional jump past draw cursor.
+  if (*(BYTE *)draw_cursor_jump_addr != opcode) mem::write<BYTE>(0x53edef, opcode);
+}
+
+// Sets all internal absolute mouse position state to (x,y).
+static void set_game_mouse_position(int x, int y) {
+  *Zeal::Game::mouse_client_x_dinput_accum = x;
+  *Zeal::Game::mouse_client_y_dinput_accum = y;
+  *Zeal::Game::mouse_client_x_dinput_state = x;
+  *Zeal::Game::mouse_client_y_dinput_state = y;
+  *Zeal::Game::mouse_client_x = x;
+  *Zeal::Game::mouse_client_y = y;
+}
+
+// Synchronizes the win32 cursor to the internal cursor position.
+void set_win32_cursor_to_client_position(POINT pt) {
+  ::ClientToScreen(Zeal::Game::get_game_window(), &pt);
+  ::SetCursorPos(pt.x, pt.y);
+}
+
+// Sets the internal cursor location and synchronizes the win32 cursor with it.
+void set_game_mouse_and_win32_position(POINT pt) {
+  set_game_mouse_position(pt.x, pt.y);
+  set_win32_cursor_to_client_position(pt);
+}
+
+// Periodic call to handle left button panning in ZealCam. Note that unlike rmb mouse look,
+// the mouse button down and up are not hooked. Instead we have a pan delay and rely on the
+// same processing loop as camera interpolation to update the view. Note that we don't
+// recenter the mouse and win32 to the center during left pan as this could confuse the
+// previous mouse location state, so we could get some glitching with fast cursor moves at
+// the window edges, but this isn't as critical for lmb as rmb.
 void CameraMods::update_left_pan(DWORD camera_view) {
-  if (!*Zeal::Game::is_right_mouse_down && *Zeal::Game::is_left_mouse_down && is_zeal_cam_active() &&
-      !is_over_title_bar() && !Zeal::Game::is_game_ui_window_hovered()) {
+  if (!*Zeal::Game::is_right_mouse_look_down && *Zeal::Game::is_left_mouse_down && is_zeal_cam_active() &&
+      (lmouse_time || is_over_client_rect()) && !Zeal::Game::is_game_ui_window_hovered()) {
     if (!lmouse_time) {
-      GetCursorPos(&lmouse_cursor_pos);
-      hide_cursor = true;
       lmouse_time = GetTickCount64();
+      lmouse_cursor_pos = POINT{32767, 32767};
+      hide_cursor = true;
     }
 
     if (GetTickCount64() - lmouse_time > pan_delay.get()) {
-      HWND gwnd = Zeal::Game::get_game_window();
-      POINT cursor_pos_for_window;
-      GetCursorPos(&cursor_pos_for_window);
-      if (gwnd == WindowFromPoint(cursor_pos_for_window)) {
-        if (hide_cursor && GetTickCount64() - lmouse_time > pan_delay.get()) {
-          mem::write<BYTE>(0x53edef, 0xEB);  // Unconditional jump past a showcursor.
-          hide_cursor = false;
-        }
+      if (hide_cursor) {
+        hide_cursor = false;
+        lmouse_cursor_pos = POINT{*Zeal::Game::mouse_client_x_dinput_accum, *Zeal::Game::mouse_client_y_dinput_accum};
+        set_internal_cursor_enable(false);  // Hide the internal cursor (GAMESTATE_INGAME only).
+      }
+
+      if (lmouse_cursor_pos.x != 32767) {
         handle_proc_mouse();
-        SetCursorPos(lmouse_cursor_pos.x, lmouse_cursor_pos.y);
+        set_game_mouse_and_win32_position(lmouse_cursor_pos);
       }
     }
-  } else {
-    if (lmouse_time) mem::write<BYTE>(0x53edef, 0x75);  // Restore showcursor check.
+  } else if (lmouse_time) {
     lmouse_time = 0;
+    set_internal_cursor_enable(true);  // Restore showcursor check.
+    hide_cursor = false;
   }
 }
 
@@ -366,7 +411,7 @@ void CameraMods::synchronize_old_ui() {
 }
 
 // Called periodically to keep the camera synced and compensate for fps rates.
-void CameraMods::callback_main() {
+void CameraMods::handle_process_mouse_and_get_key() {
   static int prev_view = get_camera_view();
   synchronize_old_ui();
   if (!ui_active || !enabled.get()) return;
@@ -390,6 +435,13 @@ void CameraMods::handle_proc_rmousedown(int x, int y) {
   if (fabs(camera_math::angle_difference(zeal_cam_yaw, Zeal::Game::get_controlled()->Heading)) > 5) {
     Zeal::Game::get_controlled()->Heading = zeal_cam_yaw;
   }
+}
+
+// Execute update processing right after the latest mouse and keyboard inputs are fetched.
+static int ProcessMouseAndGetKey() {
+  auto zeal = ZealService::get_instance();
+  int result = zeal->hooks->hook_map["ProcessMouseAndGetKey"]->original(ProcessMouseAndGetKey)();
+  zeal->camera_mods->handle_process_mouse_and_get_key();
 }
 
 // Consumes relevant mouse scroll wheel messages otherwise passes it on.
@@ -537,8 +589,6 @@ CameraMods::CameraMods(ZealService *zeal) {
   mem::write<BYTE>(0x4db8d9, 0xEB);  // Unconditional jump to skip an optional bad camera position debug message.
 
   lastTime = std::chrono::steady_clock::now();
-  zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::MainLoop);
-  zeal->callbacks->AddGeneric([this]() { callback_main(); }, callback_type::CharacterSelectLoop);
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = false; }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { ui_active = true; }, callback_type::InitCharSelectUI);
@@ -559,6 +609,7 @@ CameraMods::CameraMods(ZealService *zeal) {
     return false;
   });
 
+  zeal->hooks->Add("ProcessMouseAndGetKey", 0x0052437f, ProcessMouseAndGetKey, hook_type_detour);
   zeal->hooks->Add("HandleMouseWheel", 0x55B2E0, HandleMouseWheel, hook_type_detour);
   zeal->hooks->Add("procMouse", 0x537707, procMouse, hook_type_detour);
   zeal->hooks->Add("RMouseDown", 0x54699d, RMouseDown, hook_type_detour);
