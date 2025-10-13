@@ -442,6 +442,7 @@ static int ProcessMouseAndGetKey() {
   auto zeal = ZealService::get_instance();
   int result = zeal->hooks->hook_map["ProcessMouseAndGetKey"]->original(ProcessMouseAndGetKey)();
   zeal->camera_mods->handle_process_mouse_and_get_key();
+  return result;
 }
 
 // Consumes relevant mouse scroll wheel messages otherwise passes it on.
