@@ -34,6 +34,8 @@ std::map<std::string, std::string> channelPrefixes = {
   {"raid", "R"},             // Raid
 };
 
+std::string playerRolling;
+
 std::string ReadFromClipboard() {
   std::string text;
   if (OpenClipboard(nullptr)) {
@@ -85,6 +87,9 @@ std::string abbreviateChat(const std::string &original_message) {
   std::regex chat_pattern(
     R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)",
     std::regex::icase);
+
+  std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
+  std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
 
   std::smatch match;
 
@@ -148,6 +153,24 @@ std::string abbreviateChat(const std::string &original_message) {
     }
     return newMessage;
   }
+
+  if (std::regex_search(original_message, match, roll_player_pattern)) {
+    playerRolling = match[1].str(); // Player will be used when the actual roll result is printed
+    return std::string(); // Prevent this line from being printed
+  }
+
+  if (std::regex_search(original_message, match, roll_result_pattern)) {
+    if (playerRolling.length() == 0)  // Just in case
+      playerRolling = "?????";
+    std::string rollMin = match[1].str();
+    std::string rollMax = match[2].str();
+    std::string rollResult = match[3].str();
+    std::string newMessage = playerRolling + " rolls " + rollResult + " (" + rollMin + "-" + rollMax + ")";
+    playerRolling = std::string(); // Clear it for the next person
+    return newMessage;
+  }
+
+  // If there were no matches, return the original message
   return original_message;
 }
 
