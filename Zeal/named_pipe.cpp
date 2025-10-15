@@ -215,6 +215,9 @@ void NamedPipe::main_loop() {
         if (entity) {
           raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
+          raid_data["hp_current"] = entity->HpCurrent;
+          raid_data["hp_max"] = entity->HpMax;
+          raid_data["zone_id"] = entity->ZoneId;
         }
 
         raid_data["group"] = (member.GroupNumber == Zeal::GameStructures::RaidMember::kRaidUngrouped)
@@ -243,6 +246,11 @@ void NamedPipe::main_loop() {
           group_data["name"] = group_info->Names[i];
           group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
+          group_data["hp_current"] = member->HpCurrent;
+          group_data["hp_max"] = member->HpMax;
+          group_data["class"] = member->Class;
+          group_data["level"] = member->Level;
+          group_data["zone_id"] = member->ZoneId;
 
           group_array.push_back(group_data);
         } else {
