@@ -268,6 +268,11 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   }
   ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
                                                                                          add_log && !log_is_different);
+  if (add_log && log_is_different && *Zeal::Game::is_logging_enabled) {
+    strncpy_s(buffer, log_buffer, sizeof(buffer));
+    Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
+    Zeal::Game::log(buffer);
+  }
 }
 
 char *__fastcall StripName(int t, int unused, char *data) {
