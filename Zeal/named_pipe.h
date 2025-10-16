@@ -45,6 +45,7 @@ class NamedPipe {
   void add_new_pipe_handle(const HANDLE &handle);
   void update_pipe_handles();
   ZealSetting<int> pipe_delay = {100, "Zeal", "PipeDelay", false};
+  ZealSetting<bool> pipe_verbose = {false, "Zeal", "PipeVerbose", false};
   bool end_thread = false;
   std::string name = "\\\\.\\pipe\\zeal_";
   std::vector<HANDLE> pipe_handles;
