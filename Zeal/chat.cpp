@@ -248,47 +248,26 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   if (!data || strlen(data) == 0)  // Skip phantom prints like the client does.
     return;
 
-  // Perform extra copies to protect unwary callers against the potential buffer size growth.
-  char buffer[2048];  // Client maximum buffer size for print chat calls.
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
+
+  std::string abbreviated_buffer = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : "";
+  if (abbreviated_chat.get() && abbreviated_buffer.empty()) // Skip phantom prints after modification
+    return;
+  const char *chat_buffer = (abbreviated_chat.get() > 0) ? abbreviated_buffer.c_str() : data;
+  const char *log_buffer = (abbreviated_chat.get() == 2) ? abbreviated_buffer.c_str() : data;
+
+   // Perform extra copies to protect unwary callers against the potential buffer size growth.
+  char buffer[2048];  // Client maximum buffer size for print chat calls.
   const auto &timestamp_style = ZealService::get_instance()->chat_hook->TimeStampsStyle;
-
-  std::string log_buffer = "";
-  std::string chat_buffer = "";
-  
-  std::string abbreviated_buffer;
-  if (abbreviated_chat.get()) {
-    abbreviated_buffer = abbreviateChat(std::string(data));
-    if (abbreviated_buffer.empty())  // Skip phantom prints after modification
-      return;
-    if (abbreviated_chat.get() == 1) {
-      chat_buffer = abbreviated_buffer;
-      log_buffer = data;
-    } else {
-      chat_buffer = abbreviated_buffer;
-      log_buffer = abbreviated_buffer;
-    }
-  } else {
-    chat_buffer = data;
-    log_buffer = data;
-  }
-
-  std::string timestamp_buffer;
+  bool log_is_different = timestamp_style.get() || (chat_buffer != log_buffer);
   if (timestamp_style.get()) {
-    timestamp_buffer = generateTimestampedString("", timestamp_style.get() == 1);
-    chat_buffer = timestamp_buffer + chat_buffer;
+    std::string timestamp_buffer = generateTimestampedString(chat_buffer, timestamp_style.get() == 1);
+    strncpy_s(buffer, timestamp_buffer.c_str(), sizeof(buffer));
+  } else {
+    strncpy_s(buffer, chat_buffer, sizeof(buffer));
   }
-
-  strncpy_s(buffer, chat_buffer.c_str(), sizeof(buffer));
   ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
-                                                                                   false);
-  if (add_log && *Zeal::Game::is_logging_enabled)  // Repeat without timestamping.
-    {
-      strncpy_s(buffer, log_buffer.c_str(), sizeof(buffer));
-      Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
-      Zeal::Game::log(buffer);
-    }
-
+                                                                                         add_log && !log_is_different);
 }
 
 char *__fastcall StripName(int t, int unused, char *data) {
