@@ -85,8 +85,7 @@ std::string StripSpecialCharacters(const std::string &input) {
 std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
   std::regex chat_pattern(
-    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)",
-    std::regex::icase);
+    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)");
 
   std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
   std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
@@ -165,7 +164,7 @@ std::string abbreviateChat(const std::string &original_message) {
     std::string rollMin = match[1].str();
     std::string rollMax = match[2].str();
     std::string rollResult = match[3].str();
-    std::string newMessage = playerRolling + " rolls " + rollResult + " (" + rollMin + "-" + rollMax + ")";
+    std::string newMessage = "[" + rollMin + "-" + rollMax + "]: " + rollResult + " rolled by " + playerRolling + ".";
     playerRolling = std::string(); // Clear it for the next person
     return newMessage;
   }
@@ -249,8 +248,6 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   if (!data || strlen(data) == 0)  // Skip phantom prints like the client does.
     return;
 
-  ZealService::get_instance()->chat_hook->handle_print_chat(data, color_index);
-
   // Perform extra copies to protect unwary callers against the potential buffer size growth.
   char buffer[2048];  // Client maximum buffer size for print chat calls.
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
@@ -262,6 +259,8 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   std::string abbreviated_buffer;
   if (abbreviated_chat.get()) {
     abbreviated_buffer = abbreviateChat(std::string(data));
+    if (abbreviated_buffer.empty())  // Skip phantom prints after modification
+      return;
     if (abbreviated_chat.get() == 1) {
       chat_buffer = abbreviated_buffer;
       log_buffer = data;
