@@ -215,6 +215,11 @@ void NamedPipe::main_loop() {
         if (entity) {
           raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
+          if (pipe_verbose.get()) {
+            raid_data["hp_current"] = entity->HpCurrent;
+            raid_data["hp_max"] = entity->HpMax;
+            raid_data["zone_id"] = entity->ZoneId;
+          }
         }
 
         raid_data["group"] = (member.GroupNumber == Zeal::GameStructures::RaidMember::kRaidUngrouped)
@@ -243,6 +248,13 @@ void NamedPipe::main_loop() {
           group_data["name"] = group_info->Names[i];
           group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
+          if (pipe_verbose.get()) {
+            group_data["hp_current"] = member->HpCurrent;
+            group_data["hp_max"] = member->HpMax;
+            group_data["class"] = member->Class;
+            group_data["level"] = member->Level;
+            group_data["zone_id"] = member->ZoneId;
+          }
 
           group_array.push_back(group_data);
         } else {
@@ -443,6 +455,20 @@ NamedPipe::NamedPipe(ZealService *zeal) {
                              }
                              return true;  // return true to stop the game from processing any further on this command,
                                            // false if you want to just add features to an existing cmd
+                           });
+  zeal->commands_hook->Add("/pipeverbose", {}, "toggle verbose pipe output with additional fields",
+                           [this](std::vector<std::string> &args) {
+                             if (args.size() > 1) {
+                               if (args[1] == "on") {
+                                 pipe_verbose.set(true);
+                               } else if (args[1] == "off") {
+                                 pipe_verbose.set(false);
+                               }
+                             } else {
+                               pipe_verbose.set(!pipe_verbose.get());
+                             }
+                             Zeal::Game::print_chat("pipe verbose is now %s", pipe_verbose.get() ? "on" : "off");
+                             return true;
                            });
   zeal->commands_hook->Add("/pipe", {}, "outputs text to a pipe", [this](std::vector<std::string> &args) {
     std::string full_str = ArgsToString(args, " ");
