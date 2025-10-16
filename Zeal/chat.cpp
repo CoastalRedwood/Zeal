@@ -775,6 +775,8 @@ Chat::Chat(ZealService *zeal) {
                              } else {
                                UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
                              }
+                             Zeal::Game::print_chat("Abbreviated chat set to %d (%s)", UseAbbreviatedChat.get(), 
+                               UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));  
                              return true;  // return true to stop the game from processing any further on this command,
                                            // false if you want to just add features to an existing cmd
                            });
