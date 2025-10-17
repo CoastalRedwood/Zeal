@@ -124,7 +124,9 @@ void ui_zoneselect::InitUI() {
     std::deque<std::vector<std::string>> zone_list;
     for (int i = 0; i < 225; i++) {
       if (world->Zones[i]) {
-        if (!std::filesystem::exists(std::string(world->Zones[i]->name_short) + ".s3d")) continue;
+        std::string filename = std::string(world->Zones[i]->name_short) + ".s3d";
+        std::filesystem::path filepath = Zeal::Game::get_game_path() / std::filesystem::path(filename);
+        if (!std::filesystem::exists(filepath)) continue;
         zones[world->Zones[i]->name_long] = world->Zones[i]->zone_id;
         if (world->Zones[i]->zone_id == ZealService::get_instance()->charselect->ZoneIndex.get()) {
           lst->SelectedIndex = i;

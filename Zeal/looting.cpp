@@ -442,13 +442,14 @@ bool Looting::is_trade_protected(Zeal::GameUI::TradeWnd *wnd) const {
   return false;
 }
 
-static std::string get_protected_items_filename() {
+static std::filesystem::path get_protected_items_filename() {
   if (!Zeal::Game::get_char_info()) return "";
-  return std::format(".\\{0}_protected.ini", Zeal::Game::get_char_info()->Name);
+  std::string filename = std::format("{0}_protected.ini", Zeal::Game::get_char_info()->Name);
+  return Zeal::Game::get_game_path() / std::filesystem::path(filename);
 }
 
 void Looting::load_protected_items() {
-  std::string filename = get_protected_items_filename();
+  std::filesystem::path filename = get_protected_items_filename();
   if (filename.empty() || !std::filesystem::exists(filename)) return;  // Game not initialized yet or no protected file.
 
   std::ifstream input_file(filename);

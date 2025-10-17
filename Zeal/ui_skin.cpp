@@ -226,7 +226,7 @@ bool UISkin::is_ui_skin_big_fonts_mode(const char *ui_skin) {
   std::filesystem::path ui_skin_path = std::filesystem::path(ui_skin);  // Drop uifiles if present.
   std::filesystem::path ui_skin_name = ui_skin_path.filename();
   if (ui_skin_name.empty()) ui_skin_name = ui_skin_path.parent_path().filename();
-  std::filesystem::path file_path = std::filesystem::current_path() / std::filesystem::path("uifiles") / ui_skin_name /
+  std::filesystem::path file_path = Zeal::Game::get_game_path() / std::filesystem::path("uifiles") / ui_skin_name /
                                     std::filesystem::path(kBigFontsTriggerFilename);
   return std::filesystem::exists(file_path);
 }
@@ -252,7 +252,7 @@ static void print_block_message(const std::string &skin_name, const std::string 
 static bool is_skin_valid(const std::string &skin_name) {
   // First reject it if the ui folder doesn't exist.
   std::filesystem::path ui_skin_path =
-      std::filesystem::current_path() / std::filesystem::path("uifiles") / std::filesystem::path(skin_name);
+      Zeal::Game::get_game_path() / std::filesystem::path("uifiles") / std::filesystem::path(skin_name);
   if (!std::filesystem::exists(ui_skin_path)) {
     print_block_message(skin_name, "Skin folder does not exist in uifiles");
     return false;
@@ -305,8 +305,8 @@ void UISkin::initialize_mode(ZealService *zeal) {
   auto ui_skin = get_global_default_ui_skin_name();
   is_big_fonts = is_ui_skin_big_fonts_mode(ui_skin.c_str()) && patch_big_fonts_mode(zeal);
 
-  zeal_resources_path = std::filesystem::current_path() / std::filesystem::path("uifiles") /
-                        std::filesystem::path(kDefaultZealFileSubfolder);
+  zeal_resources_path =
+      Zeal::Game::get_game_path() / std::filesystem::path("uifiles") / std::filesystem::path(kDefaultZealFileSubfolder);
   zeal_xml_path = zeal_resources_path;
   if (is_big_fonts) zeal_xml_path /= kBigFontsXmlSubfolder;
 }
