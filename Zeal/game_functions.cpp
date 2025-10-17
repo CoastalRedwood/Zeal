@@ -2,6 +2,9 @@
 
 #include <Windows.h>
 
+#include <array>
+#include <regex>
+
 #include "callbacks.h"
 #include "entity_manager.h"
 #include "game_addresses.h"
@@ -1678,13 +1681,41 @@ std::string get_ui_ini_filename() {
   Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
   if (c) {
     std::string char_name = c->Name;
-    return ".\\UI_" + char_name + "_pq.proj.ini";
+    return ".\\UI_" + char_name + "_pq.proj.ini";  // Note: Client uses ".\\" and not some path lookup.
   }
   return "";
 }
 
+std::string get_host_tag() {
+  // Try to use client's function (GetUIIniFilename) to retrieve the filesafe host description.
+  const char *ui_ini_file = reinterpret_cast<const char *(__cdecl *)(void)>(0x00437481)();
+  if (ui_ini_file && ui_ini_file[0]) {
+    std::string ini_file = std::string(ui_ini_file);
+    std::regex pattern(".*_([^_]+)\\.ini$");  // Captures all chars after last underscore before .ini.
+    std::smatch matches;
+    if (std::regex_search(ini_file, matches, pattern) && matches.size() > 1) return "_" + matches[1].str();
+  }
+  return "";
+}
+
+std::filesystem::path get_game_path() {
+  static std::filesystem::path executable_path;
+
+  if (!executable_path.empty()) return executable_path;
+
+  // Retrieve the full path to the game executable.
+  std::array<wchar_t, MAX_PATH> buffer = {0};
+  DWORD length = GetModuleFileNameW(NULL, buffer.data(), buffer.size());
+  if (length > 0 && length < MAX_PATH)
+    executable_path = std::filesystem::path(buffer.data()).parent_path();  // Drop the exe name.
+  else
+    executable_path = std::filesystem::current_path();  // Fallback if that fails.
+
+  return executable_path;
+}
+
 std::filesystem::path get_default_ui_skin_path() {
-  return std::filesystem::current_path() / std::filesystem::path("uifiles") / std::filesystem::path("default");
+  return get_game_path() / std::filesystem::path("uifiles") / std::filesystem::path("default");
 }
 
 int get_channel_number(const char *name)  // ChannelServerApi::GetChannelNumber()

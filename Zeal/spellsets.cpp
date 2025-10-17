@@ -257,7 +257,7 @@ void SpellSets::destroy_menus(std::vector<SpellSets::MenuPair> &menus) {
 void SpellSets::initialize_ini_filename() {
   const char *name = Zeal::Game::get_char_info() ? Zeal::Game::get_char_info()->Name : "unknown";
   std::string filename = std::string(name) + "_spellsets.ini";
-  std::filesystem::path file_path = std::filesystem::current_path() / std::filesystem::path(filename);
+  std::filesystem::path file_path = Zeal::Game::get_game_path() / std::filesystem::path(filename);
   ini.set(file_path.string());
 }
 

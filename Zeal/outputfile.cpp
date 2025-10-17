@@ -14,8 +14,9 @@ using Zeal::GameEnums::EquipSlot::EquipSlot;
 static std::string IDToEquipSlot(int equipSlot) {
   switch (equipSlot) {
     case EquipSlot::LeftEar:
+      return "Ear1";
     case EquipSlot::RightEar:
-      return "Ear";
+      return "Ear2";
     case EquipSlot::Head:
       return "Head";
     case EquipSlot::Face:
@@ -29,8 +30,9 @@ static std::string IDToEquipSlot(int equipSlot) {
     case EquipSlot::Back:
       return "Back";
     case EquipSlot::LeftWrist:
+      return "Wrist1";
     case EquipSlot::RightWrist:
-      return "Wrist";
+      return "Wrist2";
     case EquipSlot::Range:
       return "Range";
     case EquipSlot::Hands:
@@ -40,8 +42,9 @@ static std::string IDToEquipSlot(int equipSlot) {
     case EquipSlot::Secondary:
       return "Secondary";
     case EquipSlot::LeftFinger:
+      return "Finger1";
     case EquipSlot::RightFinger:
-      return "Fingers";
+      return "Finger2";
     case EquipSlot::Chest:
       return "Chest";
     case EquipSlot::Legs:
@@ -71,14 +74,15 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
 
   std::ostringstream oss;
   std::string t = "\t";  // output spacer
-  oss << "Location" << t << "Name" << t << "ID" << t << "Count" << t << "Slots" << std::endl;
+  oss << "Location" << t << "Name" << t << "ID" << t << "Count/Charges" << t << "Slots" << std::endl;
 
   // Processing Equipment
   for (size_t i = 0; i < GAME_NUM_INVENTORY_SLOTS; ++i) {
     Zeal::GameStructures::GAMEITEMINFO *item = self->CharInfo->InventoryItem[i];
     // GAMEITEMINFO->EquipSlot value only updates when a load happens. Don't use it for this.
     if (item) {
-      oss << IDToEquipSlot(i) << t << item->Name << t << item->ID << t << 1 << t << 0 << std::endl;
+      int count = item->Common.StackCount;  // Union with charges.
+      oss << IDToEquipSlot(i) << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
     } else {
       oss << IDToEquipSlot(i) << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
     }
@@ -94,16 +98,16 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
           for (int j = 0; j < capacity; ++j) {
             Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[j];
             if (bag_item) {
-              int stack_count = ItemIsStackable(bag_item) ? static_cast<int>(bag_item->Common.StackCount) : 1;
-              oss << "General" << i + 1 << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t
-                  << stack_count << t << 0 << std::endl;
+              int count = bag_item->Common.StackCount;  // Union with charges.
+              oss << "General" << i + 1 << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count
+                  << t << 0 << std::endl;
             } else {
               oss << "General" << i + 1 << "-Slot" << j + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
             }
           }
         } else {
-          int stack_count = ItemIsStackable(item) ? static_cast<int>(item->Common.StackCount) : 1;
-          oss << "General" << i + 1 << t << item->Name << t << item->ID << t << stack_count << t << 0 << std::endl;
+          int count = item->Common.StackCount;  // Union with charges.
+          oss << "General" << i + 1 << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
         }
       } else {
         oss << "General" << i + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
@@ -126,9 +130,9 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
         for (int i = 0; i < capacity; ++i) {
           Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[i];
           if (bag_item) {
-            int stack_count = ItemIsStackable(bag_item) ? static_cast<int>(bag_item->Common.StackCount) : 1;
+            int count = bag_item->Common.StackCount;  // Union with charges.
             oss << "Held"
-                << "-Slot" << i + 1 << t << bag_item->Name << t << bag_item->ID << t << stack_count << t << 0
+                << "-Slot" << i + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t << 0
                 << std::endl;
           } else {
             oss << "Held"
@@ -136,8 +140,8 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
           }
         }
       } else {
-        int stack_count = ItemIsStackable(item) ? static_cast<int>(item->Common.StackCount) : 1;
-        oss << "Held" << t << item->Name << t << item->ID << t << stack_count << t << 0 << std::endl;
+        int count = item->Common.StackCount;  // Union with charges.
+        oss << "Held" << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
       }
     } else {
       ULONGLONG coin = 0;
@@ -166,16 +170,16 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
           for (int j = 0; j < capacity; ++j) {
             Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[j];
             if (bag_item) {
-              int stack_count = ItemIsStackable(bag_item) ? static_cast<int>(bag_item->Common.StackCount) : 1;
-              oss << label << slot << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << stack_count
+		          int count = bag_item->Common.StackCount;  // Union with charges.
+              oss << label << slot << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count
                   << t << 0 << std::endl;
             } else {
               oss << label << slot << "-Slot" << j + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
             }
           }
         } else {
-          int stack_count = ItemIsStackable(item) ? static_cast<int>(item->Common.StackCount) : 1;
-          oss << label << slot << t << item->Name << t << item->ID << t << stack_count << t << 0 << std::endl;
+          int count = item->Common.StackCount;  // Union with charges.
+          oss << label << slot << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
         }
       } else {
         oss << label << slot << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
@@ -248,6 +252,7 @@ void OutputFile::write_to_file(std::string data, std::string file_arg, std::stri
   if (filename.empty()) {
     filename = Zeal::Game::get_self()->CharInfo->Name;
     filename += "-" + file_arg;
+    filename += Zeal::Game::get_host_tag();
   }
   filename += ".txt";
 

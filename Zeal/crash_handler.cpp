@@ -58,14 +58,12 @@ std::map<DWORD, std::string> exceptionCodeStrings = {
 };
 
 void EnsureCrashesFolderExists() {
-  // Check if 'crashes' folder exists
-  DWORD dwAttrib = GetFileAttributes(L"crashes");
-  if (dwAttrib == INVALID_FILE_ATTRIBUTES || !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-    // Create 'crashes' folder if it does not exist
-    if (!CreateDirectory(L"crashes", NULL)) {
-      std::cerr << "Failed to create 'crashes' folder." << std::endl;
-    }
-  }
+  std::filesystem::path crash_folder = Zeal::Game::get_game_path() / std::filesystem::path("crashes");
+  if (std::filesystem::is_directory(crash_folder)) return;
+
+  std::error_code ec;
+  std::filesystem::create_directory(crash_folder, ec);
+  if (ec) std::cerr << "Error creating directory: " << ec.message() << " (code: " << ec.value() << ")" << std::endl;
 }
 
 std::string GetModuleNameFromAddress(LPVOID address) {
@@ -94,7 +92,7 @@ std::string ZipCrash(const std::string &folderName, const std::string &dumpFileP
   std::ostringstream CrashFileName;
   CrashFileName << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
 
-  std::string zipFilePath = "crashes\\" + CrashFileName.str() + ".zip";
+  std::string zipFilePath = Zeal::Game::get_game_path().string() + "\\crashes\\" + CrashFileName.str() + ".zip";
   mz_zip_archive zip_archive;
   memset(&zip_archive, 0, sizeof(zip_archive));
 
@@ -126,7 +124,8 @@ std::string ZipCrash(const std::string &folderName, const std::string &dumpFileP
 }
 
 static bool HandleCrashSender(EXCEPTION_POINTERS *pep, const std::string &CrashFileName, const std::string &reason) {
-  if (!std::filesystem::exists("crashes\\ZealCrashSender.exe")) {
+  std::string sender_filepath = Zeal::Game::get_game_path().string() + "\\crashes\\ZealCrashSender.exe";
+  if (!std::filesystem::exists(sender_filepath)) {
     return false;
   }
 
@@ -143,7 +142,7 @@ static bool HandleCrashSender(EXCEPTION_POINTERS *pep, const std::string &CrashF
   arguments << "\" ";
   arguments << "\"" << CrashFileName << ".zip\" ";
 
-  std::string cmdLine = "crashes\\ZealCrashSender.exe " + arguments.str();
+  std::string cmdLine = sender_filepath + " " + arguments.str();
 
   // Convert to writable format
   size_t bufferSize = cmdLine.size() + 1;
@@ -231,7 +230,7 @@ void WriteMiniDump(EXCEPTION_POINTERS *pep, const std::string &reason, const std
   std::tm tm;
   localtime_s(&tm, &t);
   std::ostringstream folderNameStream;
-  folderNameStream << "crashes\\" << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+  folderNameStream << Zeal::Game::get_game_path().string() << "\\crashes\\" << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
   std::string folderName = folderNameStream.str();
 
   if (!CreateDirectoryA(folderName.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
