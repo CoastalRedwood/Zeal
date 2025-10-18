@@ -85,6 +85,7 @@ class ZoneMap {
 
   ZealSetting<bool> setting_add_loc_text = {false, "Zeal", "MapAddLocText", false};
   ZealSetting<bool> setting_show_all_player_headings = {false, "Zeal", "MapShowPlayerHeadings", false};
+  ZealSetting<bool> setting_show_ring_heading = {false, "Zeal", "MapShowRingHeading", false};
 
   bool is_external_enabled() const { return external_enabled; }
 
@@ -211,6 +212,7 @@ class ZoneMap {
   void parse_grid(const std::vector<std::string> &args);
   void parse_ring(const std::vector<std::string> &args);
   void parse_font(const std::vector<std::string> &args);
+  void parse_loc(const std::vector<std::string> &args);
   void parse_poi(const std::vector<std::string> &args);
   bool search_poi(const std::string &search);
   void set_marker(int y, int x, const char *label = nullptr);
