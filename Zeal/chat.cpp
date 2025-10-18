@@ -28,9 +28,9 @@ std::map<std::string, std::string> channelPrefixes = {
   {"auction", "A"},           // Auction
   {"out of character", "O"},  // OOC
   {"BROADCAST", "B"},         // Broadcast
-  {"tell", "<<"},             // Tell (Received)
+  {"tell", "Fr"},             // Tell (Received)
   {"say", "S"},               // Say
-  {"told", ">>"},             // TellEcho (Sent)
+  {"told", "To"},             // TellEcho (Sent)
   {"raid", "R"},             // Raid
 };
 
@@ -144,12 +144,7 @@ std::string abbreviateChat(const std::string &original_message) {
       }
     }
     
-    std::string newMessage;
-    if (channel == "tell" || channel == "told") {
-        newMessage = channel_prefix + " [" + sender + "]: " + message;
-    } else {
-      newMessage = "[" + channel_prefix + "] [" + sender + "]: " + message;
-    }
+    std::string newMessage = "[" + channel_prefix + "] [" + sender + "]: " + message;
     return newMessage;
   }
 

@@ -147,7 +147,7 @@ Zeal::GameUI::ChatWnd *TellWindows::FindTellWnd(std::string &name) {
 
 std::string abbreviateTell(const std::string &original_message) {
   std::regex normal_tell_pattern(R"(^(\b\w+\b) (tells|told) (\b\w+\b),? '(.*)'$)");
-  std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?((?:<<|&LT;&LT;|>>|&RT;&RT;))\s+\[(\b\w+\b)\]:\s+(.*)$)");
+  std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(\b\w+\b)\]:\s+(.*)$)");
   std::smatch tell_match;
   std::string sender;
   std::string message;
@@ -161,28 +161,20 @@ std::string abbreviateTell(const std::string &original_message) {
     }
     abbreviated_message = "[" + sender + "]: " + message;
   } else if (std::regex_search(original_message, tell_match, abbreviated_tell_pattern)) {
-    std::string direction;
-    if (tell_match.size() == 5) {
-      direction = tell_match[2].str();
-      sender    = tell_match[3].str();
-      message   = tell_match[4].str();
-    } else {
-      direction = tell_match[1].str();
-      sender    = tell_match[2].str();
-      message   = tell_match[3].str();
-    }
-    if (direction == ">>" || direction == "&RT;&RT;") {
+    std::string timestamp = tell_match[1].str();
+    std::string direction = tell_match[2].str();
+    sender    = tell_match[3].str();
+    message   = tell_match[4].str();
+
+    if (direction == "To") {
       sender = "You";
     }
-    if (tell_match.size() == 5) {
-      // Include timestamp if present
-      abbreviated_message = tell_match[1].str() + "[" + sender + "]: " + message;
-    } else {
-      abbreviated_message = "[" + sender + "]: " + message;
-    }
+    abbreviated_message = tell_match[1].str() + "[" + sender + "]: " + message;
+
   } else {
     return original_message;  // Return the original message if it doesn't match the tell patterns
   }
+
   // replace "You" with actual character name in abbreviated_message
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   if (self && sender == "You") {
@@ -206,23 +198,19 @@ std::string GetName(std::string &data) {
   // std::transform(lower_msg.begin(), lower_msg.end(), lower_msg.begin(), ::tolower);
 
   // Regex pattern for matching exactly one word before "tells you"
-  std::regex tells_pattern(R"(^(?:\[[\d\w: ]+\]\s+)?(?:<<\s+|&LT;&LT;\s+)?\[?(\b\w+\b)\]?(?:\s+tells\s+you|:\s+))");
+  std::regex tells_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bFr\b\]\s+)?\[?(\b\w+\b)\]?(?:\s+tells\s+you|:\s+))");
   // Regex pattern for matching exactly one word after "you told"
-  std::regex told_pattern(R"(^(?:\[[\d\w: ]+\]\s+)?(?:(?:>>|&RT;&RT;)\s+|You told\s+)\[?(\b\w+\b)\]?)");
+  std::regex told_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bTo\b\]\s+)?(?:You told\s+|\[)(\b\w+\b)(?:,|\]:))");
 
   std::smatch match;
 
   // Check for "tells you" pattern with only one word before it
   if (std::regex_search(lower_msg, match, tells_pattern)) {
-    return match[1].str();  // Return the matched single word before "tells you"
+    return match[1].str();  // Return the matched single word before "tells you" or "]:"
   }
   // Check for "you told" pattern with only one word after it
   else if (std::regex_search(lower_msg, match, told_pattern)) {
-    if (match[2].matched) {
-      return match[2].str();  // Return the matched single word after "you told"
-    } else if (match[1].matched) {
-      return match[1].str();  // Return the matched character in the abbreviated chat format
-    }
+    return match[1].str();  // Return the matched single word after "you told" or before "]:"
   }
 
   return "";  // Return an empty string if no match found
