@@ -13,6 +13,7 @@ class Chat {
   ZealSetting<bool> UseBlueCon = {true, "Zeal", "Bluecon", false};
   ZealSetting<bool> UseZealInput = {true, "Zeal", "ZealInput", false};
   ZealSetting<bool> UseUniqueNames = {false, "Zeal", "UniqueNames", false};
+  ZealSetting<int> UseAbbreviatedChat = {0, "Zeal", "AbbreviatedChat", false};
   ZealSetting<int> TimeStampsStyle = {0, "Zeal", "ChatTimestamps", false};
 
   std::function<unsigned int(int)> get_color_callback;
