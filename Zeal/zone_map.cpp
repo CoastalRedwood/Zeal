@@ -88,9 +88,9 @@ static constexpr int kPositionVertices = kPositionCount * 3;            // Fixed
 static constexpr int kRaidMaxMembers = Zeal::GameStructures::RaidInfo::kRaidMaxMembers;
 static constexpr int kRaidPositionVertices = 3;  // Simple single triangle default option.
 static constexpr int kMaxDynamicLabels = 10;
-static constexpr int kRingLineSegments = 72;                 // Every 5 degrees.
-static constexpr int kRingVertices = kRingLineSegments + 1;  // N + 1 for D3DPT_LINESTRIP
-static constexpr int kMaxNonAllyTriangles = 500;             // Markers use 1 or 2 triangles each.
+static constexpr int kRingLineSegments = 72;                     // Every 5 degrees.
+static constexpr int kRingVertices = kRingLineSegments + 1 + 2;  // N + 1 for D3DPT_LINESTRIP and optional heading line.
+static constexpr int kMaxNonAllyTriangles = 500;                 // Markers use 1 or 2 triangles each.
 static constexpr int kPositionBufferSize =
     sizeof(ZoneMap::MapVertex) *
     (kPositionVertices * (GAME_NUM_GROUP_MEMBERS + 1) + kPositionVertices * kRaidMaxMembers +
@@ -1371,6 +1371,23 @@ void ZoneMap::add_ring_vertices(std::vector<MapVertex> &vertices) const {
                                  .color = color});
     angle_rad += angle_increment;  // Advance to next point.
   }
+
+  // Support a special extra line that projects out from your heading. This isn't drawn as a strip.
+  if (setting_show_ring_heading.get()) {
+    // Heading: 0 = N = -y, 128 = W = -x, 256 = S = +y, 384 = E = +x.
+    // So: Screen x tracks -sin(heading) and y tracks -cos(heading).
+    float direction = static_cast<float>(Zeal::Game::get_self()->Heading * M_PI / 256);  // In radians.
+    float x0 = -map_ring_radius * sinf(direction);
+    float y0 = -map_ring_radius * cosf(direction);
+    vertices.push_back(MapVertex{.x = x0 + -position.y,  // Note y,x,z and negation.
+                                 .y = y0 + -position.x,
+                                 .z = 0.5f,
+                                 .color = color});
+    vertices.push_back(MapVertex{.x = -position.y,  // Note y,x,z and negation.
+                                 .y = -position.x,
+                                 .z = 0.5f,
+                                 .color = color});
+  }
 }
 
 // Handles updating and rendering of self, group, and raid positions.
@@ -1425,7 +1442,10 @@ void ZoneMap::render_positions(IDirect3DDevice8 &device) {
 
   // First draw the distance ring if enabled.
   if (ring_vertex_count) {
-    device.DrawPrimitive(D3DPT_LINESTRIP, 0, ring_vertex_count - 1);  // N - 1 strip lines.
+    // An optional single heading line is appended to the end of the vertex list.
+    int ring_lines = ring_vertex_count - 1 - (setting_show_ring_heading.get() ? 2 : 0);
+    device.DrawPrimitive(D3DPT_LINESTRIP, 0, ring_lines);  // N - 1 strip lines.
+    if (setting_show_ring_heading.get()) device.DrawPrimitive(D3DPT_LINELIST, ring_vertex_count - 2, 1);
   }
 
   // Then draw the "other" (raid, group) markers.
@@ -2780,8 +2800,11 @@ void ZoneMap::parse_ring(const std::vector<std::string> &args) {
       set_ring_radius(ring_radius, false);
     else
       Zeal::Game::print_chat("Use /map ring <radius> to turn on with zero tracking skill");
+  } else if (args.size() == 3 && args[2] == "heading") {
+    setting_show_ring_heading.toggle();
   } else if (args.size() != 3 || !Zeal::String::tryParse(args[2], &ring_radius) || !set_ring_radius(ring_radius, false))
-    Zeal::Game::print_chat("Usage: /map ring [on, off, radius] (blank disables or uses calculated track range)");
+    Zeal::Game::print_chat(
+        "Usage: /map ring [radius#, on, off, heading] (blank disables or uses calculated track range)");
 }
 
 void ZoneMap::parse_font(const std::vector<std::string> &args) {
@@ -2796,6 +2819,16 @@ void ZoneMap::parse_font(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Available fonts:");
   auto fonts = get_available_fonts();
   for (const auto &font : fonts) Zeal::Game::print_chat("  %s", font.c_str());
+}
+
+void ZoneMap::parse_loc(const std::vector<std::string> &args) {
+  auto self = Zeal::Game::get_self();
+  if (self && args.size() == 2) {
+    set_marker(static_cast<int>(self->Position.x + 0.5f), static_cast<int>(self->Position.y + 0.5f), nullptr);
+    return;
+  }
+
+  Zeal::Game::print_chat("Usage: /map loc");
 }
 
 void ZoneMap::toggle_level_up() { set_level(map_level_index + 1); }
@@ -3005,11 +3038,13 @@ bool ZoneMap::parse_command(const std::vector<std::string> &args) {
     parse_font(args);
   } else if (args[1] == "always_center") {
     always_align_to_center = !always_align_to_center;  // Experimental option.
+  } else if (args[1] == "loc") {
+    parse_loc(args);
   } else if (args[1] == "dump") {
     dump();
   } else if (!parse_shortcuts(args)) {
     Zeal::Game::print_chat("Usage: /map [on|off|size|alignment|marker|background|zoom|poi|labels|level|]");
-    Zeal::Game::print_chat("Usage: /map [show_group|show_raid|show_zone|save_ini|grid|ring|font]");
+    Zeal::Game::print_chat("Usage: /map [show_group|show_raid|show_zone|save_ini|grid|ring|font|loc]");
     Zeal::Game::print_chat("Usage: /map [external|data_mode|world]");
     Zeal::Game::print_chat("Shortcuts: /map <y> <x>, /map 0, /map <poi_search_term>");
     Zeal::Game::print_chat("Examples: /map 100 -200 (drops a marker at loc 100, -200), /map 0 (clears marker)");
