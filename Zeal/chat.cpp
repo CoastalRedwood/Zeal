@@ -243,6 +243,8 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   if (!data || strlen(data) == 0)  // Skip phantom prints like the client does.
     return;
 
+  ZealService::get_instance()->chat_hook->handle_print_chat(data, color_index);
+
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
 
   std::string abbreviated_buffer = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : "";
