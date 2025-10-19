@@ -145,6 +145,46 @@ Zeal::GameUI::ChatWnd *TellWindows::FindTellWnd(std::string &name) {
   return nullptr;
 }
 
+std::string abbreviateTell(const std::string &original_message) {
+  std::regex normal_tell_pattern(R"(^(\b\w+\b) (tells|told) (\b\w+\b),? '(.*)'$)");
+  std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(\b\w+\b)\]:\s+(.*)$)");
+  std::smatch tell_match;
+  std::string sender;
+  std::string message;
+  std::string abbreviated_message;
+  if (std::regex_search(original_message, tell_match, normal_tell_pattern)) {
+    message = tell_match[4].str();
+    if (tell_match[2].str() == "told") {
+      sender = "You";
+    } else {
+      sender = tell_match[1].str();
+    }
+    abbreviated_message = "[" + sender + "]: " + message;
+  } else if (std::regex_search(original_message, tell_match, abbreviated_tell_pattern)) {
+    std::string timestamp = tell_match[1].str();
+    std::string direction = tell_match[2].str();
+    sender    = tell_match[3].str();
+    message   = tell_match[4].str();
+
+    if (direction == "To") {
+      sender = "You";
+    }
+    abbreviated_message = tell_match[1].str() + "[" + sender + "]: " + message;
+
+  } else {
+    return original_message;  // Return the original message if it doesn't match the tell patterns
+  }
+
+  // replace "You" with actual character name in abbreviated_message
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (self && sender == "You") {
+    sender = self->Name;
+    abbreviated_message = std::regex_replace(abbreviated_message, std::regex(R"(\[You\])"), "[" + sender + "]");
+  }
+
+  return (abbreviated_message);
+}
+
 std::string stripTags(const std::string &message) {
   // Regex pattern to match <a ...>...</a> tags and keep only the inner text
   std::regex tag_pattern(R"(<a\s+[^>]*>([^<]+)<\/a>)");
@@ -158,19 +198,19 @@ std::string GetName(std::string &data) {
   // std::transform(lower_msg.begin(), lower_msg.end(), lower_msg.begin(), ::tolower);
 
   // Regex pattern for matching exactly one word before "tells you"
-  std::regex tells_pattern(R"((?:^|\]\s*)(\b\w+\b)\s+tells\s+you)");
+  std::regex tells_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bFr\b\]\s+)?\[?(\b\w+\b)\]?(?:\s+tells\s+you|:\s+))");
   // Regex pattern for matching exactly one word after "you told"
-  std::regex told_pattern(R"((?:^|\]\s*)You\s+told\s+(\b\w+\b))");
+  std::regex told_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bTo\b\]\s+)?(?:You told\s+|\[)(\b\w+\b)(?:,|\]:))");
 
   std::smatch match;
 
   // Check for "tells you" pattern with only one word before it
   if (std::regex_search(lower_msg, match, tells_pattern)) {
-    return match[1].str();  // Return the matched single word before "tells you"
+    return match[1].str();  // Return the matched single word before "tells you" or "]:"
   }
   // Check for "you told" pattern with only one word after it
   else if (std::regex_search(lower_msg, match, told_pattern)) {
-    return match[1].str();  // Return the matched single word after "you told"
+    return match[1].str();  // Return the matched single word after "you told" or before "]:"
   }
 
   return "";  // Return an empty string if no match found
@@ -178,8 +218,18 @@ std::string GetName(std::string &data) {
 
 void replaceNameLinks(std::string &message) {
   std::string name = GetName(message);
+  
+  // Don't replace your own name with a link
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (self)
+    if (Zeal::String::compare_insensitive(self->Name, name)) return;
+
   if (name.length()) {
-    Zeal::String::replace(message, name, "<a WndNotify=\"153," + name + "\">" + name + "</a>");
+    // Use regex to match only whole word occurrences of name
+    std::regex word_regex("\\b" + name + "\\b");
+    message = std::regex_replace(
+        message, word_regex,
+        "<a WndNotify=\"153," + name + "\">" + name + "</a>");
   }
 }
 
@@ -187,13 +237,16 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
   if (!ZealService::get_instance()->tells->setting_enabled.get())  // just early out if tell windows are not enabled
     return;
 
-  replaceNameLinks(msg);
   if (channel == USERCOLOR_TELL || channel == USERCOLOR_ECHO_TELL)  // tell channel
   {
     std::string name = GetName(msg);
     if (name.length()) {
       name[0] = std::toupper(name[0]);
       Zeal::GameUI::ChatWnd *tell_window = ZealService::get_instance()->tells->FindTellWnd(name);
+      // Modify msg if abbreviated chat is enabled
+      if (ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get())
+        msg = abbreviateTell(std::string(msg));
+      replaceNameLinks(msg);
       if (!tell_window) {
         std::string WinName = TellWindowIdentifier + name;
         std::string ini_name = Zeal::Game::get_ui_ini_filename();
@@ -201,7 +254,7 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
         if (ini_name.length()) {
           IO_ini ui_ini(ini_name);
           font_size = ui_ini.getValue<int>("ChatManager", "ChatWindow0_FontStyle");
-          font_size = std::clamp(font_size, 1, 6);
+          font_size = std::clamp(font_size, 0, 6);
         }
         Zeal::Game::Windows->ChatManager->CreateChatWindow(WinName.c_str(), 0, 3, -1, "", font_size);
         tell_window = ZealService::get_instance()->tells->FindTellWnd(name);

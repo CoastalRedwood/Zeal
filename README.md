@@ -55,6 +55,14 @@ To disable Zeal, just delete the zeal.asi file.
 
 ### Commands (`/help zeal`)
 ___
+- `/abc` (abbreviated chat)
+  - **Arguments:** none, `0`-`2`
+  - **Example:** `/abc` toggles on and off
+  - **Example:** `/abc 0` disabled, normal chat and logging
+  - **Example:** `/abc 1` abbreviates chat messages
+  - **Example:** `/abc 2` abbreviates chat messages and logging
+  - **Description:** Slims down most player chat messages.
+
 - `/alarm`
   - **Arguments:** `oldui`
   - **Description:** Re-opens the alarm window, if oldui is specified it allows for an alarm on it.
