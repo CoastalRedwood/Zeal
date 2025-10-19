@@ -1738,8 +1738,8 @@ void do_inspect(Zeal::GameStructures::Entity *player) { get_game()->doInspect(pl
 
 void pet_command(int cmd, short spawn_id) { get_game()->IssuePetCommand(cmd, spawn_id); }
 
-void execute_cmd(UINT cmd, bool isdown, int unk2) {
-  reinterpret_cast<void(__cdecl *)(UINT, bool, int)>(0x54050c)(cmd, isdown, unk2);
+void execute_cmd(UINT cmd, int isdown, int unk2) {
+  reinterpret_cast<void(__cdecl *)(UINT, int, int)>(0x54050c)(cmd, isdown, unk2);
 }
 
 std::string generateTimestamp() {

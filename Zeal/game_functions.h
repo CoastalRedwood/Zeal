@@ -171,7 +171,7 @@ void do_raiddecline();
 void do_inspect(Zeal::GameStructures::Entity *player);
 void do_join(Zeal::GameStructures::Entity *player, const char *name);
 void send_to_channel(int chat_channel_zero_based, const char *message);
-void execute_cmd(UINT cmd, bool isdown, int unk2);
+void execute_cmd(UINT cmd, int isdown, int unk2);
 GameStructures::GameClass *get_game();
 GameStructures::Display *get_display();
 const char *get_ui_skin();

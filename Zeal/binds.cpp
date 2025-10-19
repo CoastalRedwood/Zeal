@@ -9,21 +9,21 @@
 
 Binds::~Binds() {}
 
-bool Binds::execute_cmd(unsigned int cmd, bool isdown) {
+bool Binds::execute_cmd(unsigned int cmd, int isdown) {
   ZealService *zeal = ZealService::get_instance();
   // Don't call our binds on keydown when the game wants input except for reply cycling and auto-run.
   bool reply_cycle = (cmd == 0x3c || cmd == 0x3d);
   bool auto_run = (cmd == 1);  // ProcessKeyDown() already filters normal keys during chat. Fixes numlock.
   if (!Zeal::Game::game_wants_input() || !isdown || reply_cycle || auto_run) {
-    if (zeal->binds_hook->ReplacementFunctions.count(cmd) > 0) {
-      for (auto &fn : zeal->binds_hook->ReplacementFunctions[cmd])
+    if (ReplacementFunctions.count(cmd) > 0) {
+      for (auto &fn : ReplacementFunctions[cmd])
         if (fn(isdown))  // if the replacement function returns true, end here otherwise its really just adding more to
                          // the command
           return true;
     }
 
-    if (zeal->binds_hook->KeyMapFunctions.count(cmd) > 0)
-      zeal->binds_hook->KeyMapFunctions[cmd](isdown);
+    if (KeyMapFunctions.count(cmd) > 0)
+      KeyMapFunctions[cmd](isdown);
     else
       return false;
   }
@@ -92,7 +92,7 @@ void Binds::replace_cmd(int cmd, std::function<bool(int state)> callback) {
 }
 
 Binds::Binds(ZealService *zeal) {
-  zeal->callbacks->AddCommand([this](UINT opcode, bool state) { return execute_cmd(opcode, state); },
+  zeal->callbacks->AddCommand([this](UINT opcode, int state) { return execute_cmd(opcode, state); },
                               callback_type::ExecuteCmd);
   for (int i = 0; i < 128; i++)
     KeyMapNames[i] = *(char **)(0x611220 + (i * 4));  // copy the original short names to the new array

@@ -16,11 +16,57 @@ static void CloseSpellbook(void) {
   if (Zeal::Game::Windows->SpellBook->Activated) Zeal::Game::Windows->SpellBook->Deactivate();
 }
 
+static void set_slow_turn_right_mode(bool slow_mode) {
+  BYTE target_value = slow_mode ? 4 : 12;
+  if (*reinterpret_cast<const BYTE *>(0x53fb60) == target_value) return;
+
+  DWORD oldprotect;
+  size_t size = 0x53fb66 - 0x53fb43 + 1;  // Unprotect the full modification range.
+  VirtualProtect(reinterpret_cast<PVOID *>(0x53fb43), size, PAGE_EXECUTE_READWRITE, &oldprotect);
+  *reinterpret_cast<BYTE *>(0x53fb43) = slow_mode ? 4 : 8;  // Reduce mounted turn_right_speed clamp.
+  *reinterpret_cast<BYTE *>(0x53fb49) = slow_mode ? 4 : 8;
+  *reinterpret_cast<BYTE *>(0x53fb60) = slow_mode ? 4 : 12;  // Reduce turn_right_speed clamp.
+  *reinterpret_cast<BYTE *>(0x53fb66) = slow_mode ? 4 : 12;
+  VirtualProtect(reinterpret_cast<PVOID *>(0x53fb43), size, oldprotect, &oldprotect);
+  FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(0x53fb43), size);
+}
+
+static void set_slow_turn_left_mode(bool slow_mode) {
+  BYTE target_value = slow_mode ? 4 : 12;
+  if (*reinterpret_cast<const BYTE *>(0x53f758) == target_value) return;
+
+  DWORD oldprotect;
+  size_t size = 0x53f75E - 0x53f73b + 1;  // Unprotect the full modification range.
+  VirtualProtect(reinterpret_cast<PVOID *>(0x53f73b), size, PAGE_EXECUTE_READWRITE, &oldprotect);
+  *reinterpret_cast<BYTE *>(0x53f73b) = slow_mode ? 4 : 8;  // Reduce mounted turn_left_speed clamp.
+  *reinterpret_cast<BYTE *>(0x53f741) = slow_mode ? 4 : 8;
+  *reinterpret_cast<BYTE *>(0x53f758) = slow_mode ? 4 : 12;  // Reduce turn left_speed clamp.
+  *reinterpret_cast<BYTE *>(0x53f75E) = slow_mode ? 4 : 12;
+  VirtualProtect(reinterpret_cast<PVOID *>(0x53f73b), size, oldprotect, &oldprotect);
+  FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(0x53f73b), size);
+}
+
+void PlayerMovement::handle_slow_turn_right(int key_down) {
+  if (Zeal::Game::GameInternal::UI_ChatInputCheck()) return;
+  slow_turn_flag = key_down;  // Flag is used in the handle_movement_binds() call invoked by execute below.
+  Zeal::Game::execute_cmd(5, key_down, 0);
+}
+
+void PlayerMovement::handle_slow_turn_left(int key_down) {
+  if (Zeal::Game::GameInternal::UI_ChatInputCheck()) return;
+  slow_turn_flag = key_down;  // Flag is used in the handle_movement_binds() call invoked by execute below.
+  Zeal::Game::execute_cmd(6, key_down, 0);
+}
+
 void PlayerMovement::handle_movement_binds(int cmd, bool key_down) {
+  bool slow_turn = slow_turn_flag;  // Cache and then always reset the slow turn flag.
+  slow_turn_flag = false;
   if (!Zeal::Game::game_wants_input() && key_down) {
     // Reset strafing if forward/back keys are pressed down without a strafe key down.
     if ((cmd == 3 || cmd == 4) && !current_strafe_key_down_state && (current_strafe != strafe_direction::None))
       set_strafe(strafe_direction::None);
+    if (cmd == 5) set_slow_turn_right_mode(slow_turn);  // Ensure turn speed is set correctly.
+    if (cmd == 6) set_slow_turn_left_mode(slow_turn);
     if (!Zeal::Game::KeyMods->Alt && !Zeal::Game::KeyMods->Shift && !Zeal::Game::KeyMods->Ctrl) {
       if (Zeal::Game::is_new_ui()) {
         if (Zeal::Game::Windows->Loot && Zeal::Game::Windows->Loot->IsOpen && Zeal::Game::Windows->Loot->IsVisible) {

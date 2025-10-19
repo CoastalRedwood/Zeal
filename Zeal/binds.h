@@ -37,5 +37,5 @@ class Binds {
   void add_bind(int index, const char *name, const char *short_name, key_category category,
                 std::function<void(int state)> callback);
   void replace_cmd(int cmd, std::function<bool(int state)> callback);
-  bool execute_cmd(unsigned int opcode, bool state);
+  bool execute_cmd(unsigned int opcode, int state);
 };

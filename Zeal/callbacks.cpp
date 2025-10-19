@@ -100,7 +100,7 @@ void CallbackManager::AddPacket(std::function<bool(UINT, char *, UINT)> callback
   packet_functions[type].push_back(callback_function);
 }
 
-void CallbackManager::AddCommand(std::function<bool(UINT, BOOL)> callback_function, callback_type type) {
+void CallbackManager::AddCommand(std::function<bool(UINT, int)> callback_function, callback_type type) {
   cmd_functions[type].push_back(callback_function);
 }
 
@@ -200,7 +200,7 @@ void send_message_hk(int *connection, UINT opcode, char *buffer, UINT len, int u
   zeal->hooks->hook_map["SendMessage"]->original(send_message_hk)(connection, opcode, buffer, len, unknown);
 }
 
-void executecmd_hk(UINT cmd, bool isdown, int unk2) {
+void executecmd_hk(UINT cmd, int isdown, int unk2) {
   CallbackTrace trace("ExecuteCmd");
   ZealService *zeal = ZealService::get_instance();
   // Zeal::Game::print_chat(USERCOLOR_SHOUT, "Cmd: %i", cmd);
