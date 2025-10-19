@@ -2474,8 +2474,13 @@ int get_avoidance(bool include_combat_agility) {
   auto actor_info = self ? self->ActorInfo : nullptr;
   if (!actor_info) return avoidance;
 
-  UINT combat_agility = actor_info->AAAbilities[0x22];  // Combat Agility AA skill = 0x22.
+  // The server is summing CombatAgility, PhysicalEnhancement, and LightningReflexes as effect 172.
+  BYTE combat_agility = actor_info->AAAbilities[0x22];  // Combat Agility AA skill = 0x22.
   int boost_percent = (combat_agility == 3) ? 10 : (combat_agility == 2) ? 5 : (combat_agility == 1) ? 2 : 0;
+  if (actor_info->AAAbilities[120])                                      // Physical Enhancement AA skill.
+    boost_percent += 2;                                                  // Extra 2%.
+  BYTE lightning_reflexes = actor_info->AAAbilities[151];                // Lightning reflexes AA skill.
+  if (lightning_reflexes <= 5) boost_percent += 3 * lightning_reflexes;  // 3% / level.
   int extra_avoidance = avoidance * boost_percent / 100;
 
   // The server code adds the extra avoidance before the drunk derating, so we have to
