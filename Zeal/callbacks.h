@@ -41,7 +41,7 @@ class CallbackManager {
   void AddGeneric(std::function<void()> callback_function, callback_type fn = callback_type::MainLoop);
   void AddPacket(std::function<bool(UINT, char *, UINT)> callback_function,
                  callback_type fn = callback_type::WorldMessage);
-  void AddCommand(std::function<bool(UINT, BOOL)> callback_function, callback_type fn = callback_type::ExecuteCmd);
+  void AddCommand(std::function<bool(UINT, int)> callback_function, callback_type fn = callback_type::ExecuteCmd);
   void AddDelayed(std::function<void()> callback_function, int ms);
   void AddEntity(std::function<void(struct Zeal::GameStructures::Entity *)> callback_function, callback_type cb);
   void AddOutputText(

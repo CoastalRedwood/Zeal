@@ -10,6 +10,8 @@ class PlayerMovement {
   void handle_movement_binds(int cmd, bool key_down);
   void handle_spellcast_binds(int cmd);
   void handle_movement_keys(int dinput_code);
+  void handle_slow_turn_right(int key_down);
+  void handle_slow_turn_left(int key_down);
   // void set_spellbook_autostand(bool enabled);
   // bool spellbook_autostand = false;
   ZealSetting<bool> CastAutoStand = {true, "Zeal", "CastAutoStand", false};
@@ -31,4 +33,5 @@ class PlayerMovement {
   bool current_strafe_lock = false;            // Current strafing direction is locked on.
   BYTE orig_reset_strafe[7] = {0};
   DWORD last_follow_time_ms = 0;
+  bool slow_turn_flag = false;  // Flag that the executecmd call is a slow turn.
 };

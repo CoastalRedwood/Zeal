@@ -640,40 +640,10 @@ void ZealService::AddBinds() {
     }
   });
   binds_hook->add_bind(223, "Slow Turn Right", "SlowMoveRight", key_category::Movement, [this](int key_down) {
-    if (!Zeal::Game::GameInternal::UI_ChatInputCheck()) {
-      Zeal::Game::execute_cmd(5, key_down, 0);
-      if (key_down) {
-        mem::write<BYTE>(0x53fb60, 4);
-        mem::write<BYTE>(0x53fb66, 4);
-        mem::write<BYTE>(0x53fb43, 4);
-        mem::write<BYTE>(0x53fb49, 4);
-      } else {
-        if (*(BYTE *)0x53fb60 != 12) {
-          mem::write<BYTE>(0x53fb60, 12);
-          mem::write<BYTE>(0x53fb66, 12);
-          mem::write<BYTE>(0x53fb43, 8);
-          mem::write<BYTE>(0x53fb49, 8);
-        }
-      }
-    }
+    ZealService::get_instance()->movement->handle_slow_turn_right(key_down);
   });
   binds_hook->add_bind(224, "Slow Turn Left", "SlowMoveLeft", key_category::Movement, [this](int key_down) {
-    if (!Zeal::Game::GameInternal::UI_ChatInputCheck()) {
-      Zeal::Game::execute_cmd(6, key_down, 0);
-      if (key_down) {
-        mem::write<BYTE>(0x53f758, 4);
-        mem::write<BYTE>(0x53f75E, 4);
-        mem::write<BYTE>(0x53f73b, 4);
-        mem::write<BYTE>(0x53f741, 4);
-      } else {
-        if (*(BYTE *)0x53f758 != 12) {
-          mem::write<BYTE>(0x53f758, 12);
-          mem::write<BYTE>(0x53f75E, 12);
-          mem::write<BYTE>(0x53f73b, 8);
-          mem::write<BYTE>(0x53f741, 8);
-        }
-      }
-    }
+    ZealService::get_instance()->movement->handle_slow_turn_left(key_down);
   });
   binds_hook->add_bind(225, "Auto Fire", "AutoFire", key_category::Commands, [this](int key_down) {
     if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
