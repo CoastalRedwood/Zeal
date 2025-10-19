@@ -354,6 +354,17 @@ void ZealService::AddCommands() {
       ZealService::get_instance()->entity_manager.get()->Dump();
       return true;
     }
+    if (args.size() == 3 && args[1] == "aa") {
+      int index = 0;
+      if (Zeal::String::tryParse(args[2], &index) && index <= 227)
+        Zeal::Game::print_chat("AA[%d] = %d", index, Zeal::Game::get_self()->ActorInfo->AAAbilities[index]);
+      else
+        for (int i = 0; i <= 227; ++i) {
+          BYTE value = Zeal::Game::get_self()->ActorInfo->AAAbilities[i];
+          if (value) Zeal::Game::print_chat("AA[%d] = %d", i, value);
+        }
+      return true;
+    }
     if (args.size() == 2 && args[1] == "check")  // Run a heap / memory check.
     {
       int heap_valid1 = HeapValidate(GetProcessHeap(), 0, NULL);
@@ -427,7 +438,7 @@ void ZealService::AddCommands() {
   });
 
   commands_hook->Add(
-      "/mystats", {}, "Calculate and report your current stats.", [this](std::vector<std::string> &args) {
+      "/mystats", {"/mystat"}, "Calculate and report your current stats.", [this](std::vector<std::string> &args) {
         using Zeal::Game::print_chat;
         const char kMarker = 0x12;  // Link marker.
         int item_id = 0;

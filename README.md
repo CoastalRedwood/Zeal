@@ -184,7 +184,7 @@ ___
   - **Description:** specifies an item ID that will be left as the last item when using /lootall on your corpse 
 
 - `/map`
-  - **Arguments:** `on`, `off`, `size`, `alignment`, `marker`, `background`, `zoom`, `poi`, `labels`, `level`, `ring`, `grid`
+  - **Arguments:** `on`, `off`, `size`, `alignment`, `marker`, `background`, `zoom`, `poi`, `labels`, `level`, `ring`, `grid`, `loc`
   - **Example:** See In-game map section below
   - **Description:** controls map enable, size, labels, zoom, and markers
 
@@ -760,7 +760,9 @@ are colored orange.
 #### Map ring
 A simple distance ring around the current position is available. The distance can be auto-set
 based on the tracking skill for rangers, druids, and bards, so they can simply toggle the ring
-on and off with `/map ring` (or explicitly on or off with `ring on` or `ring off`).
+on and off with `/map ring` (or explicitly on or off with `ring on` or `ring off`). The
+`/map ring heading` command toggles on and off a setting to add a line from your position to
+the ring radius in the direction of your heading.
 
 * Command examples:
   - `/map ring` if visible or a non-tracker, turns ring off
@@ -813,6 +815,7 @@ markers have a label centered above them, with the default set to the marker loc
 is no set limit to the number of markers. See how to clear them below.
 
 * Zeal options slider to adjust the marker size
+* The `/map loc` command will drop a marker at your current position
 * Command examples:
   - `/map marker 1100 -500` adds a map marker at /loc of 1100, -500 labeled "(1100, -500)"
   - `/map 1100 -500` is a shortcut for the command above to set a marker at 1100, -500
