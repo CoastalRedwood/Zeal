@@ -312,7 +312,7 @@ void FloatingDamage::add_damage(Zeal::GameStructures::Entity *source, Zeal::Game
   bool is_npc_damage = (source && source->Type == Zeal::GameEnums::NPC);
   if (is_npc_damage && !is_my_pet && !show_npcs.get()) return;
 
-  bool is_damage_to_me = (target == Zeal::Game::get_controlled());
+  bool is_damage_to_me = (target == Zeal::Game::get_controlled() || target == Zeal::Game::get_self());
   bool is_damage_to_player = (target->Type == Zeal::GameEnums::Player);
   bool highlight = (damage >= big_hit_threshold.get()) || (type == 8);  // Backstab as starting point.
   auto color = get_color(is_my_damage, is_damage_to_me, is_damage_to_player, is_spell, highlight);
