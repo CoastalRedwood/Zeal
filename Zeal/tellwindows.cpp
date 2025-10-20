@@ -163,8 +163,8 @@ std::string abbreviateTell(const std::string &original_message) {
   } else if (std::regex_search(original_message, tell_match, abbreviated_tell_pattern)) {
     std::string timestamp = tell_match[1].str();
     std::string direction = tell_match[2].str();
-    sender    = tell_match[3].str();
-    message   = tell_match[4].str();
+    sender = tell_match[3].str();
+    message = tell_match[4].str();
 
     if (direction == "To") {
       sender = "You";
@@ -198,9 +198,11 @@ std::string GetName(std::string &data) {
   // std::transform(lower_msg.begin(), lower_msg.end(), lower_msg.begin(), ::tolower);
 
   // Regex pattern for matching exactly one word before "tells you"
-  std::regex tells_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bFr\b\]\s+)?\[?(\b\w+\b)\]?(?:\s+tells\s+you|:\s+))");
+  static const std::regex tells_pattern(
+      R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bFr\b\]\s+)?\[?(\b\w+\b)\]?(?:\s+tells\s+you|:\s+))");
   // Regex pattern for matching exactly one word after "you told"
-  std::regex told_pattern(R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bTo\b\]\s+)?(?:You told\s+|\[)(\b\w+\b)(?:,|\]:))");
+  static const std::regex told_pattern(
+      R"(^(?:\[[\d:]+(?:\s[AP]M)?\]\s)?(?:\[\bTo\b\]\s+)?(?:You told\s+|\[)(\b\w+\b)(?:,|\]:))");
 
   std::smatch match;
 
@@ -218,7 +220,7 @@ std::string GetName(std::string &data) {
 
 void replaceNameLinks(std::string &message) {
   std::string name = GetName(message);
-  
+
   // Don't replace your own name with a link
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   if (self)
@@ -227,9 +229,7 @@ void replaceNameLinks(std::string &message) {
   if (name.length()) {
     // Use regex to match only whole word occurrences of name
     std::regex word_regex("\\b" + name + "\\b");
-    message = std::regex_replace(
-        message, word_regex,
-        "<a WndNotify=\"153," + name + "\">" + name + "</a>");
+    message = std::regex_replace(message, word_regex, "<a WndNotify=\"153," + name + "\">" + name + "</a>");
   }
 }
 
@@ -241,11 +241,11 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
   {
     std::string name = GetName(msg);
     if (name.length()) {
+      UpdateMostRecentList(name);
       name[0] = std::toupper(name[0]);
       Zeal::GameUI::ChatWnd *tell_window = ZealService::get_instance()->tells->FindTellWnd(name);
       // Modify msg if abbreviated chat is enabled
-      if (ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get())
-        msg = abbreviateTell(std::string(msg));
+      if (ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get()) msg = abbreviateTell(std::string(msg));
       replaceNameLinks(msg);
       if (!tell_window) {
         std::string WinName = TellWindowIdentifier + name;
@@ -281,6 +281,29 @@ bool TellWindows::IsTellWindow(Zeal::GameUI::ChatWnd *wnd) const {
     }
   }
   return false;
+}
+
+void TellWindows::UpdateMostRecentList(const std::string &name) {
+  if (name.empty()) return;
+  std::string target = name;
+  std::transform(target.begin(), target.end(), target.begin(), ::tolower);
+  if (!most_recent_list.empty() && most_recent_list.front() == target) return;
+  most_recent_list.remove(target);
+  most_recent_list.push_front(target);
+  if (most_recent_list.size() > 20) most_recent_list.pop_back();
+}
+
+void TellWindows::CloseMostRecentWindow() {
+  if (!Zeal::Game::Windows || !Zeal::Game::Windows->ChatManager || !setting_enabled.get()) return;
+
+  while (!most_recent_list.empty()) {
+    Zeal::GameUI::ChatWnd *cwnd = ZealService::get_instance()->tells->FindTellWnd(most_recent_list.front());
+    most_recent_list.pop_front();  // Either the window is already closed or now will be.
+    if (cwnd && cwnd->IsVisible) {
+      reinterpret_cast<void(__thiscall *)(const Zeal::GameUI::ChatWnd *)>(cwnd->vtbl->Deactivate)(cwnd);
+      return;
+    }
+  }
 }
 
 void TellWindows::CloseAllWindows() {
@@ -393,6 +416,7 @@ TellWindows::TellWindows(ZealService *zeal) {
     return true;
   });
 
+  // REPLY keybind
   zeal->binds_hook->replace_cmd(0x3B, [this](int state) {
     if (!setting_enabled.get()) return false;
     if (state && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {

@@ -784,6 +784,11 @@ void ZealService::AddBinds() {
     if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
       Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Health, 0);
   });
+  binds_hook->add_bind(248, "Close most recent tell window", "CloseRecentTellWindow", key_category::Chat,
+                       [](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           ZealService::get_instance()->tells->CloseMostRecentWindow();
+                       });
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
                        [](int key_down) {
                          if (key_down) {
