@@ -227,6 +227,10 @@ ___
   - **Example:** `/pipedelay 500`
   - **Description:** changes the delay between each loop of labels/gauges being sent out over the named pipe.
 
+- `/pipeverbose`
+  - **Arguments:** `None`
+  - **Description:** toggles on/off extra output raid and group member info fields
+
 - `/protect`
   - **Arguments:** `on`, `off`, `value`, `item`, `<item_link>`, `list`, `cursor`, `worn`
   - **Example:** `/protect value 10` Protects against dropping or destroying items >= 10 pp
@@ -387,6 +391,7 @@ ___
 - Auto Fire
 - Buy / sell stack
 - Close all tell windows
+- Close most recent tell window
 - Target nearest pc corpse
 - Target nearest npc corpse
 - Cycle through nearest pc corpses
