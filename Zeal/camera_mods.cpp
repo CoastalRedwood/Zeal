@@ -338,10 +338,12 @@ void CameraMods::process_time_tick() {
   interpolate_zoom();
 
   // Cam lock mode yaws camera to match heading when enabled.
+  // Since we see the key press state *before* the key press causes a change in self->Heading, we
+  // pipeline the updates to happen in the next next tick.
   Zeal::GameStructures::Entity *self = Zeal::Game::get_controlled();
-  if ((kKeyDownStates[CMD_RIGHT] || kKeyDownStates[CMD_LEFT]) && cam_lock.get()) {
-    zeal_cam_yaw = self->Heading;
-  }
+  if (chase_mode_active) zeal_cam_yaw = self->Heading;
+
+  chase_mode_active = (kKeyDownStates[CMD_RIGHT] || kKeyDownStates[CMD_LEFT]) && cam_lock.get();
 
   // In Zeal camera mode, we allow some keyboard control of pitch.
   if (kKeyDownStates[CMD_CENTER_VIEW]) zeal_cam_pitch = 0.f;  // Center to match client behavior.
@@ -399,6 +401,7 @@ void CameraMods::callback_zone() {
     desired_zoom = std::clamp(desired_zoom, min_zoom_in, max_zoom_out);
     zeal_cam_zoom = desired_zoom;
   }
+  chase_mode_active = false;
 }
 
 void CameraMods::synchronize_old_ui() {
