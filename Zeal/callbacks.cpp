@@ -1,5 +1,12 @@
 #include "callbacks.h"
 
+#include <map>
+#include <regex>
+#include <set>
+#include <string>
+#include "io_ini.h"
+
+#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
@@ -8,6 +15,8 @@
 #include "zeal.h"
 
 namespace {
+
+std::map<int, std::string> class_color_map;
 
 // Simple tracing class to log the last major callback activity.
 class CallbackTrace {
@@ -116,9 +125,58 @@ void __fastcall enterzone_hk(int t, int unused, int hwnd) {
   zeal->callbacks->invoke_generic(callback_type::EnterZone);
 }
 
+void get_raid_class_colors() {
+  // Raid window class color index to game class index
+  std::map<int, int> raidClassToGameClass = {
+    { 0, Zeal::GameEnums::ClassTypes::Bard},
+    { 1, Zeal::GameEnums::ClassTypes::Beastlord},
+    { 2, Zeal::GameEnums::ClassTypes::Cleric},
+    { 3, Zeal::GameEnums::ClassTypes::Druid},
+    { 4, Zeal::GameEnums::ClassTypes::Enchanter},
+    { 5, Zeal::GameEnums::ClassTypes::Magician},
+    { 6, Zeal::GameEnums::ClassTypes::Monk},
+    { 7, Zeal::GameEnums::ClassTypes::Necromancer},
+    { 8, Zeal::GameEnums::ClassTypes::Paladin},
+    { 9, Zeal::GameEnums::ClassTypes::Ranger},
+    {10, Zeal::GameEnums::ClassTypes::Rogue},
+    {11, Zeal::GameEnums::ClassTypes::Shadowknight},
+    {12, Zeal::GameEnums::ClassTypes::Shaman},
+    {13, Zeal::GameEnums::ClassTypes::Warrior},
+    {14, Zeal::GameEnums::ClassTypes::Wizard},
+  };
+
+  // Get class colors from the character's raid window settings
+  std::string ini_name = Zeal::Game::get_ui_ini_filename();
+  class_color_map.clear();
+  if (ini_name.length()) {
+    IO_ini ui_ini(ini_name);
+
+    for (int i = 0; i < 15; i++) {
+      int game_class_number = raidClassToGameClass[i];
+      std::string setting_class = "ClassColor" + std::to_string(i);
+      if (ui_ini.exists("RaidWindow", setting_class)) {
+        int setting_color = ui_ini.getValue<int>("RaidWindow", setting_class);
+        unsigned int setting_color_pos = static_cast<unsigned int>(setting_color);
+
+        unsigned char red = (setting_color_pos >> 16) & 0xFF;
+        unsigned char green = (setting_color_pos >> 8) & 0xFF;
+        unsigned char blue = setting_color_pos & 0xFF;  
+
+        std::ostringstream oss;
+        oss << "#" << std::setfill('0') << std::setw(2) << std::hex << (int)red
+                   << std::setfill('0') << std::setw(2) << std::hex << (int)green
+                   << std::setfill('0') << std::setw(2) << std::hex << (int)blue;
+        std::string class_color_hex = oss.str();
+        class_color_map.insert({game_class_number, class_color_hex});
+      }
+    }
+  }
+}
+
 void __fastcall initgameui_hk(int t, int u) {
   CallbackTrace trace("InitGameUI");
   ZealService *zeal = ZealService::get_instance();
+  get_raid_class_colors();
   zeal->hooks->hook_map["InitGameUI"]->original(initgameui_hk)(t, u);
   zeal->callbacks->invoke_generic(callback_type::InitUI);
 }
@@ -238,11 +296,68 @@ void __fastcall GamePlayerDeconstruct(Zeal::GameStructures::Entity *ent, int unu
   zeal->hooks->hook_map["GamePlayerDeconstruct"]->original(GamePlayerDeconstruct)(ent, unused);
 }
 
+std::string add_class_colors(std::string message) {
+  // Abort if no class colors are set
+  if (class_color_map.empty()) return message;
+
+  auto entity_manager = ZealService::get_instance()->entity_manager.get();
+  if (entity_manager) {
+    std::regex possible_names_pattern(R"(\b[a-zA-Z]{4,}\b)");
+    std::set<std::string> unique_matches;
+
+    std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
+    std::sregex_iterator words_end;
+
+    while (words_begin != words_end) {
+        unique_matches.insert(words_begin->str());
+        ++words_begin;
+    }
+
+    for (const auto& match : unique_matches) {
+      std::string possible_name = match.data();
+      std::string class_color;
+
+      // Check Zone Entities for a match
+      auto entity = ZealService::get_instance()->entity_manager->Get(possible_name);
+      if (entity) {
+        std::string entityName = entity->Name;
+        std::string entityClass = std::to_string(entity->Class);
+        std::string entityAnon = std::to_string(entity->AnonymousState);
+        if (!entity->AnonymousState) class_color = class_color_map[entity->Class];
+      }
+
+      // Check raid members for a match
+      Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+      if (raid_info->is_in_raid() && class_color.empty()) {
+        for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
+          const auto &member = raid_info->MemberList[i];
+          if (member.Name == possible_name) {
+            class_color = class_color_map[member.ClassValue];
+            break;
+          }
+        }
+      }
+
+      // Add color tags if a match was found
+      if (!class_color.empty()) {
+        std::string replacement_name = "<c \"" + class_color + "\">" + possible_name + "</c>";
+        std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
+        std::regex name_pattern(name_pattern_string, std::regex::icase);
+        message = std::regex_replace(message, name_pattern, replacement_name);
+      }
+    }
+  }
+  return(message);
+}
+
 void __fastcall OutputText(Zeal::GameUI::ChatWnd *wnd, int u, Zeal::GameUI::CXSTR msg, short channel) {
   ZealService *zeal = ZealService::get_instance();
   short new_channel = channel;
   if (msg.Data) {
     std::string msg_data = msg.CastToCharPtr();
+
+    msg_data = add_class_colors(msg_data);
+
     zeal->callbacks->invoke_outputtext(wnd, msg_data,
                                        new_channel);  // msg_data is by-ref so we can now edit it in the callbacks
     if (!wnd) wnd = Zeal::Game::Windows->ChatManager->ChatWindows[0];
