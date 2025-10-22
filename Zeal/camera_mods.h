@@ -54,7 +54,8 @@ class CameraMods {
   float sensitivity_y = 0.4f;
   std::chrono::steady_clock::time_point lastTime;
   bool ui_active = false;
-  bool reset_camera = false;  // Allows for a deferred reset of zeal cam.
+  bool reset_camera = false;       // Allows for a deferred reset of zeal cam.
+  bool chase_mode_active = false;  // Defers camera yaw sync until after process_physics.
   std::function<void()> update_options_ui_callback;
 
   void synchronize_set_enable();
