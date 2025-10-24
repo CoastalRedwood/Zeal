@@ -226,6 +226,7 @@ Zeal::GameStructures::Entity *get_pet();
 Zeal::GameStructures::SPELLMGR *get_spell_mgr();
 int get_spell_level(int spell_id);
 const char *get_spell_name(int spell_id);
+void dump_spell_info(int spell_id);
 Zeal::GameStructures::Entity *get_controlled();
 Zeal::GameStructures::ViewActor *get_view_actor();
 Zeal::GameStructures::CameraInfo *get_camera();

@@ -380,6 +380,11 @@ void ZealService::AddCommands() {
                              heap_summary.cbCommitted / 1024 / 1024);
       return true;
     }
+    if (args.size() == 3 && args[1] == "spell") {
+      int spell_id = -1;
+      if (Zeal::String::tryParse(args[2], &spell_id)) Zeal::Game::dump_spell_info(spell_id);
+      return true;
+    }
     if (args.size() == 3 && args[1] == "get_command") {
       auto command = Zeal::Game::get_command_struct(args[2]);
       if (command)

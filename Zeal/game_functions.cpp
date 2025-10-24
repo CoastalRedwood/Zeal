@@ -1889,6 +1889,22 @@ const char *get_spell_name(int spell_id) {
   return spell->Name;
 }
 
+void dump_spell_info(int spell_id) {
+  const auto *spell_mgr = Zeal::Game::get_spell_mgr();
+  if (spell_id < 1 || spell_id >= GAME_NUM_SPELLS || !spell_mgr) {
+    print_chat("Invalid spell id: %d", spell_id);
+    return;
+  };
+
+  const auto *spell = spell_mgr->Spells[spell_id];
+  if (!spell) {
+    print_chat("Null spell at id: %d", spell_id);
+    return;
+  };
+
+  print_chat("[%d]: %s:, SpellType: %d, TargetType: %d", spell_id, spell->Name, spell->SpellType, spell->TargetType);
+}
+
 Zeal::GameStructures::Entity *get_self() { return *(Zeal::GameStructures::Entity **)Zeal::Game::Self; }
 
 Zeal::GameStructures::Entity *get_pet() {

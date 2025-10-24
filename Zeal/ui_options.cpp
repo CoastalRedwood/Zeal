@@ -369,6 +369,9 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_SuppressOtherFizzles", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->chatfilter_hook->setting_suppress_other_fizzles.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_SuppressOtherPets", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->chatfilter_hook->setting_suppress_other_pets.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_SuppressLifetapFeeling", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->chatfilter_hook->settings_suppress_lifetap_feeling.set(wnd->Checked);
   });
@@ -919,6 +922,8 @@ void ui_options::UpdateOptionsGeneral() {
                  ZealService::get_instance()->chatfilter_hook->setting_suppress_missed_notes.get());
   ui->SetChecked("Zeal_SuppressOtherFizzles",
                  ZealService::get_instance()->chatfilter_hook->setting_suppress_other_fizzles.get());
+  ui->SetChecked("Zeal_SuppressOtherPets",
+                 ZealService::get_instance()->chatfilter_hook->setting_suppress_other_pets.get());
   ui->SetChecked("Zeal_SuppressLifetapFeeling",
                  ZealService::get_instance()->chatfilter_hook->settings_suppress_lifetap_feeling.get());
   ui->SetChecked("Zeal_ReportOtherNonMeleeDmg",
