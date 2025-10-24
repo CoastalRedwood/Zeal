@@ -1480,8 +1480,8 @@ struct SPELL {
   /*0x088*/ BYTE Unknown0x088;
   /*0x089**/ BYTE Resist;  // 0=un 1=mr 2=fr 3=cr 4=pr 5=dr 6=chromatic
   /*0x08a**/ BYTE Attrib[0xc];
-  /*0x096**/ BYTE
-      TargetType;  // 03=Group v1, 04=PB AE, 05=Single, 06=Self, 08=Targeted AE, 0e=Pet, 28=AE PC v2, 29=Group v2
+  /*0x096**/ BYTE TargetType;  // 3=Groupv1, 4=PBAoE, 5=Single, 6=Self, 8=TargetAoE, 9=Animal, 10=Undead, 11=Summoned,
+                               // 13=Tap, 14=Pet, 15=Corpse, 16=Plant, 20=TargetAoETap 28=AE PC v2, 29=Group v2
   /*0x097**/ BYTE FizzleAdj;
   /*0x098**/ BYTE Skill;
   /*0x099*/ BYTE Location;  // 01=Outdoors, 02=dungeons, ff=Any

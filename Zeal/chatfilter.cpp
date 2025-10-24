@@ -1,6 +1,7 @@
 #include "chatfilter.h"
 
 #include <array>
+#include <string_view>
 
 #include "callbacks.h"
 #include "game_addresses.h"
@@ -214,8 +215,6 @@ void chatfilter::callback_clean_ui() {
   ZealMenu = NULL;
   current_string_id = 0;
   isDamage = false;
-  isMyPetSay = false;
-  isPetMessage = false;
 }
 
 void chatfilter::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string msg, short &channel) {
@@ -343,6 +342,58 @@ static bool is_item_speech(int current_string_id) {
   return false;
 }
 
+enum class PetSpeech { NotPet, MyPetSay, OtherPetSay };
+
+static PetSpeech is_pet_speech(int string_id, short color_index, const char *data) {
+  static const std::array<int, 5> my_pet_string_ids{
+      438,  // Taunting attacker, Master.
+      489,  // No longer taunting attackers, Master.
+      490,  // Taunting attackers as normal, Master.
+      555,  // %1 tells you, 'I am unable to wake %2, master.'
+      5501  // %1 tells you, 'Attacking %2 Master.'
+  };
+
+  // These pet messages are exceptions and do not use the PetResponse color_index.
+  static const std::array<const char *, 3> exception_pet_strings{
+      "My leader is ",                                           // 1136
+      "I follow no one.",                                        // 1137
+      "I beg forgiveness, Master. That is not a legal target.",  // 1139
+  };
+
+  static const short kPetResponse = 337;  // Chat::PetResponse.
+  static const int kGenericSay = 554;     // StringID:GENERIC_STRINGID_SAY
+
+  if (color_index != kPetResponse) {
+    // Scan the few messages that don't use kPetResponse but do all use generic say.
+    if (string_id != kGenericSay) return PetSpeech::NotPet;
+    std::string_view message = std::string_view(data);
+    bool found = false;
+    for (const auto &substr : exception_pet_strings)
+      if (message.find(substr) != std::string::npos) found = true;
+    if (!found) return PetSpeech::NotPet;
+  }
+
+  const auto *pet = Zeal::Game::get_pet();
+  if (!pet) return PetSpeech::OtherPetSay;  // If we don't have a pet, not ours.
+
+  // Next check the explicit string IDs that only come from "my pet".
+  for (const int &i : my_pet_string_ids) {
+    if (string_id == i) return PetSpeech::MyPetSay;
+  }
+
+  // Then check for pet name matches to see if it is ours.
+  //  Most pet sayings use StringID::GENERIC_STRINGID_SAY = 554: %1 says '%T2'
+  if (string_id != kGenericSay) return PetSpeech::OtherPetSay;
+
+  // We have a %T2 pet message. Now sort out if the %1 is equal to the client's pet name.
+  const char *pet_name = Zeal::Game::strip_name(pet->Name);
+  std::string message = std::string(data);
+  size_t first_space = message.find(' ');
+  if (first_space == std::string::npos) return PetSpeech::NotPet;
+  auto name = message.substr(0, first_space);
+  return strcmp(name.c_str(), pet_name) ? PetSpeech::OtherPetSay : PetSpeech::MyPetSay;
+}
+
 void __fastcall serverPrintChat(int t, int unused, const char *data, short color_index, bool u) {
   chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
   if (cf->current_string_id == 1219 && cf->setting_suppress_missed_notes.get() &&
@@ -352,14 +403,19 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
   } else if (cf->current_string_id == 1218 && cf->setting_suppress_other_fizzles.get() && is_non_group_fizzle(data)) {
     cf->current_string_id = 0;
     return;  // Just drop fizzles from others.
-  } else if (cf->current_string_id == 12117 && cf->settings_suppress_lifetap_feeling.get()) {
-    cf->current_string_id = 0;
-    return;  // Just drop Ahhh, I feel much better now...
   }
 
-  if (cf->isMyPetSay)
+  PetSpeech pet_speech = is_pet_speech(cf->current_string_id, color_index, data);
+
+  // Support filtering messages from other pets on the pet response channel (let leader ones through).
+  if (pet_speech == PetSpeech::OtherPetSay && color_index == 337 && cf->setting_suppress_other_pets.get()) {
+    cf->current_string_id = 0;
+    return;  // Just drop other pet messages.
+  }
+
+  if (pet_speech == PetSpeech::MyPetSay)
     color_index = CHANNEL_MYPETSAY;
-  else if (cf->isPetMessage)
+  else if (pet_speech == PetSpeech::OtherPetSay)
     color_index = CHANNEL_OTHERPETSAY;
   else if (color_index == USERCOLOR_MELEE_CRIT && cf->current_string_id != 143 && !is_from_me(data))
     color_index = CHANNEL_OTHER_MELEE_CRIT;
@@ -368,68 +424,24 @@ void __fastcall serverPrintChat(int t, int unused, const char *data, short color
 
   ZealService::get_instance()->hooks->hook_map["serverPrintChat"]->original(serverPrintChat)(t, unused, data,
                                                                                              color_index, u);
-  cf->isMyPetSay = false;
-  cf->isPetMessage = false;
   cf->current_string_id = 0;
 }
 
 char *__fastcall serverGetString(int stringtable, int unused, int string_id, bool *valid) {
-  char **args;
-  // Steal a reference to the previous EBP so we can grab the WorldMessage arguments
-  __asm
-      {
-        push edi
-        mov edi, [ebp]
-        lea edi, [edi - 0x348]
-        mov args, edi
-        pop edi
-      }
-
-  std::vector<int> pet_sayings{
-      555,  //%1 tells you, 'I am unable to wake %2, master.'
-      5501  //%1 tells you, 'Attacking %2 Master.'
-  };
-
-  std::vector<int> pet_t2_strings{
-      1130,  // Changing position, Master.
-      1131,  // Sorry, Master..calming down.
-      1132,  // Following you, Master.
-      1134,  // Guarding with my life..oh splendid one.
-      1135,  // As you wish, oh great one.
-      1136,  // My leader is %3.
-      1139,  // I beg forgiveness, Master.  That is not a legal target.
-  };
-
-  char *name = args[0];
-  char *t2_string = args[1];
   chatfilter *cf = ZealService::get_instance()->chatfilter_hook.get();
-
-  cf->current_string_id = string_id;
-  for (const int &i : pet_sayings) {
-    if (string_id == i) cf->isMyPetSay = true;
-  }
-
-  if (!cf->isMyPetSay) {
-    Zeal::GameStructures::Entity *pet = Zeal::Game::get_pet();
-    if (pet) {
-      const char *pet_name = Zeal::Game::strip_name(pet->Name);
-      if (strcmp(name, pet_name) == 0) cf->isMyPetSay = true;
-    }
-  }
-
-  // 554, //%1 says '%T2'
-  // We need to check the next string to see if it's a pet phrase
-  if (string_id == 554) {
-    int t2_string_id = std::stoi(t2_string);
-    for (const int &i : pet_t2_strings) {
-      if (t2_string_id == i) {
-        cf->isPetMessage = true;
-        break;
-      }
-    }
-  }
+  cf->current_string_id = string_id;  // Cache string id for use in serverPrintChat.
   return ZealService::get_instance()->hooks->hook_map["serverGetString"]->original(serverGetString)(stringtable, unused,
                                                                                                     string_id, valid);
+}
+
+// Suppress the you beam a smile and lifetap messages.
+void chatfilter::handle_suppress_lifetaps(bool value) {
+  // The client already filters these messages out if the entity level is >= 35. Just patch that value.
+  static const BYTE kOriginalFilterLevel = 35;
+  const BYTE filter_level = value ? 1 : kOriginalFilterLevel;
+  if (*reinterpret_cast<BYTE *>(0x0052a07e) == filter_level) return;
+
+  mem::write<BYTE>(0x0052a07e, filter_level);
 }
 
 void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type,

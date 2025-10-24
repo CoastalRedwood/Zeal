@@ -508,33 +508,37 @@ SpellSets::SpellSets(ZealService *zeal) {
 
   zeal->commands_hook->Add("/spellset", {"/ss"}, "Load, save, delete or list your spellsets.",
                            [this, zeal](std::vector<std::string> &args) {
-                             if (args.size() < 3 || !Zeal::Game::get_self() || !Zeal::Game::get_char_info()) {
-                               Zeal::Game::print_chat("usage: /spellset save/load/list [name]");
-                             } else {
+                             if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "list")) {
+                               initialize_ini_filename();
+                               std::vector<std::string> sets = ini.getSectionNames();
+                               Zeal::Game::print_chat("--- spell sets (%i) ---", sets.size());
+                               for (auto &set : sets) {
+                                 Zeal::Game::print_chat(set);
+                               }
+                               Zeal::Game::print_chat("--- end of spell sets ---", sets.size());
+                               return true;
+                             }
+                             if (args.size() == 3 && Zeal::Game::get_self() && Zeal::Game::get_char_info()) {
                                if (Zeal::String::compare_insensitive(args[1], "test")) {
                                  create_spells_menus();
                                  create_spellsets_menus();
+                                 return true;
                                }
                                if (Zeal::String::compare_insensitive(args[1], "save")) {
                                  save(args[2]);
+                                 return true;
                                }
                                if (Zeal::String::compare_insensitive(args[1], "delete") ||
                                    Zeal::String::compare_insensitive(args[1], "remove")) {
                                  remove(args[2]);
+                                 return true;
                                }
                                if (Zeal::String::compare_insensitive(args[1], "load")) {
                                  load(args[2]);
-                               }
-                               if (Zeal::String::compare_insensitive(args[1], "list")) {
-                                 initialize_ini_filename();
-                                 std::vector<std::string> sets = ini.getSectionNames();
-                                 Zeal::Game::print_chat("--- spell sets (%i) ---", sets.size());
-                                 for (auto &set : sets) {
-                                   Zeal::Game::print_chat(set);
-                                 }
-                                 Zeal::Game::print_chat("--- end of spell sets ---", sets.size());
+                                 return true;
                                }
                              }
+                             Zeal::Game::print_chat("usage: /spellset save/load/delete [name], /spellset list");
                              return true;
                            });
 }
