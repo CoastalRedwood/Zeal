@@ -86,7 +86,7 @@ std::pair<std::string,bool> abbreviateChat(const std::string &original_message) 
   // Pattern to look for chat messages
   bool log_only = false;
   std::regex chat_pattern(
-    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)");
+    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'\s*$)");
 
   std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
   std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
