@@ -82,9 +82,8 @@ std::string StripSpecialCharacters(const std::string &input) {
   return result;
 }
 
-std::pair<std::string,bool> abbreviateChat(const std::string &original_message) {
+std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
-  bool log_only = false;
   std::regex chat_pattern(
     R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'\s*$)");
 
@@ -129,7 +128,7 @@ std::pair<std::string,bool> abbreviateChat(const std::string &original_message) 
 
     // Abort if a prefix wasn't found
     if (channel_prefix.empty()) {
-      return {original_message, log_only};
+      return original_message;
     }
 
     if (channel == "told") {
@@ -146,17 +145,12 @@ std::pair<std::string,bool> abbreviateChat(const std::string &original_message) 
     }
     
     std::string newMessage = "[" + channel_prefix + "] [" + sender + "]: " + message;
-    return {newMessage, log_only};
+    return newMessage;
   }
 
   if (std::regex_search(original_message, match, roll_player_pattern)) {
     playerRolling = match[1].str(); // Player will be used when the actual roll result is printed
-
-    const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
-    if (abbreviated_chat.get() == 2) return {std::string(), false}; // Won't print line if abbreviated_chat is set to Chat + Log
-    
-    log_only = true;
-    return {original_message, log_only}; // Log, but don't print the original line (for parsing)
+    return std::string(); // Prevent this line from being printed
   }
 
   if (std::regex_search(original_message, match, roll_result_pattern)) {
@@ -167,11 +161,11 @@ std::pair<std::string,bool> abbreviateChat(const std::string &original_message) 
     std::string rollResult = match[3].str();
     std::string newMessage = "[" + rollMin + "-" + rollMax + "]: " + rollResult + " rolled by " + playerRolling + ".";
     playerRolling = std::string(); // Clear it for the next person
-    return {newMessage, log_only};
+    return newMessage;
   }
 
   // If there were no matches, return the original message
-  return {original_message, log_only};
+  return original_message;
 }
 
 std::string generateTimestampedString(const std::string &message, bool longform = true) {
@@ -253,9 +247,7 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
 
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
 
-  std::pair<std::string, bool> abbreviated_data = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : std::pair<std::string, bool>{"", false};
-  std::string abbreviated_buffer = abbreviated_data.first;
-  bool log_only = ( abbreviated_chat.get() < 2) ? abbreviated_data.second : false;
+  std::string abbreviated_buffer = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : "";
   if (abbreviated_chat.get() && abbreviated_buffer.empty()) // Skip phantom prints after modification
     return;
   const char *chat_buffer = (abbreviated_chat.get() > 0) ? abbreviated_buffer.c_str() : data;
@@ -271,10 +263,9 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   } else {
     strncpy_s(buffer, chat_buffer, sizeof(buffer));
   }
-  if (!log_only)
   ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
                                                                                          add_log && !log_is_different);
-  if ( add_log && ( log_is_different || log_only ) && *Zeal::Game::is_logging_enabled) {
+  if (add_log && log_is_different && *Zeal::Game::is_logging_enabled) {
     strncpy_s(buffer, log_buffer, sizeof(buffer));
     Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
     Zeal::Game::log(buffer);
