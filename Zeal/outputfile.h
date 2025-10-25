@@ -12,8 +12,9 @@ class OutputFile {
   void export_spellbook(const std::vector<std::string> &args = {});
 
   ZealSetting<bool> setting_export_on_camp = {false, "Zeal", "ExportOnCamp", false};
+  ZealSetting<int> setting_export_format = {0, "Zeal", "ExportFormat", false};
 
  private:
   void export_raidlist(std::vector<std::string> &args);
-  void write_to_file(std::string data, std::string filename, std::string optional_name);
+  void write_to_file(std::string data, std::string filename, std::string optional_name, bool add_host_tag = false);
 };

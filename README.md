@@ -206,11 +206,13 @@ ___
 
 - `/outputfile`
   - **Aliases:** `/output`, `/out`
-  - **Arguments:** `inventory | spellbook` `[optional_name]`
+  - **Arguments:** `inventory | spellbook | raidlist` `[optional_filename]`, `format [0 | 1]`
   - **Example:** `/outputfile inventory my_inventory`
   - **Description:**
     - `inventory` outputs information about your equipment, inventory bag slots, held item, and bank slots to a file.
     - `spellbook` outputs a list of all spell ids current scribed in your spellbook.
+    - `raidlist` outputs a raid 'tick' with a list of players in the raid.
+    - `format` sets the format of the export files (0 = default, 1 = new style with host tag)
 
 - `/pandelay`
   - **Arguments:** `ms delay`, `none`
