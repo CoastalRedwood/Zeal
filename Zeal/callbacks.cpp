@@ -302,7 +302,7 @@ std::string add_class_colors(std::string message) {
 
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
   if (entity_manager) {
-    std::regex possible_names_pattern(R"(\b[a-zA-Z]{4,}\b)");
+    std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|[yY]ou)\b)");
     std::set<std::string> unique_matches;
 
     std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
@@ -315,11 +315,19 @@ std::string add_class_colors(std::string message) {
 
     for (const auto& match : unique_matches) {
       std::string possible_name = match.data();
+      std::string possible_name_capitalized = possible_name;
+      possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
       std::string class_color;
 
+      // Set class color for self
+      Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+      if (possible_name_capitalized == "You") {
+        class_color = class_color_map[char_info->Class];
+      }
+
       // Check Zone Entities for a match
-      auto entity = ZealService::get_instance()->entity_manager->Get(possible_name);
-      if (entity) {
+      auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
+      if (entity && class_color.empty()) {
         std::string entityName = entity->Name;
         std::string entityClass = std::to_string(entity->Class);
         std::string entityAnon = std::to_string(entity->AnonymousState);
@@ -331,7 +339,7 @@ std::string add_class_colors(std::string message) {
       if (raid_info->is_in_raid() && class_color.empty()) {
         for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
           const auto &member = raid_info->MemberList[i];
-          if (member.Name == possible_name) {
+          if (possible_name_capitalized == member.Name) {
             class_color = class_color_map[member.ClassValue];
             break;
           }
