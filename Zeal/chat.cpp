@@ -248,8 +248,6 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
 
   std::string abbreviated_buffer = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : "";
-  if (abbreviated_chat.get() && abbreviated_buffer.empty()) // Skip phantom prints after modification
-    return;
   const char *chat_buffer = (abbreviated_chat.get() > 0) ? abbreviated_buffer.c_str() : data;
   const char *log_buffer = (abbreviated_chat.get() == 2) ? abbreviated_buffer.c_str() : data;
 
@@ -263,9 +261,12 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   } else {
     strncpy_s(buffer, chat_buffer, sizeof(buffer));
   }
-  ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
+  
+  if (std::strlen(chat_buffer) > 0)
+    ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
                                                                                          add_log && !log_is_different);
-  if (add_log && log_is_different && *Zeal::Game::is_logging_enabled) {
+
+  if (add_log && log_is_different && std::strlen(log_buffer) > 0 && *Zeal::Game::is_logging_enabled) {
     strncpy_s(buffer, log_buffer, sizeof(buffer));
     Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
     Zeal::Game::log(buffer);
