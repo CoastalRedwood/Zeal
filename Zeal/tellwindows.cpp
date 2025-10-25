@@ -147,7 +147,7 @@ Zeal::GameUI::ChatWnd *TellWindows::FindTellWnd(std::string &name) {
 
 std::string abbreviateTell(const std::string &original_message) {
   std::regex normal_tell_pattern(R"(^(\b\w+\b) (tells|told) (\b\w+\b),? '(.*)'$)");
-  std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(\b\w+\b)\]:\s+(.*)$)");
+  std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(?:<.*>)?(\b\w+\b)(?:<.*>)?\]:\s+(.*)$)");
   std::smatch tell_match;
   std::string sender;
   std::string message;
@@ -186,11 +186,19 @@ std::string abbreviateTell(const std::string &original_message) {
 }
 
 std::string stripTags(const std::string &message) {
+  std::string stripped_message = message;
+  
   // Regex pattern to match <a ...>...</a> tags and keep only the inner text
-  std::regex tag_pattern(R"(<a\s+[^>]*>([^<]+)<\/a>)");
+  std::regex tag_a_pattern(R"(<a\s+[^>]*>([^<]+)<\/a>)");
+  // Replace the matched 'a' tags with the inner text
+  stripped_message = std::regex_replace(stripped_message, tag_a_pattern, "$1");
 
-  // Replace the matched tags with the inner text
-  return std::regex_replace(message, tag_pattern, "$1");
+  // Regex pattern to match <c ...>...</c> tags and keep only the inner text
+  std::regex tag_c_pattern(R"(<c\s+[^>]*>([^<]+)<\/c>)");
+  // Replace the matched 'c' tags with the inner text
+  stripped_message = std::regex_replace(stripped_message, tag_c_pattern, "$1");
+
+  return stripped_message;
 }
 
 std::string GetName(std::string &data) {
