@@ -4,6 +4,9 @@
 namespace Zeal {
 namespace Packets {
 enum opcodes {
+  GroupUpdate = 0x2026,
+  PlayerProfile = 0x4036,
+  ZoneSpawns = 0x415f,
   DeathDamage = 0x404A,
   Damage = 0x4058,
   PrintNonMeleeDamage = 0x4236,

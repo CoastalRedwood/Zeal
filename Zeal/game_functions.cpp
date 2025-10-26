@@ -705,6 +705,35 @@ int get_raid_group_count(DWORD group_number) {
   return min(6, group_count);
 }
 
+DWORD get_raid_class_color(BYTE class_id) {
+  const DWORD kDefaultWhite = 0xffffffff;
+  const auto *raid_wnd = Windows->Raid;
+  if (!raid_wnd || !raid_wnd->SidlPiece) return kDefaultWhite;
+
+  // This LUT maps Zeal::GameEnums::ClassTypes to the raid window offsets.
+  static const int class_to_color_lut[16] = {
+      0,   // Unused placeholder for invalid class_id == 0.
+      13,  // Zeal::GameEnums::ClassTypes::Warrior
+      2,   // Zeal::GameEnums::ClassTypes::Cleric
+      8,   // Zeal::GameEnums::ClassTypes::Paladin
+      9,   // Zeal::GameEnums::ClassTypes::Ranger
+      11,  // Zeal::GameEnums::ClassTypes::Shadowknight
+      3,   // Zeal::GameEnums::ClassTypes::Druid
+      6,   // Zeal::GameEnums::ClassTypes::Monk
+      0,   // Zeal::GameEnums::ClassTypes::Bard
+      10,  // Zeal::GameEnums::ClassTypes::Rogue
+      12,  // Zeal::GameEnums::ClassTypes::Shaman
+      7,   // Zeal::GameEnums::ClassTypes::Necromancer
+      14,  // Zeal::GameEnums::ClassTypes::Wizard
+      5,   // Zeal::GameEnums::ClassTypes::Magician
+      4,   // Zeal::GameEnums::ClassTypes::Enchanter
+      1,   // Zeal::GameEnums::ClassTypes::Beastlord
+  };
+
+  if (class_id < 1 || class_id > 15) return kDefaultWhite;
+  return raid_wnd->ClassColors[class_to_color_lut[class_id]];
+}
+
 bool is_raid_pet(const Zeal::GameStructures::Entity &entity) {
   const int pet_owner_id = entity.PetOwnerSpawnId;
   if (!pet_owner_id || (entity.Type != Zeal::GameEnums::NPC)) return false;
@@ -724,6 +753,33 @@ bool is_raid_pet(const Zeal::GameStructures::Entity &entity) {
   }
 
   return false;
+}
+
+// Returns true if successfully updated the group window with class colors.
+// Note: The group member entity list entry is nulled out in the player deconstructor,
+// so if they zone it will go back to default at the next update.
+bool update_group_window_colors(bool use_raid_colors, bool store_defaults) {
+  auto *group_wnd = Zeal::Game::Windows->Group;
+  const auto *group_info = Zeal::Game::GroupInfo;
+  if (!group_wnd || !group_info) return !is_new_ui();  // Return true (okay) if old UI.
+
+  const Zeal::GameUI::ARGBCOLOR kDefaultColor = Zeal::GameUI::ARGBCOLOR(0xfff0f0f0);
+  static Zeal::GameUI::ARGBCOLOR default_colors[GAME_NUM_GROUP_MEMBERS] = {kDefaultColor, kDefaultColor, kDefaultColor,
+                                                                           kDefaultColor, kDefaultColor};
+
+  for (int i = 0; i < GAME_NUM_GROUP_MEMBERS; ++i) {
+    auto *gauge_wnd = group_wnd->GetChildItem(std::format("Gauge{}", i + 1), false);
+    if (!gauge_wnd) return false;
+
+    if (store_defaults) default_colors[i] = gauge_wnd->TextColor;
+    Zeal::GameUI::ARGBCOLOR text_color = default_colors[i];
+    if (use_raid_colors && group_info->Names[i][0] && (get_gamestate() == GAMESTATE_INGAME)) {
+      Zeal::GameStructures::Entity *member = group_info->EntityList[i];
+      if (member) text_color = Zeal::Game::get_raid_class_color(member->Class);
+    }
+    gauge_wnd->TextColor = text_color;
+  }
+  return true;
 }
 
 bool is_player_pet(const Zeal::GameStructures::Entity &entity) {

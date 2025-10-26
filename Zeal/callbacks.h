@@ -25,6 +25,7 @@ enum class callback_type {
   CleanUI,              // Called before deallocation of new UI objects (before InitUI and in Display destructor).
   EndMainLoop,          // Called after return of DoMainLoop (exiting zone).
   WorldMessage,         // Incoming server message.
+  WorldMessagePost,     // After incoming server message internal processing.
   SendMessage_,         // Outgoing server message.
   ExecuteCmd,           // Intercepts commands (e.g. keybinds) for optional overriding.
   DXReset,              // Hooked into d3d driver's Reset (before call).

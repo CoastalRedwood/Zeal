@@ -3,14 +3,17 @@
 #include <algorithm>
 #include <cctype>
 
+#include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
+#include "game_packets.h"
 #include "game_structures.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
 #include "memory.h"
 #include "string_util.h"
+#include "ui_manager.h"
 #include "zeal.h"
 
 void ui_group::InitUI() {}
@@ -32,6 +35,7 @@ void ui_group::swap(int index1, int index2) {
   } else {
     Zeal::Game::print_chat("Error moving group members: %i to %i", index1, index2);
   }
+  handle_group_colors(true);
 }
 
 void ui_group::sort() {
@@ -69,6 +73,22 @@ void ui_group::sort() {
               group_members_sorted[i].first.length());
     group_info->EntityList[i] = group_members_sorted[i].second;
   }
+  handle_group_colors(true);
+}
+
+void ui_group::handle_group_colors(bool log_error) {
+  bool success = Zeal::Game::update_group_window_colors(setting_add_group_colors.get());
+
+  if (!success && log_error && setting_add_group_colors.get())
+    Zeal::Game::print_chat("Error: Failed to update group window colors");
+}
+
+// Update the group window if a raid color changes.
+static void __fastcall CRaidWnd_SetClassColor(void *raid_wnd, int unused_edx, int index, DWORD argb) {
+  auto zeal = ZealService::get_instance();
+  zeal->hooks->hook_map["CRaidWnd_SetClassColor"]->original(CRaidWnd_SetClassColor)(raid_wnd, unused_edx, index, argb);
+  if (zeal->ui && zeal->ui->group && zeal->ui->group->setting_add_group_colors.get())
+    Zeal::Game::update_group_window_colors(true);
 }
 
 ui_group::~ui_group() {}
@@ -92,5 +112,26 @@ ui_group::ui_group(ZealService *zeal, UIManager *mgr) {
           sort();
         return true;
       });
-  // if (Zeal::Game::is_in_game()) InitUI();
+
+  // Add a callback to cache the default group window colors before any modifications are made.
+  zeal->callbacks->AddGeneric(
+      [this]() { Zeal::Game::update_group_window_colors(setting_add_group_colors.get(), true); },
+      callback_type::InitUI);
+
+  zeal->callbacks->AddPacket(
+      [this](UINT opcode, char *buffer, UINT len) {
+        if (opcode == Zeal::Packets::GroupUpdate || opcode == Zeal::Packets::PlayerProfile) handle_group_colors();
+
+        // This call is used to handle group members zoning in. Since it is called frequently, only enable
+        // it when the optional add colors is enabled. Might be able to future optimize this by just
+        // checking the top of the entity list (which was just added) to see if it is in the group list
+        // before performing the full group color update.
+        if (opcode == Zeal::Packets::ZoneSpawns && setting_add_group_colors.get()) handle_group_colors();
+
+        return false;  // continue processing
+      },
+      callback_type::WorldMessagePost);
+
+  // Keep the group window text colors up to date when raid colors are changed.
+  zeal->hooks->Add("CRaidWnd_SetClassColor", 0x00431af5, CRaidWnd_SetClassColor, hook_type_detour);
 }
