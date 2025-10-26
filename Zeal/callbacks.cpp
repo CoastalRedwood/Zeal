@@ -303,7 +303,7 @@ std::string add_class_colors(std::string message) {
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
   if (!entity_manager) return message; // Abort if entity manager unavailable
   
-  std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|[yY]ou)\b)");
+  std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
   std::set<std::string> unique_matches;
 
   std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
@@ -316,7 +316,9 @@ std::string add_class_colors(std::string message) {
 
   for (const auto& match : unique_matches) {
     std::string possible_name = match.data();
-    std::string possible_name_capitalized = possible_name;
+    std::string possible_name_lower = possible_name;
+    std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
+    std::string possible_name_capitalized = possible_name_lower;
     possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
     std::string class_color;
 
@@ -349,7 +351,7 @@ std::string add_class_colors(std::string message) {
     if (!class_color.empty()) {
       std::string replacement_name = "<c \"" + class_color + "\">" + possible_name + "</c>";
       std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
-      std::regex name_pattern(name_pattern_string, std::regex::icase);
+      std::regex name_pattern(name_pattern_string);
       message = std::regex_replace(message, name_pattern, replacement_name);
     }
   }
