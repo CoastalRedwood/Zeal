@@ -127,22 +127,22 @@ void __fastcall enterzone_hk(int t, int unused, int hwnd) {
 
 void get_raid_class_colors() {
   // Raid window class color index to game class index
-  std::map<int, int> raidClassToGameClass = {
-    { 0, Zeal::GameEnums::ClassTypes::Bard},
-    { 1, Zeal::GameEnums::ClassTypes::Beastlord},
-    { 2, Zeal::GameEnums::ClassTypes::Cleric},
-    { 3, Zeal::GameEnums::ClassTypes::Druid},
-    { 4, Zeal::GameEnums::ClassTypes::Enchanter},
-    { 5, Zeal::GameEnums::ClassTypes::Magician},
-    { 6, Zeal::GameEnums::ClassTypes::Monk},
-    { 7, Zeal::GameEnums::ClassTypes::Necromancer},
-    { 8, Zeal::GameEnums::ClassTypes::Paladin},
-    { 9, Zeal::GameEnums::ClassTypes::Ranger},
-    {10, Zeal::GameEnums::ClassTypes::Rogue},
-    {11, Zeal::GameEnums::ClassTypes::Shadowknight},
-    {12, Zeal::GameEnums::ClassTypes::Shaman},
-    {13, Zeal::GameEnums::ClassTypes::Warrior},
-    {14, Zeal::GameEnums::ClassTypes::Wizard},
+  int raidClassToGameClassLUT[15] = {
+    Zeal::GameEnums::ClassTypes::Bard,
+    Zeal::GameEnums::ClassTypes::Beastlord,
+    Zeal::GameEnums::ClassTypes::Cleric,
+    Zeal::GameEnums::ClassTypes::Druid,
+    Zeal::GameEnums::ClassTypes::Enchanter,
+    Zeal::GameEnums::ClassTypes::Magician,
+    Zeal::GameEnums::ClassTypes::Monk,
+    Zeal::GameEnums::ClassTypes::Necromancer,
+    Zeal::GameEnums::ClassTypes::Paladin,
+    Zeal::GameEnums::ClassTypes::Ranger,
+    Zeal::GameEnums::ClassTypes::Rogue,
+    Zeal::GameEnums::ClassTypes::Shadowknight,
+    Zeal::GameEnums::ClassTypes::Shaman,
+    Zeal::GameEnums::ClassTypes::Warrior,
+    Zeal::GameEnums::ClassTypes::Wizard,
   };
 
   // Get class colors from the character's raid window settings
@@ -152,7 +152,7 @@ void get_raid_class_colors() {
     IO_ini ui_ini(ini_name);
 
     for (int i = 0; i < 15; i++) {
-      int game_class_number = raidClassToGameClass[i];
+      int game_class_number = raidClassToGameClassLUT[i];
       std::string setting_class = "ClassColor" + std::to_string(i);
       if (ui_ini.exists("RaidWindow", setting_class)) {
         int setting_color = ui_ini.getValue<int>("RaidWindow", setting_class);
@@ -301,58 +301,56 @@ std::string add_class_colors(std::string message) {
   if (class_color_map.empty()) return message;
 
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
-  if (entity_manager) {
-    std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|[yY]ou)\b)");
-    std::set<std::string> unique_matches;
+  if (!entity_manager) return message; // Abort if entity manager unavailable
+  
+  std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|[yY]ou)\b)");
+  std::set<std::string> unique_matches;
 
-    std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
-    std::sregex_iterator words_end;
+  std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
+  std::sregex_iterator words_end;
 
-    while (words_begin != words_end) {
-        unique_matches.insert(words_begin->str());
-        ++words_begin;
+  while (words_begin != words_end) {
+      unique_matches.insert(words_begin->str());
+      ++words_begin;
+  }
+
+  for (const auto& match : unique_matches) {
+    std::string possible_name = match.data();
+    std::string possible_name_capitalized = possible_name;
+    possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
+    std::string class_color;
+
+    // Set class color for self
+    Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+    if (possible_name_capitalized == "You" && char_info != nullptr) {
+      class_color = class_color_map[char_info->Class];
     }
 
-    for (const auto& match : unique_matches) {
-      std::string possible_name = match.data();
-      std::string possible_name_capitalized = possible_name;
-      possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
-      std::string class_color;
+    // Check Zone Entities for a match
+    auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
+    if (entity && class_color.empty()) {
+      std::string entityAnon = std::to_string(entity->AnonymousState);
+      if (entity->Type == 0 && !entity->AnonymousState) class_color = class_color_map[entity->Class];
+    }
 
-      // Set class color for self
-      Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-      if (possible_name_capitalized == "You") {
-        class_color = class_color_map[char_info->Class];
-      }
-
-      // Check Zone Entities for a match
-      auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
-      if (entity && class_color.empty()) {
-        std::string entityName = entity->Name;
-        std::string entityClass = std::to_string(entity->Class);
-        std::string entityAnon = std::to_string(entity->AnonymousState);
-        if (!entity->AnonymousState) class_color = class_color_map[entity->Class];
-      }
-
-      // Check raid members for a match
-      Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
-      if (raid_info->is_in_raid() && class_color.empty()) {
-        for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
-          const auto &member = raid_info->MemberList[i];
-          if (possible_name_capitalized == member.Name) {
-            class_color = class_color_map[member.ClassValue];
-            break;
-          }
+    // Check raid members for a match
+    Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+    if (raid_info->is_in_raid() && class_color.empty()) {
+      for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
+        const auto &member = raid_info->MemberList[i];
+        if (possible_name_capitalized == member.Name) {
+          class_color = class_color_map[member.ClassValue];
+          break;
         }
       }
+    }
 
-      // Add color tags if a match was found
-      if (!class_color.empty()) {
-        std::string replacement_name = "<c \"" + class_color + "\">" + possible_name + "</c>";
-        std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
-        std::regex name_pattern(name_pattern_string, std::regex::icase);
-        message = std::regex_replace(message, name_pattern, replacement_name);
-      }
+    // Add color tags if a match was found
+    if (!class_color.empty()) {
+      std::string replacement_name = "<c \"" + class_color + "\">" + possible_name + "</c>";
+      std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
+      std::regex name_pattern(name_pattern_string, std::regex::icase);
+      message = std::regex_replace(message, name_pattern, replacement_name);
     }
   }
   return(message);
