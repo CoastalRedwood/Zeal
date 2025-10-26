@@ -400,6 +400,9 @@ void ui_options::InitGeneral() {
   });
   ui->AddCheckboxCallback(wnd, "Zeal_InviteDialog",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_invite_dialog.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_AddGroupColors", [this](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->ui->group->setting_add_group_colors.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_AutoFollowEnable", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->movement->AutoFollowEnable.set(wnd->Checked);
   });
@@ -938,6 +941,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_InviteDialog", setting_invite_dialog.get());
   ui->SetChecked("Zeal_AltTransportCats",
                  ZealService::get_instance()->spell_sets->setting_alternate_transport_categories.get());
+  ui->SetChecked("Zeal_AddGroupColors", ZealService::get_instance()->ui->group->setting_add_group_colors.get());
   ui->SetChecked("Zeal_AutoFollowEnable", ZealService::get_instance()->movement->AutoFollowEnable.get());
 
   UpdateComboBox("Zeal_TellSound_Combobox", setting_tell_sound.get(), kDefaultSoundNone);

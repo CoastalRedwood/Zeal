@@ -188,8 +188,11 @@ char __fastcall handleworldmessage_hk(int *connection, int unused, UINT unk, UIN
 
   if (zeal->callbacks->invoke_packet(callback_type::WorldMessage, opcode, buffer, len)) return 1;
 
-  return zeal->hooks->hook_map["HandleWorldMessage"]->original(handleworldmessage_hk)(connection, unused, unk, opcode,
-                                                                                      buffer, len);
+  char result = zeal->hooks->hook_map["HandleWorldMessage"]->original(handleworldmessage_hk)(connection, unused, unk,
+                                                                                             opcode, buffer, len);
+
+  zeal->callbacks->invoke_packet(callback_type::WorldMessagePost, opcode, buffer, len);
+  return result;
 }
 
 void send_message_hk(int *connection, UINT opcode, char *buffer, UINT len, int unknown) {
