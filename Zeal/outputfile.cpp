@@ -11,12 +11,12 @@
 
 using Zeal::GameEnums::EquipSlot::EquipSlot;
 
-static std::string IDToEquipSlot(int equipSlot) {
+static std::string IDToEquipSlot(int equipSlot, bool new_format) {
   switch (equipSlot) {
     case EquipSlot::LeftEar:
-      return "Ear1";
+      return new_format ? "Ear1" : "Ear";
     case EquipSlot::RightEar:
-      return "Ear2";
+      return new_format ? "Ear2" : "Ear";
     case EquipSlot::Head:
       return "Head";
     case EquipSlot::Face:
@@ -30,9 +30,9 @@ static std::string IDToEquipSlot(int equipSlot) {
     case EquipSlot::Back:
       return "Back";
     case EquipSlot::LeftWrist:
-      return "Wrist1";
+      return new_format ? "Wrist1" : "Wrist";
     case EquipSlot::RightWrist:
-      return "Wrist2";
+      return new_format ? "Wrist2" : "Wrist";
     case EquipSlot::Range:
       return "Range";
     case EquipSlot::Hands:
@@ -42,9 +42,9 @@ static std::string IDToEquipSlot(int equipSlot) {
     case EquipSlot::Secondary:
       return "Secondary";
     case EquipSlot::LeftFinger:
-      return "Finger1";
+      return new_format ? "Finger1" : "Fingers";
     case EquipSlot::RightFinger:
-      return "Finger2";
+      return new_format ? "Finger2" : "Fingers";
     case EquipSlot::Chest:
       return "Chest";
     case EquipSlot::Legs:
@@ -72,9 +72,11 @@ static bool ItemIsStackable(Zeal::GameStructures::GAMEITEMINFO *item) {
 void OutputFile::export_inventory(const std::vector<std::string> &args) {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
 
+  bool new_format = (setting_export_format.get() != 0);
   std::ostringstream oss;
   std::string t = "\t";  // output spacer
-  oss << "Location" << t << "Name" << t << "ID" << t << "Count/Charges" << t << "Slots" << std::endl;
+  const char *count_col_title = new_format ? "Count/Charges" : "Count";
+  oss << "Location" << t << "Name" << t << "ID" << t << count_col_title << t << "Slots" << std::endl;
 
   // Processing Equipment
   for (size_t i = 0; i < GAME_NUM_INVENTORY_SLOTS; ++i) {
@@ -82,9 +84,9 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
     // GAMEITEMINFO->EquipSlot value only updates when a load happens. Don't use it for this.
     if (item) {
       int count = item->Common.StackCount;  // Union with charges.
-      oss << IDToEquipSlot(i) << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
+      oss << IDToEquipSlot(i, new_format) << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
     } else {
-      oss << IDToEquipSlot(i) << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+      oss << IDToEquipSlot(i, new_format) << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
     }
   }
 
@@ -132,8 +134,7 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
           if (bag_item) {
             int count = bag_item->Common.StackCount;  // Union with charges.
             oss << "Held"
-                << "-Slot" << i + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t << 0
-                << std::endl;
+                << "-Slot" << i + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t << 0 << std::endl;
           } else {
             oss << "Held"
                 << "-Slot" << i + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
@@ -170,9 +171,9 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
           for (int j = 0; j < capacity; ++j) {
             Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[j];
             if (bag_item) {
-		          int count = bag_item->Common.StackCount;  // Union with charges.
-              oss << label << slot << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count
-                  << t << 0 << std::endl;
+              int count = bag_item->Common.StackCount;  // Union with charges.
+              oss << label << slot << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t
+                  << 0 << std::endl;
             } else {
               oss << label << slot << "-Slot" << j + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
             }
@@ -197,7 +198,7 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
   if (args.size() > 2) {
     optional_name = args[2];
   }
-  write_to_file(oss.str(), "Inventory", optional_name);
+  write_to_file(oss.str(), "Inventory", optional_name, new_format);
 }
 
 void OutputFile::export_spellbook(const std::vector<std::string> &args) {
@@ -219,7 +220,7 @@ void OutputFile::export_spellbook(const std::vector<std::string> &args) {
   if (args.size() > 2) {
     optional_name = args[2];
   }
-  write_to_file(oss.str(), "Spellbook", optional_name);
+  write_to_file(oss.str(), "Spellbook", optional_name, setting_export_format.get() != 0);
 }
 
 void OutputFile::export_raidlist(std::vector<std::string> &args) {
@@ -247,12 +248,12 @@ void OutputFile::export_raidlist(std::vector<std::string> &args) {
   }
 }
 
-void OutputFile::write_to_file(std::string data, std::string file_arg, std::string optional_name) {
+void OutputFile::write_to_file(std::string data, std::string file_arg, std::string optional_name, bool add_host_tag) {
   std::string filename = optional_name;
   if (filename.empty()) {
     filename = Zeal::Game::get_self()->CharInfo->Name;
     filename += "-" + file_arg;
-    filename += Zeal::Game::get_host_tag();
+    if (add_host_tag) filename += Zeal::Game::get_host_tag();
   }
   filename += ".txt";
 
@@ -281,20 +282,31 @@ OutputFile::OutputFile(ZealService *zeal) {
   zeal->commands_hook->Add(
       "/outputfile", {"/output", "/out"}, "Outputs your inventory,spellbook, or raidlist to file.",
       [this](std::vector<std::string> &args) {
-        if (args.size() == 1 || args.size() > 3) {
-          Zeal::Game::print_chat("usage: /outputfile [inventory | spellbook | raidlist] [optional filename]");
-          return true;
-        }
-        if (args.size() > 1) {
+        if (args.size() == 2 || args.size() == 3) {
           if (Zeal::String::compare_insensitive(args[1], "inventory")) {
             Zeal::Game::print_chat("Outputting inventory...");
             export_inventory(args);
+            return true;
           } else if (Zeal::String::compare_insensitive(args[1], "spellbook")) {
             Zeal::Game::print_chat("Outputting spellbook...");
             export_spellbook(args);
-          } else if (Zeal::String::compare_insensitive(args[1], "raidlist"))
+            return true;
+          } else if (Zeal::String::compare_insensitive(args[1], "raidlist")) {
             export_raidlist(args);
+            return true;
+          }
         }
+
+        if (args.size() == 3 && Zeal::String::compare_insensitive(args[1], "format")) {
+          int format = 0;
+          if (Zeal::String::tryParse(args[2], &format) && (format == 0 || format == 1)) {
+            setting_export_format.set(format);
+            Zeal::Game::print_chat("Output format set to %d", setting_export_format.get());
+            return true;
+          }
+        }
+        Zeal::Game::print_chat("usage: /outputfile [inventory | spellbook | raidlist] [optional filename]");
+        Zeal::Game::print_chat("usage: /outputfile format [0 | 1]");
         return true;
       });
   zeal->hooks->Add("GameCamp", 0x00530c7b, GameCamp, hook_type_detour);

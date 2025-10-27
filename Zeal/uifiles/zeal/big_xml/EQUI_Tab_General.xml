@@ -603,6 +603,37 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_AddGroupColors">
+    <ScreenID>Zeal_AddGroupColors</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>840</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Apply raid class colors to group window</TooltipReference>
+    <Text>Group class colors</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   
   <Label item="Zeal_HoverTimeout_Label">
     <ScreenID>Zeal_HoverTimeout_Label</ScreenID>
@@ -1486,12 +1517,43 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_SuppressOtherPets">
+    <ScreenID>Zeal_SuppressOtherPets</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>884</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Suppress messages from other's pets</TooltipReference>
+    <Text>Suppress other pets</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <Button item="Zeal_ReportOtherNonMeleeDmg">
     <ScreenID>Zeal_ReportOtherNonMeleeDmg</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>720</X>
-      <Y>884</Y>
+      <Y>928</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1561,6 +1623,7 @@
     <Pieces>Zeal_RecastTimers</Pieces>
     <Pieces>Zeal_RecastTimersLeftAlign</Pieces>
     <Pieces>Zeal_InviteDialog</Pieces>
+    <Pieces>Zeal_AddGroupColors</Pieces>
     
     <Pieces>Zeal_HoverTimeout_Label</Pieces>
     <Pieces>Zeal_HoverTimeout_Slider</Pieces>
@@ -1596,6 +1659,7 @@
     <Pieces>Zeal_SlashNotPoke</Pieces>
     <Pieces>Zeal_AltTransportCats</Pieces>
     <Pieces>Zeal_SuppressLifetapFeeling</Pieces>
+    <Pieces>Zeal_SuppressOtherPets</Pieces>
     <Pieces>Zeal_ReportOtherNonMeleeDmg</Pieces>
     <Location>
       <X>0</X>

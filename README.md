@@ -206,11 +206,13 @@ ___
 
 - `/outputfile`
   - **Aliases:** `/output`, `/out`
-  - **Arguments:** `inventory | spellbook` `[optional_name]`
+  - **Arguments:** `inventory | spellbook | raidlist` `[optional_filename]`, `format [0 | 1]`
   - **Example:** `/outputfile inventory my_inventory`
   - **Description:**
     - `inventory` outputs information about your equipment, inventory bag slots, held item, and bank slots to a file.
     - `spellbook` outputs a list of all spell ids current scribed in your spellbook.
+    - `raidlist` outputs a raid 'tick' with a list of players in the raid.
+    - `format` sets the format of the export files (0 = default, 1 = new style with host tag)
 
 - `/pandelay`
   - **Arguments:** `ms delay`, `none`
@@ -293,9 +295,9 @@ ___
   - **Description:** sorts your current group members in the ui  using /sq 1 2 will swap players 1 and 2 in your group on your ui.
 
 - `/spellset`
-  - **Arguments:** `save`, `load`, `delete`
-  - **Example:** `/spellset save buffs`
-  - **Example:** `/spellset load buffs`
+  - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
+  - **Example:** `/spellset save heals`
+  - **Example:** `/spellset load nukes`
   - **Example:** `/spellset delete buffs`
   - **Description:** allows you to save and load spellsets
 

@@ -226,6 +226,7 @@ Zeal::GameStructures::Entity *get_pet();
 Zeal::GameStructures::SPELLMGR *get_spell_mgr();
 int get_spell_level(int spell_id);
 const char *get_spell_name(int spell_id);
+void dump_spell_info(int spell_id);
 Zeal::GameStructures::Entity *get_controlled();
 Zeal::GameStructures::ViewActor *get_view_actor();
 Zeal::GameStructures::CameraInfo *get_camera();
@@ -272,8 +273,10 @@ bool is_player_pet(const Zeal::GameStructures::Entity &entity);
 std::vector<Zeal::GameStructures::RaidMember *> get_raid_list();
 DWORD get_raid_group_number();
 int get_raid_group_count(DWORD group_number);
+DWORD get_raid_class_color(BYTE class_id);  // Returns ARGB color for the class.
 bool is_raid_pet(const Zeal::GameStructures::Entity &entity);
 std::string get_raid_group_leader(DWORD group_number);
+bool update_group_window_colors(bool use_raid_colors, bool store_defaults = false);
 void print_group_leader();
 void print_raid_leaders(bool show_all_groups = false, bool show_open_groups = false);
 void print_raid_ungrouped();

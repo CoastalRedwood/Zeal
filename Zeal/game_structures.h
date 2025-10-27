@@ -705,12 +705,10 @@ struct ActorInfo {
   /* 0x0074 */ DWORD UnknownTimer5;
   /* 0x0078 */ DWORD UnknownTimer6;
   /* 0x007C */ DWORD UnknownTimer7;
-  /* 0x0080 */ WORD LevitationMovementCounter;  // loops from 0 to 512 while levitating, causes up/down movement, 0xFFFF
-                                                // = Not Levitating
-  /* 0x0082 */ WORD
-      DrunkMovementCounter;  // loops from 0 to 512 while drunk, causes left/right movement, 0xFFFF = Not Drunk
-  /* 0x0084 */ WORD LevitationSize;
-  /* 0x0086 */ WORD DrunkMovementSize;
+  /* 0x0080 */ WORD LevitationMovementCounter;    // loops from 0 to 512, causes up/down movement, 0xFFFF = no lev.
+  /* 0x0082 */ WORD DrunkMovementCounter;         // loops from 0 to 512, causes left/right movement, 0xFFFF = Not Drunk
+  /* 0x0084 */ WORD LevitationSize;               // Movement counter increment size per process_physics call.
+  /* 0x0086 */ WORD DrunkMovementSize;            // Drunk counter increment size per process_physics call.
   /* 0x0088 */ FLOAT DrunkMovementModifier;       // how far left/right the player moves while drunk
   /* 0x008C */ FLOAT LevitationMovementModifier;  // how far up/down the player moves while levitating
   /* 0x0090 */ BYTE IsAffectedByGravity;          // gravity is enabled for the player (disabled while levitating)
@@ -785,7 +783,7 @@ struct ActorInfo {
   /* 0x0428 */ BYTE Unknown0428[0x10];
   /* 0x0438 */ DWORD IsLookingForGroup;
   /* 0x043C */ DWORD IsTrader;
-  /* ...... */
+  /* ...... */  // Allocates 0x48c.
 };
 
 typedef struct _GAMEINVENTORY {
@@ -1188,7 +1186,7 @@ struct Entity {
                                                                                                        is_bow);
   }
 
-  /* 0x0000 */ BYTE StructType;  // If != 0x03, this struct is invalid (e.g. bad ActorInfo pointer).
+  /* 0x0000 */ BYTE StructType;  // Magic tag set to 0x03 in constructor (if not 0x03, invalid entity pointer).
   /* 0x0001 */ CHAR Name[30];    // [0x1E]
   /* 0x001F */ BYTE Unknown001F[37];
   /* 0x0044 */ DWORD ZoneId;  // Game_ZONE_ID_x
@@ -1261,9 +1259,7 @@ struct Entity {
   /* 0x0156 */ BYTE BeardStyle;
   /* 0x0157 */ BYTE Unknown0157[5];
   /* 0x015C */ DWORD Unknown015C;
-  /* 0x0160 */ DWORD Unknown0160;
-  /* 0x0164 */ DWORD Unknown0164;
-  /* 0x0168 */
+  /* 0x0160 */  // Allocates 0x160 and memsets to zero at start of constructor.
 };
 
 struct GuildInfo {
@@ -1480,8 +1476,8 @@ struct SPELL {
   /*0x088*/ BYTE Unknown0x088;
   /*0x089**/ BYTE Resist;  // 0=un 1=mr 2=fr 3=cr 4=pr 5=dr 6=chromatic
   /*0x08a**/ BYTE Attrib[0xc];
-  /*0x096**/ BYTE
-      TargetType;  // 03=Group v1, 04=PB AE, 05=Single, 06=Self, 08=Targeted AE, 0e=Pet, 28=AE PC v2, 29=Group v2
+  /*0x096**/ BYTE TargetType;  // 3=Groupv1, 4=PBAoE, 5=Single, 6=Self, 8=TargetAoE, 9=Animal, 10=Undead, 11=Summoned,
+                               // 13=Tap, 14=Pet, 15=Corpse, 16=Plant, 20=TargetAoETap 28=AE PC v2, 29=Group v2
   /*0x097**/ BYTE FizzleAdj;
   /*0x098**/ BYTE Skill;
   /*0x099*/ BYTE Location;  // 01=Outdoors, 02=dungeons, ff=Any

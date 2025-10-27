@@ -118,13 +118,12 @@ struct ContextMenuVTable : BaseVTable  // Not a SidlScreenWnd derived class.  CL
 };
 
 struct pCXSTR {
-  /*0x00*/ DWORD Font;  // maybe, dont know.  04 = Window 01 = button
+  /*0x00*/ DWORD ReferenceCount;
   /*0x04*/ DWORD MaxLength;
   /*0x08*/ DWORD Length;
-  /*0x0c*/ BOOL Encoding;  // 0: ASCII, 1:Unicode
+  /*0x0c*/ BOOL Encoding;  // 0: ASCII, 1: Unicode
   /*0x10*/ PCRITICAL_SECTION pLock;
-  /*0x14*/ CHAR
-      Text[1];  // Stub, can be anywhere from Length to MaxLength (which is how much is malloc'd to this CXStr)
+  /*0x14*/ CHAR Text[1];  // Stub (in use is Length, allocated is MaxLength)
 };
 
 struct CXSTR {
@@ -252,6 +251,7 @@ struct BasicWnd  // Equivalent to CXWnd in client.
   }
 
  protected:  // Block external use of the CXSTR argument version to "encourage" std::string.
+  // Note: This is actually CSidlScreenWnd::GetChildItem() but that internally calls CXWnd::GetChildItem().
   BasicWnd *GetChildItem(CXSTR name, bool log_error = true) {
     if (!log_error) mem::write<BYTE>(0x570378, 0xEB);  // jump passed the ui error logging
     BasicWnd *wnd = reinterpret_cast<BasicWnd *(__thiscall *)(const BasicWnd *, CXSTR)>(0x570320)(this, name);
@@ -462,6 +462,8 @@ struct CharSelect : SidlWnd {
 
 struct RaidWnd : SidlWnd {
   /*0x134*/ BYTE ToggleState;
+  /*0x135*/ BYTE Unknown0x135[0x3b];
+  /*0x170*/ DWORD ClassColors[15];  // D3DCOLOR colors (not in class_id order).
 };
 
 struct HotButton : SidlWnd {
