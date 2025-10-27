@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "game_ui.h"
 #include "zeal_settings.h"
 
 class Chat {
@@ -19,6 +20,8 @@ class Chat {
   std::function<unsigned int(int)> get_color_callback;
 
   void set_classes();
+
+  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel);
 
   void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
 

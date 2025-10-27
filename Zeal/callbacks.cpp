@@ -1,10 +1,5 @@
 #include "callbacks.h"
 
-#include <regex>
-#include <set>
-#include <string>
-
-#include "entity_manager.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_packets.h"
@@ -246,83 +241,11 @@ void __fastcall GamePlayerDeconstruct(Zeal::GameStructures::Entity *ent, int unu
   zeal->hooks->hook_map["GamePlayerDeconstruct"]->original(GamePlayerDeconstruct)(ent, unused);
 }
 
-std::string add_class_colors(std::string message) {
-
-  auto entity_manager = ZealService::get_instance()->entity_manager.get();
-  if (!entity_manager) return message; // Abort if entity manager unavailable
-  
-  std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
-  std::set<std::string> unique_matches;
-
-  std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
-  std::sregex_iterator words_end;
-
-  while (words_begin != words_end) {
-      unique_matches.insert(words_begin->str());
-      ++words_begin;
-  }
-
-  for (const auto& match : unique_matches) {
-    std::string possible_name = match.data();
-    std::string possible_name_lower = possible_name;
-    std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
-    std::string possible_name_capitalized = possible_name_lower;
-    possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
-   
-    DWORD class_color = 0;
-    // Set class color for self
-    Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-    if (possible_name_capitalized == "You" && char_info != nullptr) {
-      class_color = Zeal::Game::get_raid_class_color(char_info->Class);
-    }
-
-    // Check Zone Entities for a match
-    auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
-    if (entity && !class_color) {
-      std::string entityAnon = std::to_string(entity->AnonymousState);
-      if (entity->Type == 0 && !entity->AnonymousState) class_color = Zeal::Game::get_raid_class_color(entity->Class);
-    }
-
-    // Check raid members for a match
-    Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
-    if (raid_info->is_in_raid() && !class_color) {
-      for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
-        const auto &member = raid_info->MemberList[i];
-        if (possible_name_capitalized == member.Name) {
-          class_color = Zeal::Game::get_raid_class_color(member.ClassValue);
-          break;
-        }
-      }
-    }
-
-    // Add color tags if a match was found
-    if (class_color) {
-      // Format into string #RRGGBB
-      unsigned char red = (class_color >> 16) & 0xFF;
-      unsigned char green = (class_color >> 8) & 0xFF;
-      unsigned char blue = class_color & 0xFF;  
-      std::ostringstream oss;
-      oss << "#" << std::setfill('0') << std::setw(2) << std::hex << (int)red
-                 << std::setfill('0') << std::setw(2) << std::hex << (int)green
-                 << std::setfill('0') << std::setw(2) << std::hex << (int)blue;
-      std::string class_color_hex = oss.str();
-      // Replace name with STML-Colored Name
-      std::string replacement_name = "<c \"" + class_color_hex + "\">" + possible_name + "</c>";
-      std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
-      std::regex name_pattern(name_pattern_string);
-      message = std::regex_replace(message, name_pattern, replacement_name);
-    }
-  }
-  return(message);
-}
-
 void __fastcall OutputText(Zeal::GameUI::ChatWnd *wnd, int u, Zeal::GameUI::CXSTR msg, short channel) {
   ZealService *zeal = ZealService::get_instance();
   short new_channel = channel;
   if (msg.Data) {
     std::string msg_data = msg.CastToCharPtr();
-
-    msg_data = add_class_colors(msg_data);
 
     zeal->callbacks->invoke_outputtext(wnd, msg_data,
                                        new_channel);  // msg_data is by-ref so we can now edit it in the callbacks
