@@ -746,7 +746,7 @@ void Chat::DoPercentReplacements(std::string &str_data) {
 }
 
 void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel) {
-  if (!msg.empty()) {
+  if (UseClassChatColors.get() && !msg.empty()) {
     msg = add_class_colors(msg);
   }
 }
@@ -852,6 +852,18 @@ Chat::Chat(ZealService *zeal) {
   zeal->commands_hook->Add("/zealinput", {"/zinput"}, "Toggles zeal input which gives you a more modern input feel.",
                            [this](std::vector<std::string> &args) {
                              UseZealInput.toggle();
+                             return true;  // return true to stop the game from processing any further on this command,
+                                           // false if you want to just add features to an existing cmd
+                           });
+  zeal->commands_hook->Add("/classchatcolors", {"/clc"},
+                           "Toggles class-colorization of names in chat. Uses colors set in raid window options.",
+                           [this](std::vector<std::string> &args) {
+                             UseClassChatColors.toggle();
+                             if (UseClassChatColors.get()) {
+                               Zeal::Game::print_chat("Class Chat Colors enabled");
+                             } else {
+                               Zeal::Game::print_chat("Class Chat Colors disabled");
+                             }
                              return true;  // return true to stop the game from processing any further on this command,
                                            // false if you want to just add features to an existing cmd
                            });

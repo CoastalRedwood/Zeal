@@ -9,6 +9,8 @@
 
 class Chat {
  public:
+  ZealSetting<bool> UseClassChatColors = {false, "Zeal", "ClassChatColors", false,
+                                          [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseClassicClassNames = {false, "Zeal", "ClassicClasses", false,
                                             [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseBlueCon = {true, "Zeal", "Bluecon", false};
