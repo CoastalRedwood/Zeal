@@ -1,10 +1,8 @@
 #include "callbacks.h"
 
-#include <map>
 #include <regex>
 #include <set>
 #include <string>
-#include "io_ini.h"
 
 #include "entity_manager.h"
 #include "game_addresses.h"
@@ -15,8 +13,6 @@
 #include "zeal.h"
 
 namespace {
-
-std::map<int, std::string> class_color_map;
 
 // Simple tracing class to log the last major callback activity.
 class CallbackTrace {
@@ -125,58 +121,9 @@ void __fastcall enterzone_hk(int t, int unused, int hwnd) {
   zeal->callbacks->invoke_generic(callback_type::EnterZone);
 }
 
-void get_raid_class_colors() {
-  // Raid window class color index to game class index
-  int raidClassToGameClassLUT[15] = {
-    Zeal::GameEnums::ClassTypes::Bard,
-    Zeal::GameEnums::ClassTypes::Beastlord,
-    Zeal::GameEnums::ClassTypes::Cleric,
-    Zeal::GameEnums::ClassTypes::Druid,
-    Zeal::GameEnums::ClassTypes::Enchanter,
-    Zeal::GameEnums::ClassTypes::Magician,
-    Zeal::GameEnums::ClassTypes::Monk,
-    Zeal::GameEnums::ClassTypes::Necromancer,
-    Zeal::GameEnums::ClassTypes::Paladin,
-    Zeal::GameEnums::ClassTypes::Ranger,
-    Zeal::GameEnums::ClassTypes::Rogue,
-    Zeal::GameEnums::ClassTypes::Shadowknight,
-    Zeal::GameEnums::ClassTypes::Shaman,
-    Zeal::GameEnums::ClassTypes::Warrior,
-    Zeal::GameEnums::ClassTypes::Wizard,
-  };
-
-  // Get class colors from the character's raid window settings
-  std::string ini_name = Zeal::Game::get_ui_ini_filename();
-  class_color_map.clear();
-  if (ini_name.length()) {
-    IO_ini ui_ini(ini_name);
-
-    for (int i = 0; i < 15; i++) {
-      int game_class_number = raidClassToGameClassLUT[i];
-      std::string setting_class = "ClassColor" + std::to_string(i);
-      if (ui_ini.exists("RaidWindow", setting_class)) {
-        int setting_color = ui_ini.getValue<int>("RaidWindow", setting_class);
-        unsigned int setting_color_pos = static_cast<unsigned int>(setting_color);
-
-        unsigned char red = (setting_color_pos >> 16) & 0xFF;
-        unsigned char green = (setting_color_pos >> 8) & 0xFF;
-        unsigned char blue = setting_color_pos & 0xFF;  
-
-        std::ostringstream oss;
-        oss << "#" << std::setfill('0') << std::setw(2) << std::hex << (int)red
-                   << std::setfill('0') << std::setw(2) << std::hex << (int)green
-                   << std::setfill('0') << std::setw(2) << std::hex << (int)blue;
-        std::string class_color_hex = oss.str();
-        class_color_map.insert({game_class_number, class_color_hex});
-      }
-    }
-  }
-}
-
 void __fastcall initgameui_hk(int t, int u) {
   CallbackTrace trace("InitGameUI");
   ZealService *zeal = ZealService::get_instance();
-  get_raid_class_colors();
   zeal->hooks->hook_map["InitGameUI"]->original(initgameui_hk)(t, u);
   zeal->callbacks->invoke_generic(callback_type::InitUI);
 }
@@ -246,11 +193,8 @@ char __fastcall handleworldmessage_hk(int *connection, int unused, UINT unk, UIN
 
   if (zeal->callbacks->invoke_packet(callback_type::WorldMessage, opcode, buffer, len)) return 1;
 
-  char result = zeal->hooks->hook_map["HandleWorldMessage"]->original(handleworldmessage_hk)(connection, unused, unk,
-                                                                                             opcode, buffer, len);
-
-  zeal->callbacks->invoke_packet(callback_type::WorldMessagePost, opcode, buffer, len);
-  return result;
+  return zeal->hooks->hook_map["HandleWorldMessage"]->original(handleworldmessage_hk)(connection, unused, unk, opcode,
+                                                                                      buffer, len);
 }
 
 void send_message_hk(int *connection, UINT opcode, char *buffer, UINT len, int unknown) {
@@ -300,8 +244,6 @@ void __fastcall GamePlayerDeconstruct(Zeal::GameStructures::Entity *ent, int unu
 }
 
 std::string add_class_colors(std::string message) {
-  // Abort if no class colors are set
-  if (class_color_map.empty()) return message;
 
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
   if (!entity_manager) return message; // Abort if entity manager unavailable
@@ -323,36 +265,46 @@ std::string add_class_colors(std::string message) {
     std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
     std::string possible_name_capitalized = possible_name_lower;
     possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
-    std::string class_color;
-
+   
+    DWORD class_color = 0;
     // Set class color for self
     Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
     if (possible_name_capitalized == "You" && char_info != nullptr) {
-      class_color = class_color_map[char_info->Class];
+      class_color = Zeal::Game::get_raid_class_color(char_info->Class);
     }
 
     // Check Zone Entities for a match
     auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
-    if (entity && class_color.empty()) {
+    if (entity && !class_color) {
       std::string entityAnon = std::to_string(entity->AnonymousState);
-      if (entity->Type == 0 && !entity->AnonymousState) class_color = class_color_map[entity->Class];
+      if (entity->Type == 0 && !entity->AnonymousState) class_color = Zeal::Game::get_raid_class_color(entity->Class);
     }
 
     // Check raid members for a match
     Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
-    if (raid_info->is_in_raid() && class_color.empty()) {
+    if (raid_info->is_in_raid() && !class_color) {
       for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
         const auto &member = raid_info->MemberList[i];
         if (possible_name_capitalized == member.Name) {
-          class_color = class_color_map[member.ClassValue];
+          class_color = Zeal::Game::get_raid_class_color(member.ClassValue);
           break;
         }
       }
     }
 
     // Add color tags if a match was found
-    if (!class_color.empty()) {
-      std::string replacement_name = "<c \"" + class_color + "\">" + possible_name + "</c>";
+    if (class_color) {
+      // Format into string #RRGGBB
+      unsigned char red = (class_color >> 16) & 0xFF;
+      unsigned char green = (class_color >> 8) & 0xFF;
+      unsigned char blue = class_color & 0xFF;  
+      std::ostringstream oss;
+      oss << "#" << std::setfill('0') << std::setw(2) << std::hex << (int)red
+                 << std::setfill('0') << std::setw(2) << std::hex << (int)green
+                 << std::setfill('0') << std::setw(2) << std::hex << (int)blue;
+      std::string class_color_hex = oss.str();
+      // Replace name with STML-Colored Name
+      std::string replacement_name = "<c \"" + class_color_hex + "\">" + possible_name + "</c>";
       std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
       std::regex name_pattern(name_pattern_string);
       message = std::regex_replace(message, name_pattern, replacement_name);
