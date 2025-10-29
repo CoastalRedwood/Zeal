@@ -246,7 +246,6 @@ void __fastcall OutputText(Zeal::GameUI::ChatWnd *wnd, int u, Zeal::GameUI::CXST
   short new_channel = channel;
   if (msg.Data) {
     std::string msg_data = msg.CastToCharPtr();
-
     zeal->callbacks->invoke_outputtext(wnd, msg_data,
                                        new_channel);  // msg_data is by-ref so we can now edit it in the callbacks
     if (!wnd) wnd = Zeal::Game::Windows->ChatManager->ChatWindows[0];

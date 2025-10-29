@@ -1,10 +1,12 @@
 #include "chat.h"
 
 #include <algorithm>
+#include <format>
 #include <iostream>
 #include <map>
 #include <regex>
 #include <set>
+#include <unordered_set>
 
 #include "binds.h"
 #include "callbacks.h"
@@ -86,11 +88,11 @@ std::string StripSpecialCharacters(const std::string &input) {
 
 std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
-  std::regex chat_pattern(
+  static const std::regex chat_pattern(
     R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)");
 
-  std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
-  std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
+  static const std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
+  static const std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
 
   std::smatch match;
 
@@ -170,12 +172,66 @@ std::string abbreviateChat(const std::string &original_message) {
   return original_message;
 }
 
-std::string add_class_colors(std::string message) {
+DWORD get_class_color(std::string character_name, short channel) {
+  static const std::unordered_set<int> valid_channels_you = {
+    USERCOLOR_TELL,
+    USERCOLOR_SPELLS,
+    USERCOLOR_YOU_HIT_OTHER,
+    USERCOLOR_OTHER_HIT_YOU,
+    USERCOLOR_YOU_MISS_OTHER,
+    USERCOLOR_OTHER_MISS_YOU,
+    USERCOLOR_DISCIPLINES,
+    USERCOLOR_YOUR_DEATH,
+    USERCOLOR_OTHER_DEATH,
+    USERCOLOR_NON_MELEE,
+    USERCOLOR_MONEY_SPLIT,
+    USERCOLOR_LOOT,
+    USERCOLOR_OTHERS_SPELLS,
+    USERCOLOR_SPELL_FAILURE,
+    USERCOLOR_MELEE_CRIT,
+    USERCOLOR_SPELL_CRIT,
+    USERCOLOR_NPC_RAMAGE,
+    USERCOLOR_NPC_FURRY,
+    USERCOLOR_NPC_ENRAGE,
+    CHANNEL_OTHERPETDMG,
+    CHANNEL_MYPETSAY,
+    CHANNEL_MYMELEESPECIAL,
+    CHANNEL_OTHERMELEESPECIAL,
+    CHANNEL_OTHER_MELEE_CRIT,
+    CHANNEL_OTHER_DAMAGE_SHIELD,
+  };
+  
+  // Set class color for self
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if ( ( character_name == "You" || character_name == "Your") && valid_channels_you.count(channel) && char_info != nullptr )
+    return Zeal::Game::get_raid_class_color(char_info->Class);
+
+  // Check Zone Entities for a match
+  auto entity = ZealService::get_instance()->entity_manager->Get(character_name);
+  if (entity) {
+    std::string entityAnon = std::to_string(entity->AnonymousState);
+    if (entity->Type == 0 && !entity->AnonymousState) return Zeal::Game::get_raid_class_color(entity->Class);
+  }
+
+  // Check raid members for a match
+  Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+  if (raid_info->is_in_raid()) {
+    for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
+      const auto &member = raid_info->MemberList[i];
+      if (character_name == member.Name) return Zeal::Game::get_raid_class_color(member.ClassValue);
+    }
+  }
+
+  // No match, return 0 (0x00000000)
+  return 0;
+}
+
+std::string add_class_colors(std::string message , short channel) {
 
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
   if (!entity_manager) return message; // Abort if entity manager unavailable
   
-  std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
+  static const std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
   std::set<std::string> unique_matches;
 
   std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
@@ -192,46 +248,14 @@ std::string add_class_colors(std::string message) {
     std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
     std::string possible_name_capitalized = possible_name_lower;
     possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
-   
-    DWORD class_color = 0;
-    // Set class color for self
-    Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-    if (possible_name_capitalized == "You" && char_info != nullptr) {
-      class_color = Zeal::Game::get_raid_class_color(char_info->Class);
-    }
 
-    // Check Zone Entities for a match
-    auto entity = ZealService::get_instance()->entity_manager->Get(possible_name_capitalized);
-    if (entity && !class_color) {
-      std::string entityAnon = std::to_string(entity->AnonymousState);
-      if (entity->Type == 0 && !entity->AnonymousState) class_color = Zeal::Game::get_raid_class_color(entity->Class);
-    }
-
-    // Check raid members for a match
-    Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
-    if (raid_info->is_in_raid() && !class_color) {
-      for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
-        const auto &member = raid_info->MemberList[i];
-        if (possible_name_capitalized == member.Name) {
-          class_color = Zeal::Game::get_raid_class_color(member.ClassValue);
-          break;
-        }
-      }
-    }
+    // Try to find class color for name
+    DWORD class_color = get_class_color(possible_name_capitalized, channel);
 
     // Add color tags if a match was found
     if (class_color) {
-      // Format into string #RRGGBB
-      unsigned char red = (class_color >> 16) & 0xFF;
-      unsigned char green = (class_color >> 8) & 0xFF;
-      unsigned char blue = class_color & 0xFF;  
-      std::ostringstream oss;
-      oss << "#" << std::setfill('0') << std::setw(2) << std::hex << (int)red
-                 << std::setfill('0') << std::setw(2) << std::hex << (int)green
-                 << std::setfill('0') << std::setw(2) << std::hex << (int)blue;
-      std::string class_color_hex = oss.str();
       // Replace name with STML-Colored Name
-      std::string replacement_name = "<c \"" + class_color_hex + "\">" + possible_name + "</c>";
+      std::string replacement_name = std::format("<c \"#{:06x}\">{}</c>", class_color & 0x00ffffff, possible_name);
       std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
       std::regex name_pattern(name_pattern_string);
       message = std::regex_replace(message, name_pattern, replacement_name);
@@ -747,7 +771,7 @@ void Chat::DoPercentReplacements(std::string &str_data) {
 
 void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel) {
   if (UseClassChatColors.get() && !msg.empty()) {
-    msg = add_class_colors(msg);
+    msg = add_class_colors(msg, channel);
   }
 }
 
