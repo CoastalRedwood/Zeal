@@ -35,7 +35,7 @@ std::map<std::string, std::string> channelPrefixes = {
   {"tell", "Fr"},             // Tell (Received)
   {"say", "S"},               // Say
   {"told", "To"},             // TellEcho (Sent)
-  {"raid", "R"},             // Raid
+  {"raid", "R"},              // Raid
 };
 
 std::string playerRolling;
@@ -92,12 +92,12 @@ std::string abbreviateChat(const std::string &original_message) {
     R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)");
 
   static const std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
-  static const std::regex roll_result_pattern(R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
+  static const std::regex roll_result_pattern(
+    R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
 
   std::smatch match;
 
   if (std::regex_search(original_message, match, chat_pattern)) {
-
     // match[1] is always the sender
     // match[6] is always the message
     // The channel can be one of the folllowing
@@ -106,7 +106,7 @@ std::string abbreviateChat(const std::string &original_message) {
     //   match[4] if it's a known (e.g. 'party', 'guild')
     //   otherwise, match[2] is the channel
 
-    std::string sender  = match[1].str();
+    std::string sender = match[1].str();
     std::string message = match[6].str();
     std::string channel;
     std::string channel_prefix;
@@ -115,16 +115,16 @@ std::string abbreviateChat(const std::string &original_message) {
     } else if (match[4].matched) {
       if (std::regex_match(match[4].str(), std::regex(R"(\d+)"))) {
         channel = match[4].str();
-        channel_prefix = channel; // Use the number for the prefix
-      // Could be a channel or a player, so need to be specific
-      } else if ( match[4].str() == "party" || match[4].str() == "group" || match[4].str() == "guild" ||
-        match[4].str() == "raid" || match[4].str() == "out of character") {
+        channel_prefix = channel;  // Use the number for the prefix
+        // Could be a channel or a player, so need to be specific
+      } else if (match[4].str() == "party" || match[4].str() == "group" || match[4].str() == "guild" ||
+                 match[4].str() == "raid" || match[4].str() == "out of character") {
         channel = match[4].str();
       } else {
         channel = match[2].str();
       }
     }
-  
+
     // Match known channels with prefixes (if not already set)
     if (channel_prefix.empty() && channelPrefixes.count(channel)) {
       channel_prefix = channelPrefixes[channel];
@@ -147,14 +147,14 @@ std::string abbreviateChat(const std::string &original_message) {
         sender = self->Name;
       }
     }
-    
+
     std::string newMessage = "[" + channel_prefix + "] [" + sender + "]: " + message;
     return newMessage;
   }
 
   if (std::regex_search(original_message, match, roll_player_pattern)) {
-    playerRolling = match[1].str(); // Player will be used when the actual roll result is printed
-    return std::string(); // Prevent this line from being printed
+    playerRolling = match[1].str();  // Player will be used when the actual roll result is printed
+    return std::string();            // Prevent this line from being printed
   }
 
   if (std::regex_search(original_message, match, roll_result_pattern)) {
@@ -164,7 +164,7 @@ std::string abbreviateChat(const std::string &original_message) {
     std::string rollMax = match[2].str();
     std::string rollResult = match[3].str();
     std::string newMessage = "[" + rollMin + "-" + rollMax + "]: " + rollResult + " rolled by " + playerRolling + ".";
-    playerRolling = std::string(); // Clear it for the next person
+    playerRolling = std::string();  // Clear it for the next person
     return newMessage;
   }
 
@@ -174,7 +174,6 @@ std::string abbreviateChat(const std::string &original_message) {
 
 DWORD get_class_color(std::string character_name, short channel) {
   static const std::unordered_set<int> valid_channels_you = {
-    USERCOLOR_TELL,
     USERCOLOR_SPELLS,
     USERCOLOR_YOU_HIT_OTHER,
     USERCOLOR_OTHER_HIT_YOU,
@@ -200,10 +199,11 @@ DWORD get_class_color(std::string character_name, short channel) {
     CHANNEL_OTHER_MELEE_CRIT,
     CHANNEL_OTHER_DAMAGE_SHIELD,
   };
-  
+
   // Set class color for self
   Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-  if ( ( character_name == "You" || character_name == "Your") && valid_channels_you.count(channel) && char_info != nullptr )
+  if ((character_name == "You" || character_name == "Your")
+      && valid_channels_you.count(channel) && char_info != nullptr)
     return Zeal::Game::get_raid_class_color(char_info->Class);
 
   // Check Zone Entities for a match
@@ -226,11 +226,10 @@ DWORD get_class_color(std::string character_name, short channel) {
   return 0;
 }
 
-std::string add_class_colors(std::string message , short channel) {
-
+std::string add_class_colors(std::string message, short channel) {
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
-  if (!entity_manager) return message; // Abort if entity manager unavailable
-  
+  if (!entity_manager) return message;  // Abort if entity manager unavailable
+
   static const std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
   std::set<std::string> unique_matches;
 
@@ -238,11 +237,11 @@ std::string add_class_colors(std::string message , short channel) {
   std::sregex_iterator words_end;
 
   while (words_begin != words_end) {
-      unique_matches.insert(words_begin->str());
-      ++words_begin;
+    unique_matches.insert(words_begin->str());
+    ++words_begin;
   }
 
-  for (const auto& match : unique_matches) {
+  for (const auto &match : unique_matches) {
     std::string possible_name = match.data();
     std::string possible_name_lower = possible_name;
     std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
@@ -261,7 +260,7 @@ std::string add_class_colors(std::string message , short channel) {
       message = std::regex_replace(message, name_pattern, replacement_name);
     }
   }
-  return(message);
+  return (message);
 }
 
 std::string generateTimestampedString(const std::string &message, bool longform = true) {
@@ -344,12 +343,12 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   const auto &abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat;
 
   std::string abbreviated_buffer = (abbreviated_chat.get() > 0) ? abbreviateChat(data) : "";
-  if (abbreviated_chat.get() && abbreviated_buffer.empty()) // Skip phantom prints after modification
+  if (abbreviated_chat.get() && abbreviated_buffer.empty())  // Skip phantom prints after modification
     return;
   const char *chat_buffer = (abbreviated_chat.get() > 0) ? abbreviated_buffer.c_str() : data;
   const char *log_buffer = (abbreviated_chat.get() == 2) ? abbreviated_buffer.c_str() : data;
 
-   // Perform extra copies to protect unwary callers against the potential buffer size growth.
+  // Perform extra copies to protect unwary callers against the potential buffer size growth.
   char buffer[2048];  // Client maximum buffer size for print chat calls.
   const auto &timestamp_style = ZealService::get_instance()->chat_hook->TimeStampsStyle;
   bool log_is_different = timestamp_style.get() || (chat_buffer != log_buffer);
@@ -360,7 +359,7 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
     strncpy_s(buffer, chat_buffer, sizeof(buffer));
   }
   ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
-                                                                                         add_log && !log_is_different);
+                                                                                 add_log && !log_is_different);
   if (add_log && log_is_different && *Zeal::Game::is_logging_enabled) {
     strncpy_s(buffer, log_buffer, sizeof(buffer));
     Zeal::Game::GameInternal::DoPercentConvert(t, unused, buffer, 0);
@@ -843,26 +842,27 @@ Chat::Chat(ZealService *zeal) {
   //
   // return false;
   //}, callback_type::WorldMessage);
-  zeal->commands_hook->Add("/abbreviatedchat", {"/abc"}, "Abbreviates chat messages.",
+  zeal->commands_hook->Add("/abbreviatedchat", {"/abc"},"Abbreviates chat messages.",
                            [this](std::vector<std::string> &args) {
-                             // 0 = Off
-                             // 1 = Chat Only
-                             // 2 = Chat and Log
-                             if (args.size() > 1) {
-                               int abbreviated_option;
-                               if (Zeal::String::tryParse(args[1], &abbreviated_option)) {
-                                 abbreviated_option = std::clamp(abbreviated_option, 0, 2);
-                                 UseAbbreviatedChat.set(abbreviated_option);
-                               }
-                               
-                             } else {
-                               UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
-                             }
-                             Zeal::Game::print_chat("Abbreviated chat set to %d (%s)", UseAbbreviatedChat.get(), 
-                               UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));  
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
-                           });
+                              // 0 = Off
+                              // 1 = Chat Only
+                              // 2 = Chat and Log
+                              if (args.size() > 1) {
+                                int abbreviated_option;
+                                if (Zeal::String::tryParse(args[1], &abbreviated_option)) {
+                                  abbreviated_option = std::clamp(abbreviated_option, 0, 2);
+                                  UseAbbreviatedChat.set(abbreviated_option);
+                                }
+
+                              } else {
+                                UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
+                              }
+                              Zeal::Game::print_chat(
+                                  "Abbreviated chat set to %d (%s)", UseAbbreviatedChat.get(),
+                                  UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));
+                              return true;  // return true to stop the game from processing any further on this command,
+                                            // false if you want to just add features to an existing cmd
+                          });
   zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles timestamps on chat windows.",
                            [this](std::vector<std::string> &args) {
                              if (args.size() > 1 && args[1] == "2") {
@@ -994,10 +994,11 @@ Chat::Chat(ZealService *zeal) {
       0x3c, [this](int state) { return ZealService::get_instance()->chat_hook->UseZealInput.get(); });
   zeal->binds_hook->replace_cmd(
       0x3d, [this](int state) { return ZealService::get_instance()->chat_hook->UseZealInput.get(); });
-  
+
   // Callbacks
-  zeal->callbacks->AddOutputText(
-      [this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) { this->AddOutputText(wnd, msg, channel); });
+  zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
+      this->AddOutputText(wnd, msg, channel);
+  });
 }
 
 void Chat::set_classes() {

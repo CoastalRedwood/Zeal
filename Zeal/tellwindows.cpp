@@ -147,7 +147,8 @@ Zeal::GameUI::ChatWnd *TellWindows::FindTellWnd(std::string &name) {
 
 std::string abbreviateTell(const std::string &original_message) {
   static const std::regex normal_tell_pattern(R"(^(\b\w+\b) (tells|told) (\b\w+\b),? '(.*)'$)");
-  static const std::regex abbreviated_tell_pattern(R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(?:<.*>)?(\b\w+\b)(?:<.*>)?\]:\s+(.*)$)");
+  static const std::regex abbreviated_tell_pattern(
+      R"(^(\[[\d\w: ]+\]\s+)?(?:\[(To|Fr)\])\s+\[(?:<.*>)?(\b\w+\b)(?:<.*>)?\]:\s+(.*)$)");
   std::smatch tell_match;
   std::string sender;
   std::string message;
@@ -187,7 +188,7 @@ std::string abbreviateTell(const std::string &original_message) {
 
 std::string stripTags(const std::string &message) {
   std::string stripped_message = message;
-  
+
   // Regex pattern to match <a ...>...</a> tags and keep only the inner text
   static const std::regex tag_a_pattern(R"(<a\s+[^>]*>([^<]+)<\/a>)");
   // Replace the matched 'a' tags with the inner text
