@@ -489,7 +489,7 @@ static void apply_context_menu_manager_patch() {
   *reinterpret_cast<uint8_t *>(patch_addr) = 0xE9;
   *reinterpret_cast<int *>(patch_addr + 1) = relative_jump_size;
   FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(patch_addr), 5);
-  VirtualProtect((LPVOID)patch_addr, 5, old_protect, NULL);
+  VirtualProtect((LPVOID)patch_addr, 5, old_protect, &old_protect);
 }
 
 SpellSets::SpellSets(ZealService *zeal) {
