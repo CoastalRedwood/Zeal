@@ -2308,10 +2308,14 @@ bool is_new_ui() { return *(BYTE *)0x8092D8; }
 
 HWND get_game_window() {
   HMODULE dll = GetModuleHandleA("eqw.dll");
-  if (dll)
-    return *(HWND *)((DWORD)dll + 0x97A4);
-  else
-    return 0;
+  if (!dll) return nullptr;
+
+  // First check if we are using the newer eqw-takp.
+  FARPROC fn = GetProcAddress(dll, "GetGameWindow");
+  if (fn) return reinterpret_cast<HWND(__cdecl *)()>(fn)();
+
+  // Backwards compatibility for the original EQW beta 2.32.
+  return *(HWND *)((DWORD)dll + 0x97A4);
 }
 
 namespace Spells {
