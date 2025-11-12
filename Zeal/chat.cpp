@@ -89,7 +89,7 @@ std::string StripSpecialCharacters(const std::string &input) {
 std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
   static const std::regex chat_pattern(
-    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'$)");
+    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'\s*$)");
 
   static const std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
   static const std::regex roll_result_pattern(
