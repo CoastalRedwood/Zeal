@@ -209,7 +209,6 @@ DWORD get_class_color(std::string character_name, short channel) {
   // Check Zone Entities for a match
   auto entity = ZealService::get_instance()->entity_manager->Get(character_name);
   if (entity) {
-    std::string entityAnon = std::to_string(entity->AnonymousState);
     if (entity->Type == 0 && !entity->AnonymousState) return Zeal::Game::get_raid_class_color(entity->Class);
   }
 
