@@ -80,7 +80,7 @@ void hook::detour() {
   // If there are more than 5 bytes of original instructions, fill the gap with NOPs
   if (orig_byte_count > 5) mem::set(patch_address + 5, 0x90, orig_byte_count - 5);
 
-  VirtualProtect((LPVOID)patch_address, orig_byte_count, old_protect, NULL);
+  VirtualProtect((LPVOID)patch_address, orig_byte_count, old_protect, &old_protect);
   FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(patch_address), orig_byte_count);
 }
 
@@ -102,7 +102,7 @@ void hook::replace_call() {
   int relative_jump_size = replacement_callee_addr - (patch_address + 5);
   *(int *)(patch_address + 1) = relative_jump_size;
 
-  VirtualProtect((LPVOID)patch_address, 0x5, old, NULL);
+  VirtualProtect((LPVOID)patch_address, 0x5, old, &old);
   FlushInstructionCache(GetCurrentProcess(), (LPVOID)patch_address, 0x5);
 }
 

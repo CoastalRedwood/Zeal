@@ -217,7 +217,7 @@ void CameraMods::interpolate_zoom() { zeal_cam_zoom = zeal_cam_zoom + (desired_z
 // Returns true if the mouse is over a visible client window.
 static bool is_over_client_rect(void) {
   auto hwnd = Zeal::Game::get_game_window();
-  if (!::IsWindowVisible(hwnd)) return false;
+  if (!hwnd || !::IsWindowVisible(hwnd)) return false;
 
   POINT cursor;
   ::GetCursorPos(&cursor);  // This returns absolute screen x, y.
@@ -252,7 +252,35 @@ static void set_game_mouse_position(int x, int y) {
 
 // Synchronizes the win32 cursor to the internal cursor position.
 void set_win32_cursor_to_client_position(POINT pt) {
-  ::ClientToScreen(Zeal::Game::get_game_window(), &pt);
+  // We have to do some extra work since the directx driver will stretch or
+  // shrink the game video resolution to fit the client window area (ie full screen).
+  POINT offset = {0, 0};
+  RECT rect = {0, 640, 0, 480};
+  HWND hwnd = Zeal::Game::get_game_window();
+  if (!hwnd || !::ClientToScreen(hwnd, &offset) || !::GetClientRect(hwnd, &rect))
+    return;  // Bail out and don't touch the cursor since something went wrong.
+
+  long *const g_mouse_screen_mode = (long *)0x0063b918;
+  short *const g_mouse_screen_rect_left = (short *)0x00798548;
+  short *const g_mouse_screen_rect_top = (short *)0x0079854a;
+  short *const g_mouse_screen_rect_right = (short *)0x0079854c;
+  short *const g_mouse_screen_rect_bottom = (short *)0x0079854e;
+  long *const g_mouse_screen_res_x = (long *)0x00798564;
+  long *const g_mouse_screen_res_y = (long *)0x00798568;
+  bool mode = (*g_mouse_screen_mode == 1);  // Logic copied from SetMouseCenter.
+  int width = mode ? *g_mouse_screen_res_x : (*g_mouse_screen_rect_left + *g_mouse_screen_rect_right);
+  int height = mode ? *g_mouse_screen_res_y : (*g_mouse_screen_rect_top + *g_mouse_screen_rect_bottom);
+  width = max(width, 640);  // Ensure always non-zero.
+  height = max(height, 480);
+
+  bool scaled_mode = ((width != rect.right - rect.left) || (height != rect.bottom - rect.top));
+  if (scaled_mode) {
+    pt.x = pt.x * (rect.right - rect.left) / width;
+    pt.y = pt.y * (rect.bottom - rect.top) / height;
+  }
+  pt.x += offset.x;
+  pt.y += offset.y;
+
   ::SetCursorPos(pt.x, pt.y);
 }
 

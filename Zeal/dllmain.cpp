@@ -52,7 +52,7 @@ static void handle_process_attach() {
   DWORD old;
   VirtualProtect((LPVOID)ptr_load_options_call_jump_value, 4, PAGE_EXECUTE_READWRITE, &old);
   *ptr_load_options_call_jump_value = jump_value;
-  VirtualProtect((LPVOID)ptr_load_options_call_jump_value, 4, old, NULL);
+  VirtualProtect((LPVOID)ptr_load_options_call_jump_value, 4, old, &old);
   FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<PVOID *>(ptr_load_options_call_jump_value), 4);
 }
 

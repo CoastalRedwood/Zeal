@@ -397,6 +397,14 @@ void ZealService::AddCommands() {
 
       return true;
     }
+    if (args.size() == 2 && args[1] == "time") {
+      Zeal::Game::print_chat("Game timebase: %u", Zeal::Game::get_game_time());
+      Zeal::Game::print_chat("CPU first timestamp ticks: %lld",
+                             *reinterpret_cast<LONGLONG *>(0x008092c8));  // i64FirstTimeStampTicks
+      Zeal::Game::print_chat("CPU ticks / second: %lld",
+                             *reinterpret_cast<LONGLONG *>(0x008092d0));  // i64CPUTicksPerMillisecond
+      return true;
+    }
     if (args.size() == 2 && args[1] == "list_keybinds")  // Just a utility to check native keybind mapping.
     {
       const char **cmd = reinterpret_cast<const char **>(0x00611220);
