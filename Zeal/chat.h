@@ -4,10 +4,13 @@
 #include <string>
 #include <vector>
 
+#include "game_ui.h"
 #include "zeal_settings.h"
 
 class Chat {
  public:
+  ZealSetting<bool> UseClassChatColors = {false, "Zeal", "ClassChatColors", false,
+                                          [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseClassicClassNames = {false, "Zeal", "ClassicClasses", false,
                                             [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseBlueCon = {true, "Zeal", "Bluecon", false};
@@ -19,6 +22,8 @@ class Chat {
   std::function<unsigned int(int)> get_color_callback;
 
   void set_classes();
+
+  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel);
 
   void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
 

@@ -90,6 +90,11 @@ ___
 - `/bluecon`
   - **Description:** Changes the blue con color to Zeal Color Button #15 which is in the Zeal Options window, Colors Tab.
 
+- `/classchatcolors`
+  - **Aliases** `/clc`
+  - **Example:** `/clc`
+  - **Description:** toggles class-colorization of names in chat. Uses colors set in the raid window's options.
+
 - `/classicclasses`
   - **Aliases** `/cc`
   - **Example:** `/cc`
