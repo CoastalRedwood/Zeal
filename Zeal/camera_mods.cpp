@@ -260,18 +260,10 @@ void set_win32_cursor_to_client_position(POINT pt) {
   if (!hwnd || !::ClientToScreen(hwnd, &offset) || !::GetClientRect(hwnd, &rect))
     return;  // Bail out and don't touch the cursor since something went wrong.
 
-  long *const g_mouse_screen_mode = (long *)0x0063b918;
-  short *const g_mouse_screen_rect_left = (short *)0x00798548;
-  short *const g_mouse_screen_rect_top = (short *)0x0079854a;
-  short *const g_mouse_screen_rect_right = (short *)0x0079854c;
-  short *const g_mouse_screen_rect_bottom = (short *)0x0079854e;
-  long *const g_mouse_screen_res_x = (long *)0x00798564;
+  long *const g_mouse_screen_res_x = (long *)0x00798564;  // Use full resolution for scaling.
   long *const g_mouse_screen_res_y = (long *)0x00798568;
-  bool mode = (*g_mouse_screen_mode == 1);  // Logic copied from SetMouseCenter.
-  int width = mode ? *g_mouse_screen_res_x : (*g_mouse_screen_rect_left + *g_mouse_screen_rect_right);
-  int height = mode ? *g_mouse_screen_res_y : (*g_mouse_screen_rect_top + *g_mouse_screen_rect_bottom);
-  width = max(width, 640);  // Ensure always non-zero.
-  height = max(height, 480);
+  int width = max(*g_mouse_screen_res_x, 640);  // Ensure always non-zero.
+  int height = max(*g_mouse_screen_res_y, 480);
 
   bool scaled_mode = ((width != rect.right - rect.left) || (height != rect.bottom - rect.top));
   if (scaled_mode) {
