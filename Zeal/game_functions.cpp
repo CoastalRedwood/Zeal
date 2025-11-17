@@ -1600,6 +1600,11 @@ std::vector<std::string> splitStringByNewLine(const std::string &str) {
   return tokens;
 }
 
+void do_consent(const char *name) {
+  auto do_consent_fn = reinterpret_cast<void(__cdecl *)(Zeal::GameStructures::Entity *, const char *)>(0x004fb39e);
+  do_consent_fn(get_self(), name);
+}
+
 void do_say(bool hide_local, const char *format, ...) {
   BYTE orig[13] = {0};
   if (hide_local) mem::set(0x538672, 0x90, 13, orig);
@@ -1628,6 +1633,8 @@ void do_say(bool hide_local, std::string data) {
     mem::copy(0x538672, orig, 13);
   }
 }
+
+void do_tell(const char *target_name_and_message) { GameInternal::do_tell(get_self(), target_name_and_message); }
 
 void do_gsay(std::string data) { GameInternal::do_gsay(get_self(), data.c_str()); }
 

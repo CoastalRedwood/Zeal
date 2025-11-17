@@ -25,17 +25,17 @@
 #include "zeal.h"
 
 std::map<std::string, std::string> channelPrefixes = {
-  {"guild", "G"},             // Guild
-  {"party", "P"},             // Group (Received)
-  {"group", "P"},             // Group (Sent)
-  {"shout", "Sh"},            // Shout
-  {"auction", "A"},           // Auction
-  {"out of character", "O"},  // OOC
-  {"BROADCAST", "B"},         // Broadcast
-  {"tell", "Fr"},             // Tell (Received)
-  {"say", "S"},               // Say
-  {"told", "To"},             // TellEcho (Sent)
-  {"raid", "R"},              // Raid
+    {"guild", "G"},             // Guild
+    {"party", "P"},             // Group (Received)
+    {"group", "P"},             // Group (Sent)
+    {"shout", "Sh"},            // Shout
+    {"auction", "A"},           // Auction
+    {"out of character", "O"},  // OOC
+    {"BROADCAST", "B"},         // Broadcast
+    {"tell", "Fr"},             // Tell (Received)
+    {"say", "S"},               // Say
+    {"told", "To"},             // TellEcho (Sent)
+    {"raid", "R"},              // Raid
 };
 
 std::string playerRolling;
@@ -89,11 +89,11 @@ std::string StripSpecialCharacters(const std::string &input) {
 std::string abbreviateChat(const std::string &original_message) {
   // Pattern to look for chat messages
   static const std::regex chat_pattern(
-    R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'\s*$)");
+      R"(^([\w ]+) (?:(?:say to your |says? |tells the |tell your |(told|tell)s? )(say)?(?:\w+:)?([\w\d: ]+)|(auction|say|shout|BROADCAST)[sS]?),?[^']+'(.*)'\s*$)");
 
   static const std::regex roll_player_pattern(R"(^\*\*A Magic Die is rolled by (\w+)\.$)");
   static const std::regex roll_result_pattern(
-    R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
+      R"(^\*\*It could have been any number from (\d+) to (\d+), but this time it turned up a (\d+)\.$)");
 
   std::smatch match;
 
@@ -174,36 +174,18 @@ std::string abbreviateChat(const std::string &original_message) {
 
 DWORD get_class_color(std::string character_name, short channel) {
   static const std::unordered_set<int> valid_channels_you = {
-    USERCOLOR_SPELLS,
-    USERCOLOR_YOU_HIT_OTHER,
-    USERCOLOR_OTHER_HIT_YOU,
-    USERCOLOR_YOU_MISS_OTHER,
-    USERCOLOR_OTHER_MISS_YOU,
-    USERCOLOR_DISCIPLINES,
-    USERCOLOR_YOUR_DEATH,
-    USERCOLOR_OTHER_DEATH,
-    USERCOLOR_NON_MELEE,
-    USERCOLOR_MONEY_SPLIT,
-    USERCOLOR_LOOT,
-    USERCOLOR_OTHERS_SPELLS,
-    USERCOLOR_SPELL_FAILURE,
-    USERCOLOR_MELEE_CRIT,
-    USERCOLOR_SPELL_CRIT,
-    USERCOLOR_NPC_RAMAGE,
-    USERCOLOR_NPC_FURRY,
-    USERCOLOR_NPC_ENRAGE,
-    CHANNEL_OTHERPETDMG,
-    CHANNEL_MYPETSAY,
-    CHANNEL_MYMELEESPECIAL,
-    CHANNEL_OTHERMELEESPECIAL,
-    CHANNEL_OTHER_MELEE_CRIT,
-    CHANNEL_OTHER_DAMAGE_SHIELD,
+      USERCOLOR_SPELLS,         USERCOLOR_YOU_HIT_OTHER,   USERCOLOR_OTHER_HIT_YOU,  USERCOLOR_YOU_MISS_OTHER,
+      USERCOLOR_OTHER_MISS_YOU, USERCOLOR_DISCIPLINES,     USERCOLOR_YOUR_DEATH,     USERCOLOR_OTHER_DEATH,
+      USERCOLOR_NON_MELEE,      USERCOLOR_MONEY_SPLIT,     USERCOLOR_LOOT,           USERCOLOR_OTHERS_SPELLS,
+      USERCOLOR_SPELL_FAILURE,  USERCOLOR_MELEE_CRIT,      USERCOLOR_SPELL_CRIT,     USERCOLOR_NPC_RAMAGE,
+      USERCOLOR_NPC_FURRY,      USERCOLOR_NPC_ENRAGE,      CHANNEL_OTHERPETDMG,      CHANNEL_MYPETSAY,
+      CHANNEL_MYMELEESPECIAL,   CHANNEL_OTHERMELEESPECIAL, CHANNEL_OTHER_MELEE_CRIT, CHANNEL_OTHER_DAMAGE_SHIELD,
   };
 
   // Set class color for self
   Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-  if ((character_name == "You" || character_name == "Your")
-      && valid_channels_you.count(channel) && char_info != nullptr)
+  if ((character_name == "You" || character_name == "Your") && valid_channels_you.count(channel) &&
+      char_info != nullptr)
     return Zeal::Game::get_raid_class_color(char_info->Class);
 
   // Check Zone Entities for a match
@@ -355,10 +337,10 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   } else {
     strncpy_s(buffer, chat_buffer, sizeof(buffer));
   }
-  
+
   if (std::strlen(chat_buffer) > 0)
     ZealService::get_instance()->hooks->hook_map["PrintChat"]->original(PrintChat)(t, unused, buffer, color_index,
-                                                                                         add_log && !log_is_different);
+                                                                                   add_log && !log_is_different);
 
   if (add_log && log_is_different && std::strlen(log_buffer) > 0 && *Zeal::Game::is_logging_enabled) {
     strncpy_s(buffer, log_buffer, sizeof(buffer));
@@ -768,7 +750,37 @@ void Chat::DoPercentReplacements(std::string &str_data) {
   for (auto &fn : percent_replacements) fn(str_data);
 }
 
+std::string GetConsentMeTellName(const std::string &data) {
+  static const char consent_ending[] = " tells you, 'Consent me'";
+  if (!data.ends_with(consent_ending)) return "";
+
+  // Extract the name. Normally it is the first word but we go backwards just in case.
+  std::string truncated = data.substr(0, data.length() - strlen(consent_ending));
+  size_t last_space = truncated.find_last_of(" ");
+  std::string name = (last_space == std::string::npos) ? truncated : truncated.substr(last_space + 1);
+
+  // And then check if the name is a raid or group member to authorize the auto consent.
+  Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+  if (raid_info->is_in_raid()) {
+    for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
+      const auto &member = raid_info->MemberList[i];
+      if (member.Name == name) return name;
+    }
+  }
+
+  const auto *group_info = Zeal::Game::GroupInfo;
+  for (int i = 0; i < GAME_NUM_GROUP_MEMBERS; ++i) {
+    if (group_info->IsValidList[i] && group_info->Names[i] == name) return name;
+  }
+  return "";
+}
+
 void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel) {
+  if (channel == USERCOLOR_TELL && EnableAutoConsent.get()) {
+    std::string name = GetConsentMeTellName(msg);
+    if (!name.empty()) Zeal::Game::do_consent(name.c_str());
+  }
+
   if (UseClassChatColors.get() && !msg.empty()) {
     msg = add_class_colors(msg, channel);
   }
@@ -842,27 +854,27 @@ Chat::Chat(ZealService *zeal) {
   //
   // return false;
   //}, callback_type::WorldMessage);
-  zeal->commands_hook->Add("/abbreviatedchat", {"/abc"},"Abbreviates chat messages.",
-                           [this](std::vector<std::string> &args) {
-                              // 0 = Off
-                              // 1 = Chat Only
-                              // 2 = Chat and Log
-                              if (args.size() > 1) {
-                                int abbreviated_option;
-                                if (Zeal::String::tryParse(args[1], &abbreviated_option)) {
-                                  abbreviated_option = std::clamp(abbreviated_option, 0, 2);
-                                  UseAbbreviatedChat.set(abbreviated_option);
-                                }
+  zeal->commands_hook->Add(
+      "/abbreviatedchat", {"/abc"}, "Abbreviates chat messages.", [this](std::vector<std::string> &args) {
+        // 0 = Off
+        // 1 = Chat Only
+        // 2 = Chat and Log
+        if (args.size() > 1) {
+          int abbreviated_option;
+          if (Zeal::String::tryParse(args[1], &abbreviated_option)) {
+            abbreviated_option = std::clamp(abbreviated_option, 0, 2);
+            UseAbbreviatedChat.set(abbreviated_option);
+          }
 
-                              } else {
-                                UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
-                              }
-                              Zeal::Game::print_chat(
-                                  "Abbreviated chat set to %d (%s)", UseAbbreviatedChat.get(),
-                                  UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));
-                              return true;  // return true to stop the game from processing any further on this command,
-                                            // false if you want to just add features to an existing cmd
-                          });
+        } else {
+          UseAbbreviatedChat.set(UseAbbreviatedChat.get() > 0 ? 0 : 1);
+        }
+        Zeal::Game::print_chat(
+            "Abbreviated chat set to %d (%s)", UseAbbreviatedChat.get(),
+            UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));
+        return true;  // return true to stop the game from processing any further on this command,
+                      // false if you want to just add features to an existing cmd
+      });
   zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles timestamps on chat windows.",
                            [this](std::vector<std::string> &args) {
                              if (args.size() > 1 && args[1] == "2") {
@@ -944,6 +956,12 @@ Chat::Chat(ZealService *zeal) {
                              }
                              return false;
                            });
+  zeal->commands_hook->Add(
+      "/autoconsent", {}, "Toggles autoconsent response on/off", [this](std::vector<std::string> &args) {
+        EnableAutoConsent.toggle();
+        Zeal::Game::print_chat("Auto-consent response is %s", EnableAutoConsent.get() ? "ON" : "OFF");
+        return true;
+      });
 
   /*  zeal->commands_hook->Add("/uniquenaming", {}, "Toggles off the stripping of mob id and other identifiers from name
      of npc's (log only)", [this, ini](std::vector<std::string>& args) { uniquenames = !uniquenames;
@@ -997,7 +1015,7 @@ Chat::Chat(ZealService *zeal) {
 
   // Callbacks
   zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
-      this->AddOutputText(wnd, msg, channel);
+    this->AddOutputText(wnd, msg, channel);
   });
 }
 

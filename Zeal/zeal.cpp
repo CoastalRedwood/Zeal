@@ -180,6 +180,65 @@ ZealService::ZealService() {
 
 ZealService::~ZealService() { ZealService::ptr_service = nullptr; }
 
+// Commands and keybinds.
+
+// Consents all class types in the raid.
+static bool handle_consent_class(Zeal::GameEnums::ClassTypes target_class) {
+  const char *class_name = (target_class == Zeal::GameEnums::ClassTypes::Rogue) ? "rogues" : "monks";
+  Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+  if (!raid_info->is_in_raid()) {
+    Zeal::Game::print_chat("/consent%s only works when in a raid", class_name);
+    return true;
+  }
+
+  bool consented = false;
+  for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
+    const auto &member = raid_info->MemberList[i];
+    if (member.Name[0] && member.ClassValue == target_class) {
+      consented = true;
+      Zeal::Game::do_consent(member.Name);
+    }
+  }
+  if (!consented) Zeal::Game::print_chat("No %s in raid to consent", class_name);
+  return true;
+}
+
+// Sends a "Consent me" tell to the owner of the targeted corpse.
+static bool handle_tell_consent() {
+  auto target = Zeal::Game::get_target();
+  if (!target) {  // If no target, target the nearest corpse within a short distance.
+    target = ZealService::get_instance()->cycle_target->get_nearest_ent(50, 3);
+    if (target) {
+      Zeal::Game::set_target(target);
+    } else {
+      Zeal::Game::print_chat("/tellconsent could not find a player corpse to target.");
+      return true;
+    }
+  }
+
+  if (target->Type != Zeal::GameEnums::EntityTypes::PlayerCorpse) {
+    Zeal::Game::print_chat("/tellconsent only works on player corpse targets.");
+    return true;
+  }
+
+  auto name = Zeal::Game::strip_name(target->Name);
+  std::string tell_message = std::string(name) + " " + "Consent me";
+  Zeal::Game::do_tell(tell_message.c_str());
+  return true;
+}
+
+// Sends a "Consent me" tell to the owner of the targeted corpse.
+static bool handle_reply_consent() {
+  const char(*tell_list)[64] = reinterpret_cast<const char(*)[64]>(0x007CE45C);
+  const char *last_teller = tell_list[0];
+  if (last_teller[0] == 0) {
+    Zeal::Game::print_chat("No players in recent tell history.");
+    return true;
+  }
+  Zeal::Game::do_consent(last_teller);
+  return true;
+}
+
 void ZealService::AddCommands() {
   commands_hook->Add(
       "/alarm", {}, "Open the alarm ui and gives alarm functionality on old ui.",
@@ -526,6 +585,16 @@ void ZealService::AddCommands() {
 
         return true;
       });
+  commands_hook->Add("/consentrogues", {}, "Consents all rogues in the raid.", [](std::vector<std::string> &args) {
+    return handle_consent_class(Zeal::GameEnums::ClassTypes::Rogue);
+  });
+  commands_hook->Add("/consentmonks", {}, "Consents all monks in the raid.", [](std::vector<std::string> &args) {
+    return handle_consent_class(Zeal::GameEnums::ClassTypes::Monk);
+  });
+  commands_hook->Add("/tellconsent", {"/tc"}, "Sends a tell with 'Consent me' to the owner of the targeted corpse.",
+                     [](std::vector<std::string> &args) { return handle_tell_consent(); });
+  commands_hook->Add("/replyconsent", {"/rc"}, "Does a /consent to the sender of most recent tell.",
+                     [](std::vector<std::string> &args) { return handle_reply_consent(); });
 }
 
 void ZealService::AddBinds() {
