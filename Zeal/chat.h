@@ -9,13 +9,13 @@
 
 class Chat {
  public:
-  ZealSetting<bool> UseClassChatColors = {false, "Zeal", "ClassChatColors", false,
-                                          [this](bool val) { set_classes(); }};
+  ZealSetting<bool> UseClassChatColors = {false, "Zeal", "ClassChatColors", false, [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseClassicClassNames = {false, "Zeal", "ClassicClasses", false,
                                             [this](bool val) { set_classes(); }};
   ZealSetting<bool> UseBlueCon = {true, "Zeal", "Bluecon", false};
   ZealSetting<bool> UseZealInput = {true, "Zeal", "ZealInput", false};
   ZealSetting<bool> UseUniqueNames = {false, "Zeal", "UniqueNames", false};
+  ZealSetting<bool> EnableAutoConsent = {false, "Zeal", "AutoConsent", false};
   ZealSetting<int> UseAbbreviatedChat = {0, "Zeal", "AbbreviatedChat", false};
   ZealSetting<int> TimeStampsStyle = {0, "Zeal", "ChatTimestamps", false};
 

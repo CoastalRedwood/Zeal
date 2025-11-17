@@ -66,6 +66,7 @@ static mem::function<bool __cdecl()> IsPlayerABardAndSingingASong = 0x0040a74a; 
 static mem::function<int __fastcall(void *this_raid, int unused_edx, const char *)> send_raid_chat =
     0x0049e2e8;  // CRaid::SendRaidChat()
 static mem::function<int __cdecl(Zeal::GameStructures::Entity *, const char *)> do_say = 0x4f8172;
+static mem::function<int __cdecl(Zeal::GameStructures::Entity *, const char *)> do_tell = 0x004f8367;
 static mem::function<int __cdecl(Zeal::GameStructures::Entity *, const char *)> do_guildsay = 0x004f4bd1;
 static mem::function<int __cdecl(Zeal::GameStructures::Entity *, const char *)> do_gsay = 0x004f82a8;
 static mem::function<int __cdecl(Zeal::GameStructures::Entity *, const char *)> do_auction = 0x004f8325;
@@ -259,8 +260,10 @@ bool is_game_ui_window_hovered();
 bool is_targetable(Zeal::GameStructures::Entity *ent);
 bool is_in_game();
 bool is_in_char_select();
+void do_consent(const char *name);
 void do_say(bool hide_local, const char *format, ...);
 void do_say(bool hide_local, std::string data);
+void do_tell(const char *target_name_and_message);
 void do_gsay(std::string data);
 void do_guildsay(std::string data);
 void do_auction(std::string data);

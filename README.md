@@ -80,6 +80,9 @@ ___
   - **Aliases:** `/autoba`, `/ab`
   - **Description:** Drops whatever is on your cursor into your bank. [requires you to be at a banker] (not fully functional atm)
 
+- `/autoconsent`
+  - **Description:** Toggles the enable of auto-consenting from a /tc sent by a group or raid member.
+
 - `/autoinventory`
   - **Aliases:** `/autoinv`, `/ai`
   - **Description:** Drops whatever is on your cursor into your inventory.
@@ -110,6 +113,9 @@ ___
 
 - `/cls`
   - **Description:** Adds cls alias for clearchat.
+
+- `/consentmonks` or `/consentrogues`
+  - **Description:** Executes a /consent on all monks or rogues in the raid.
 
 - `/corpsedrag`
   - **Aliases:** `/drag`
@@ -253,6 +259,10 @@ ___
           enable, value, and protected list are stored per character with the list stored in the
           `./<character_name>_protected.ini` file.
 
+- `/replyconsent`
+  - **Aliases:** `/rc`
+  - **Description:** Executes a /consent on the last player to send you a tell.
+
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
 
@@ -319,6 +329,11 @@ ___
   - **Example:** `/targetring 0.25`
   - **Example:** `/targetring indicator` toggles auto attack indicator.
   - **Description:** toggles targetring on/off.
+
+- `/tellconsent`
+  - **Aliases:** `/tc`
+  - **Description:** Sends a 'Consent me' tell to the owner of the currently targeted corpse. Will automatically
+                     target the nearest player corpse within a distance of 50 if no active target.
 
 - `/tellwindows`
   - **Description:** Toggle tell windows. 
