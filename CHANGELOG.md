@@ -2,6 +2,105 @@
 
 Summarizes notable changes to Zeal
 
+## [1.3.0] - 2025/11/20
+
+The 1.3 release includes some significant refactoring of Zeal to make it more
+robust across login cycles, some minor feature polishing, and a few new quality
+of life features. It also supports the new eqw_takp (eqw.dll) as a replacement
+for the legacy eqw.dll 2.32.
+
+## Feature updates
+* The trip from game to character select to login / desktop and relogging back
+  into character select should be more reliable
+  - Note: dgVoodoo has its own bug on login to char select to login w/out entering world
+
+* Refactored the settings so they re-initialize when exiting character select for
+  more consistent restoration of defaults / character specific settings
+  - Note: The TellWindows enable and history settings were upgraded and renamed and
+    any changes from the defaults (off) need to be redone
+
+* Added support for the new eqw_takp eqw.dll (retains support for legacy eqw 2.32)
+
+* Improved `/consent` with new commands and an auto-consent response option
+  - `/tellconsent`, `/tc`: Sends a "Consent me" to a targeted corpse
+  - `/replyconsent`, `/rc`: Does a /consent to the sender of most recent tell
+  - `/autoconsent`: Toggles an enable to do a /rc in response to a /tc from
+                a raid or group member (also new general option)
+  - `/consentmonks`, `/consentrogues`: Consents all monks or rogues in a raid.
+
+* Added new Abbreviated Chat (`/abc`) command and setting (defaults to off)
+  - Abbreviates most user messages to "[C] [Sender]: Message" where C is a channel prefix
+  - Also abbreviates `/random` messages
+  - Supports off (0), abbreviating chat only (1) or chat + log (2)
+
+* Added new `/clc` command toggle to enable wrapping player names in chat messages
+  with class-color tags.
+  - Uses class colors defined in raid settings
+  - Looks for player names by raid member or zone entity  (also colors "You")
+
+* New keybind will close the most recent open tell window
+  - Keeps an internal history of tell window messages (in and out)
+
+* Updated some chat filter options
+  - Suppress_lifetaps option now affects both the feel better and beam smile messages
+  - Updated pet message filtering to be more reliable (includes taunting,
+    waiting for your order) for my vs other pet filtering
+  - Added a suppress other pets option that snuffs messages from other
+    player's pets (except for leader ID messages)
+
+* New class colorization option of group window names
+  - Requires EQUI_GroupWindow.xml to have Gauge1 to Gauge5 labels
+
+* Added `/outputfile format` setting that toggles between old (0) and new (1)
+  output file formats for the inventory and spellbook
+  - The new format for `outputfile inventory` and `outputfile spellbook` appends
+    the host suffix similarly to the UI_ .ini files
+  - Separate ear, wrists, and fingers with ear1, ear2, wrist1, wrist2, finger1, finger2
+  - Export either charges or stack count in the third column
+
+* Added new `/pipeverbose` command that toggles on/off extra raid and group fields
+  in the named pipe output
+  - Note that raid member HPs are guaranteed to be laggy and inaccurate due to the
+    delay in server updates to the client
+
+* Zone map updates:
+  - New `/map loc` command drops a marker at your current location
+  - New `/map ring` heading option toggles a directional heading projection line
+    as part of the map ring
+
+# Infrastructure updates and bug fixes
+
+* Mystats now includes the bonuses from physical enhancement and
+  lightning reflex in the avoidance calculation (in addition to combat agility)
+
+* Login cycle / character switching improvements:
+  - Pinned the zeal dll into memory so it is not unpatching / repatching on the cycle from
+    character select to login back to character select
+  - Pushed the creation of zeal objects to a hook after the attach to avoid restrictions
+  - Improved consistency of reloading settings when switching characters
+  - Modified directx hooking to cleanly install and remove through login/out sequence
+  - Updated a few modules to have cleaner re-initialization when switching characters/accounts
+
+* Swapped the use of filesystem::current_path() for a new function that retrieves
+  the executable file folder (with a fallback to the current_path)
+
+* Fix Calefaction to use spellset sub-cat Fire
+
+* Fix to `/shownames` to make it behave like the default client (any non-numeric argument
+  besides 'off' = show all)
+
+* Fix `/spellset list` to not require a dummy third argument
+
+* Fixed floating combat damage to correctly show "damage to me" color
+  when mounted
+
+* Fixed an issue where if the keyup was missed on a slow turn key the normal
+  turn key rate would be stuck at the slow rate
+  - Also optimized the logic so it only modifies the turn rate when required
+
+* Camera cleanups and polishing (callback hook location, lmb polishing, etc)
+
+
 ## [1.2.2] - 2025/09/20
 
 The 1.2 release includes some significant boot stability fixes and a
