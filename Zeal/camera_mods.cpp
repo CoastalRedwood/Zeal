@@ -505,12 +505,14 @@ static void __fastcall RMouseDown(void *game_this, int unused_edx, int x, int y)
 void CameraMods::synchronize_fov() {
   if (!enabled.get() || Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
 
-  // TODO: This is not setting the camera lens, so is it accurate?
+  // Note: The "fov" value in CameraInfo is 0.5f times the game's fov parameter value in t3dSetCameraLens.
   Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
   if (ci) ci->FieldOfView = fov.get();
 }
 
 // Overrides the default FOV when enabled.
+// Note: t3dSetCameraLens has an internal 0.5f scale factor that it applies to the fov parameter that
+// we ignore in synchronize_fov() above. Not fixing in order to not change the current behavior.
 static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
   bool enabled = zeal->camera_mods->enabled.get();

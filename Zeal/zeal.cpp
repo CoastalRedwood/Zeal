@@ -383,6 +383,14 @@ void ZealService::AddCommands() {
       std::stringstream ss;
       ss << "Zeal version: " << ZEAL_VERSION << " (" << ZEAL_BUILD_VERSION << ")" << std::endl;
       Zeal::Game::print_chat(ss.str());
+      HMODULE eqw_dll = GetModuleHandleA("eqw.dll");
+      FARPROC eqw_fn = GetProcAddress(eqw_dll, "GetVersionStr");  // Exists in new eqw.dll only.
+      const char *eqw_version = eqw_fn ? reinterpret_cast<const char *>(eqw_fn()) : "Legacy";
+      Zeal::Game::print_chat("eqw.dll version: %s", eqw_version);
+      HMODULE eqgame_dll = GetModuleHandleA("eqgame.dll");
+      FARPROC eqgame_fn = GetProcAddress(eqgame_dll, "GetVersionStr");  // Exists in new eqgame.dll only.
+      const char *eqgame_version = eqgame_fn ? reinterpret_cast<const char *>(eqgame_fn()) : "Unknown";
+      Zeal::Game::print_chat("eqgame.dll version: %s", eqgame_version);
       return true;
     }
     if (args.size() == 2 && args[1] == "era") {  // TODO: Remove, temporary testing.
