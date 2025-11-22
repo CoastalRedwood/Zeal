@@ -68,10 +68,21 @@ void Binds::read_ini() {
   }
 }
 
+// Returns true if the bind is an existing game_bind.
+static bool is_existing_game_bind(int cmd) {
+  if (cmd <= 0x82) return true;                 // Binds exist all the way up to 0x82 with a few exceptions.
+  if (cmd >= 0xc6 && cmd <= 0xd2) return true;  // Hidden binds in this region.
+  return false;
+}
+
 // Loads the internal cache with the custom keybind for later initialization.
 void Binds::add_bind(int cmd, const char *name, const char *short_name, key_category category,
                      std::function<void(int state)> callback) {
   if (cmd < 0 || cmd >= kNumBinds) return;
+
+  // Add a second layer of protection against replacing existing binds.
+  if (is_existing_game_bind(cmd)) return;
+
   strcpy_s(KeyMapNamesBuffer[cmd], kNameBufferSize, short_name);
   KeyMapNames[cmd] = KeyMapNamesBuffer[cmd];
   KeyMapCategories[cmd] = static_cast<int>(category);
@@ -89,6 +100,14 @@ void Binds::initialize_options_with_keybinds(void *options_window) {
 
 void Binds::replace_cmd(int cmd, std::function<bool(int state)> callback) {
   ReplacementFunctions[cmd].push_back(callback);
+}
+
+void Binds::print_keybinds() const {
+  for (int i = 0; i < kNumBinds; ++i) {
+    const char *name = KeyMapNames[i];
+    name = name ? name : (is_existing_game_bind(i) ? "HARDCODED" : "");
+    Zeal::Game::print_chat("[%d]: %s", i, name);
+  }
 }
 
 Binds::Binds(ZealService *zeal) {

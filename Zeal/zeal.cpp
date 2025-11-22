@@ -466,8 +466,7 @@ void ZealService::AddCommands() {
     }
     if (args.size() == 2 && args[1] == "list_keybinds")  // Just a utility to check native keybind mapping.
     {
-      const char **cmd = reinterpret_cast<const char **>(0x00611220);
-      for (int i = 0; cmd[i] != nullptr; ++i) Zeal::Game::print_chat("[%d]: %s", i, cmd[i]);
+      binds_hook->print_keybinds();
       return true;
     }
     if (args.size() == 2 && args[1] == "target_name")  // Report name parsing of current target.
