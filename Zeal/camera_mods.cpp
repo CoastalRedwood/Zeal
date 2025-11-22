@@ -250,6 +250,17 @@ static void set_game_mouse_position(int x, int y) {
   *Zeal::Game::mouse_client_y = y;
 }
 
+// Helper function to identify if using the new takp eqw.dll or the legacy 2.32 eqw.dll.
+static bool is_new_eqw() {
+  static int type = 0;  // 0 = Uninitialized, 1 = Old, 2 = New.
+  if (type == 0) {
+    HMODULE dll = GetModuleHandleA("eqw.dll");
+    FARPROC fn = GetProcAddress(dll, "GetVersionStr");  // Exists in new eqw.dll only.
+    type = fn ? 2 : 1;
+  }
+  return type == 2;
+}
+
 // Synchronizes the win32 cursor to the internal cursor position.
 void set_win32_cursor_to_client_position(POINT pt) {
   // We have to do some extra work since the directx driver will stretch or
@@ -265,8 +276,9 @@ void set_win32_cursor_to_client_position(POINT pt) {
   int width = max(*g_mouse_screen_res_x, 640);  // Ensure always non-zero.
   int height = max(*g_mouse_screen_res_y, 480);
 
+  // The legacy eqw does not synchronize the win32 and game cursor but the new one does.
   bool scaled_mode = ((width != rect.right - rect.left) || (height != rect.bottom - rect.top));
-  if (scaled_mode) {
+  if (is_new_eqw() && scaled_mode) {
     pt.x = pt.x * (rect.right - rect.left) / width;
     pt.y = pt.y * (rect.bottom - rect.top) / height;
   }

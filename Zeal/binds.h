@@ -38,4 +38,5 @@ class Binds {
                 std::function<void(int state)> callback);
   void replace_cmd(int cmd, std::function<bool(int state)> callback);
   bool execute_cmd(unsigned int opcode, int state);
+  void print_keybinds() const;
 };
