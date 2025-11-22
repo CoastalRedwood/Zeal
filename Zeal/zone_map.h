@@ -35,7 +35,7 @@ class ZoneMap {
   };
 
   struct MapDataMode {
-    enum e : int { kInternal = 0, kBoth, kExternal, kFirst = kInternal, kLast = kExternal };
+    enum e : int { kInternal = 0, kBoth, kExternal, kHybrid, kFirst = kInternal, kLast = kHybrid };
   };
 
   struct ShowGroupMode {
@@ -294,6 +294,9 @@ class ZoneMap {
   const ZoneMapData *get_zone_map(int zone_id);
   int find_zone_id(const std::string &zone_name) const;
   void add_map_data_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data);
+  void add_map_lines_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data);
+  void add_map_labels_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data);
+  void add_map_levels_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data);
   bool add_map_data_from_file(const std::string &filename, CustomMapData &map_data);
   void assemble_zone_map(const char *zone_name, CustomMapData &map_data);
 
