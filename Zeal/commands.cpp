@@ -48,8 +48,24 @@ void __fastcall InterpretCommand(int c, int unused, Zeal::GameStructures::Entity
   if (str_cmd.length() == 0) return;
 
   // Support tell windows by optionally prepending the /tell target based on chat window.
-  if (str_cmd.length() > 0 && str_cmd.front() != '/' && zeal->commands_hook->handle_chat(str_cmd))
+  const char front = str_cmd.front();  // Not sure if should also include  || (front == '\\').
+  bool special_cmd = (front == '/') || (front == '\'') || (front == ':') || (front == ';');
+  auto chat_manager = Zeal::Game::Windows->ChatManager;
+  int index = chat_manager ? chat_manager->AlwaysChatHereIndex : -1;
+  if (special_cmd) {
+    // Ensure we transition back to the always chat window when activating with one of these keys.
+    if (index >= 0 && index < chat_manager->MaxChatWindows) chat_manager->ActiveChatWnd = index;
+  } else if (zeal->commands_hook->handle_chat(str_cmd)) {
     cmd = str_cmd.c_str();  // Updates the cmd going to the client call.
+
+    // Also perform a workaround patch here. Hitting enter with focus on a tell window edit box
+    // triggers the ChatWindow::WndNotification handler which calls this interpret command but
+    // the ProcessKeyDown will also see that enter key and trigger an ExecuteCmd() with it. If
+    // the always chat here is set, it will then proceed to send any data in that edit buffer.
+    // We work around that by ensuring the chat state flag is set to idle. Note we aren't fixing
+    // normal chat windows just to minimize modifying client behavior.
+    if (index >= 0) *reinterpret_cast<BYTE *>(0x0079856c) = 1;
+  }
 
   std::vector<std::string> args = Zeal::String::split(str_cmd, " ");
   const std::string &cmd_name = args.front();
