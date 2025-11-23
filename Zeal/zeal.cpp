@@ -652,6 +652,8 @@ void ZealService::AddBinds() {
   }
 
   binds_hook->replace_cmd(0xC8, [this](int state) {
+    if (!Zeal::Game::is_new_ui()) return false;
+
     auto zeal = ZealService::get_instance();
     if (zeal->ui && zeal->ui->inputDialog && zeal->ui->inputDialog->isVisible()) {
       zeal->ui->inputDialog->hide();
