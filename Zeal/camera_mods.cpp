@@ -503,7 +503,9 @@ static void __fastcall RMouseDown(void *game_this, int unused_edx, int x, int y)
 }
 
 void CameraMods::synchronize_fov() {
-  if (!enabled.get() || Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
+  int gamestate = Zeal::Game::get_gamestate();
+  bool custom_fov = enabled.get() && (gamestate == GAMESTATE_INGAME || gamestate == GAMESTATE_LOGGINGIN);
+  if (!custom_fov) return;
 
   // Note: The "fov" value in CameraInfo is 0.5f times the game's fov parameter value in t3dSetCameraLens.
   Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
@@ -511,17 +513,14 @@ void CameraMods::synchronize_fov() {
 }
 
 // Overrides the default FOV when enabled.
-// Note: t3dSetCameraLens has an internal 0.5f scale factor that it applies to the fov parameter that
-// we ignore in synchronize_fov() above. Not fixing in order to not change the current behavior.
 static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
-  bool enabled = zeal->camera_mods->enabled.get();
-  if (enabled) fov = zeal->camera_mods->fov.get();
+
+  int gamestate = Zeal::Game::get_gamestate();
+  bool custom_fov =
+      zeal->camera_mods->enabled.get() && (gamestate == GAMESTATE_INGAME || gamestate == GAMESTATE_LOGGINGIN);
+  if (custom_fov) fov = 2 * zeal->camera_mods->fov.get();  // Account for the 0.5x scale factor within t3dSetCameraLens.
   int rval = zeal->hooks->hook_map["SetCameraLens"]->original(SetCameraLens)(a1, fov, aspect_ratio, a4, a5);
-  if (enabled && Zeal::Game::get_gamestate() != GAMESTATE_PRECHARSELECT) {
-    Zeal::GameStructures::CameraInfo *ci = Zeal::Game::get_camera();
-    if (ci) ci->FieldOfView = fov;
-  }
   return rval;
 }
 
