@@ -19,7 +19,7 @@ static void suppress_autofire_fault_messages(bool flag) {
 }
 
 void AutoFire::Main() {
-  if (!Zeal::Game::get_target() || *(BYTE *)0x7f6ffe) {
+  if (!Zeal::Game::get_target() || Zeal::Game::is_autoattacking()) {
     SetAutoFire(false);
     return;
   }
@@ -67,6 +67,16 @@ void AutoFire::Main() {
 // }
 
 void AutoFire::SetAutoFire(bool enabled, bool do_print) {
+  if (enabled && !Zeal::Game::get_target()) {
+    if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire needs a target");
+    enabled = false;
+  }
+
+  if (enabled && Zeal::Game::is_autoattacking()) {
+    if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire blocked by autoattack");
+    enabled = false;
+  }
+
   if (autofire && !enabled) {
     if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire disabled");
     Zeal::Game::SetMusicSelection(2, false);
@@ -96,9 +106,12 @@ AutoFire::AutoFire(ZealService *zeal) {
   //    size).c_str());
   //     //return false;
   // }, callback_type::SendMessage_);
-  zeal->commands_hook->Add("/autofire", {"/af"}, "Toggles autofire for your ranged ability.",
+  zeal->commands_hook->Add("/autofire", {"/af"}, "Toggles autofire for your ranged ability (toggle, on, off).",
                            [this](std::vector<std::string> &args) {
-                             SetAutoFire(!autofire, true);
+                             bool force_on = (args.size() == 2 && args[1] == "on");
+                             bool force_off = (args.size() == 2 && args[1] == "off");
+                             bool enable = force_on ? true : force_off ? false : !autofire;  // Toggles by default.
+                             SetAutoFire(enable, true);
                              return true;  // return true to stop the game from processing any further on this command,
                                            // false if you want to just add features to an existing cmd
                            });

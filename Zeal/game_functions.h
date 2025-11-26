@@ -218,6 +218,7 @@ bool can_move();
 bool is_on_ground(Zeal::GameStructures::Entity *ent);
 void log(const char *data);
 void log(std::string &data);
+bool is_autoattacking();
 Zeal::GameStructures::GAMECHARINFO *get_char_info();
 Zeal::GameStructures::Entity *get_active_corpse();
 Zeal::GameStructures::Entity *get_target();

@@ -83,6 +83,11 @@ ___
 - `/autoconsent`
   - **Description:** Toggles the enable of auto-consenting from a /tc sent by a group or raid member.
 
+- `/autofire`
+  - **Aliases:** `/af`
+  - **Arguments:** none (toggles), `on`, `off`
+  - **Description:** Enables/disables ranged autofire mode.
+
 - `/autoinventory`
   - **Aliases:** `/autoinv`, `/ai`
   - **Description:** Drops whatever is on your cursor into your inventory.
