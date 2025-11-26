@@ -1574,8 +1574,8 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
 }
 
 float get_target_blink_fade_factor(float speed_factor, bool auto_attack_only) {
-  if (auto_attack_only && !(bool)(*(BYTE *)0x7f6ffe))  // Auto attack disabled.
-    return 1.0f;                                       // No fading.
+  if (auto_attack_only && !is_autoattacking())  // Auto attack disabled.
+    return 1.0f;                                // No fading.
 
   // Calculate a fraction of the cycle time. Phase alignment doesn't matter, so just
   // do a modulo off of the current time in millseconds.
@@ -1879,6 +1879,8 @@ bool use_item(int item_index, bool quiet) {
   chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index);
   return true;
 }
+
+bool is_autoattacking() { return *reinterpret_cast<BYTE *>(0x007f6ffe); }
 
 Zeal::GameStructures::Entity *get_active_corpse() {
   return *(Zeal::GameStructures::Entity **)Zeal::Game::Active_Corpse;
