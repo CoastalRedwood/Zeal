@@ -26,7 +26,8 @@ class CameraMods {
   ZealSetting<bool> setting_toggle_zeal_view = {true, "Camera", "ToggleZealView", false};
   ZealSetting<bool> setting_toggle_free1_view = {true, "Camera", "ToggleFree1View", false};
   ZealSetting<bool> setting_toggle_free2_view = {true, "Camera", "ToggleFree2View", false};
-
+  ZealSetting<bool> setting_dampen_levitation = {false, "Zeal", "DampenLevitation", false,
+                                                 [this](float val) { synchronize_lev(); }};
   const float max_zoom_out = 100;
   const float min_zoom_in = 5.f;  // Transitions to first person below this.
   const float zoom_speed = 5.f;
@@ -65,6 +66,7 @@ class CameraMods {
   bool callback_packet(UINT opcode, char *buffer, UINT len);
   void update_desired_zoom(float zoom);
   void synchronize_fov();
+  void synchronize_lev();
   void set_zeal_cam_active(bool activate);
   bool is_zeal_cam_active() const;
   bool calc_camera_positions(Vec3 &head_pos, Vec3 &wanted_pos) const;

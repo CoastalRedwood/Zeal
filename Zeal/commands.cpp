@@ -16,8 +16,17 @@ void ChatCommands::print_commands() {
   std::stringstream ss;
   ss << "List of commands" << std::endl;
   ss << "-----------------------------------------------------" << std::endl;
-  for (auto &[name, c] : CommandFunctions) {
-    ss << name;
+  // Create a sorted vector of commands w/out copying.
+  std::vector<std::pair<std::reference_wrapper<const std::string>, std::reference_wrapper<const ZealCommand>>>
+      sorted_references;
+  for (const auto &pair : CommandFunctions) {
+    sorted_references.emplace_back(std::cref(pair.first), std::cref(pair.second));
+  }
+  std::sort(sorted_references.begin(), sorted_references.end(),
+            [](const auto &a, const auto &b) { return a.first.get() < b.first.get(); });
+  for (auto &pair : sorted_references) {
+    ss << pair.first.get();
+    const ZealCommand &c = pair.second.get();
     if (c.aliases.size() > 0) ss << " [";
     for (auto it = c.aliases.begin(); it != c.aliases.end(); ++it) {
       auto &a = *it;

@@ -424,6 +424,16 @@ void CameraMods::update_fps_sensitivity() {
   lastTime = currentTime;
 }
 
+void CameraMods::synchronize_lev() {
+  auto self = Zeal::Game::get_self();
+  auto actor_info = self ? self->ActorInfo : nullptr;
+  if (!actor_info) return;
+
+  // If enabled reduce frequency by 8x and amplitude by 10x else set defaults.
+  actor_info->LevitationSize = setting_dampen_levitation.get() ? 0x02 : 0x10;
+  actor_info->LevitationMovementModifier = setting_dampen_levitation.get() ? 0.01f : 0.1f;
+}
+
 void CameraMods::callback_zone() {
   if (Zeal::Game::get_controlled()) {
     zeal_cam_yaw = Zeal::Game::get_controlled()->Heading;
@@ -434,6 +444,8 @@ void CameraMods::callback_zone() {
     zeal_cam_zoom = desired_zoom;
   }
   chase_mode_active = false;
+
+  synchronize_lev();  // Character gets recreated each zone and needs to be resync'ed.
 }
 
 void CameraMods::synchronize_old_ui() {
@@ -728,6 +740,20 @@ CameraMods::CameraMods(ZealService *zeal) {
                                Zeal::Game::print_chat("Usage: /leftclickcon on or /leftclickcon off");
                              Zeal::Game::print_chat("Left click consider is now %s",
                                                     setting_leftclickcon.get() ? "on" : "off");
+                             if (update_options_ui_callback) update_options_ui_callback();
+                             return true;
+                           });
+
+  zeal->commands_hook->Add("/dampenlev", {}, "Dampened (on) or normal (off) levitation motion.",
+                           [this](const std::vector<std::string> &args) {
+                             if (args.size() == 2 && args[1] == "on")
+                               setting_dampen_levitation.set(true);
+                             else if (args.size() == 2 && args[1] == "off")
+                               setting_dampen_levitation.set(false);
+                             else
+                               Zeal::Game::print_chat("Usage: /dampenlev on or /dampenlev off");
+                             Zeal::Game::print_chat("Dampened levitation is now %s",
+                                                    setting_dampen_levitation.get() ? "on" : "off");
                              if (update_options_ui_callback) update_options_ui_callback();
                              return true;
                            });
