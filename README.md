@@ -132,6 +132,10 @@ ___
   - **Arguments:** none, `all` (drops all corpses)
   - **Description:** Stop dragging your currently targeted corpse. To drop all use `/corpsedrop all`.
 
+- `/dampenlev`
+  - **Arguments:** `on`, `off`
+  - **Description:** Selects dampened (on) or normal (off) levitation motion.
+
 - `/fcd` (floating combat damage)
   - **Arguments:** none, `client font size #`, `font`
   - **Example:** `/fcd` toggles on and off
