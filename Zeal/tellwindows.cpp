@@ -72,15 +72,18 @@ Zeal::GameUI::ChatWnd *__fastcall GetActiveChatWindow(Zeal::GameUI::CChatManager
 }
 
 Zeal::GameUI::ChatWnd *TellWindows::FindPreviousTellWnd() {
-  Zeal::GameUI::ChatWnd *wnd = nullptr;
-  if (Zeal::Game::Windows->ChatManager->ActiveChatWnd > 0) {
-    for (int i = Zeal::Game::Windows->ChatManager->ActiveChatWnd - 1;
-         i != Zeal::Game::Windows->ChatManager->ActiveChatWnd; i--) {
-      if (i <= -1) i = Zeal::Game::Windows->ChatManager->MaxChatWindows;
+  // Note: Using <= 0 instead of < 0 since that was the old code and index [0] is likely the primary
+  // chat (non-tell) window anyways and doing the second >= just as a sanity check (should never trigger).
+  if (Zeal::Game::Windows->ChatManager->ActiveChatWnd <= 0 ||
+      Zeal::Game::Windows->ChatManager->ActiveChatWnd >= Zeal::Game::Windows->ChatManager->MaxChatWindows)
+    return nullptr;
 
-      wnd = Zeal::Game::Windows->ChatManager->ChatWindows[i];
-      if (IsTellWindow(wnd)) return wnd;
-    }
+  for (int i = Zeal::Game::Windows->ChatManager->ActiveChatWnd - 1;
+       i != Zeal::Game::Windows->ChatManager->ActiveChatWnd; i--) {
+    if (i < 0) i += Zeal::Game::Windows->ChatManager->MaxChatWindows;
+
+    auto wnd = Zeal::Game::Windows->ChatManager->ChatWindows[i];
+    if (IsTellWindow(wnd)) return wnd;
   }
   return nullptr;
 }
