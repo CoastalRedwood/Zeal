@@ -516,10 +516,23 @@ void CameraMods::synchronize_fov() {
 static int SetCameraLens(int a1, float fov, float aspect_ratio, float a4, float a5) {
   ZealService *zeal = ZealService::get_instance();
 
-  int gamestate = Zeal::Game::get_gamestate();
-  bool custom_fov =
-      zeal->camera_mods->enabled.get() && (gamestate == GAMESTATE_INGAME || gamestate == GAMESTATE_LOGGINGIN);
-  if (custom_fov) fov = 2 * zeal->camera_mods->fov.get();  // Account for the 0.5x scale factor within t3dSetCameraLens.
+  if (zeal->camera_mods->enabled.get()) {
+    int gamestate = Zeal::Game::get_gamestate();
+    if (gamestate == GAMESTATE_CHARSELECT) {
+      // The game client seems to scale to horizontal fov, not vertical, which chops off the name and zone
+      // in character select (or even heads) on super wide (> 2 to 4x) aspect ratios. The intent of the
+      // code below was to scale the fov to keep the vertical fov constant across aspect ratios, but it
+      // wasn't working as expected. The 'scale_ratio' calc was added to make it 'work' through at least 4x.
+      const float orig_aspect_ratio = 4.f / 3.f;  // Assume original angle was for a 4:3 aspect ratio screen.
+      const float orig_hor_fov = static_cast<float>(M_PI / 180) * fov / 2;  // Half-angle in radians.
+      const float vert_fov = atanf(tan(orig_hor_fov) / orig_aspect_ratio);  // Original vertical fov.
+      const float scale_ratio = aspect_ratio + max(0.f, (aspect_ratio - orig_aspect_ratio) * aspect_ratio);
+      const float hor_fov = atanf(tan(vert_fov) * scale_ratio);  // New half-angle fov in radians.
+      fov = 2 * hor_fov * static_cast<float>(180 / M_PI);
+    } else if (gamestate == GAMESTATE_INGAME || gamestate == GAMESTATE_LOGGINGIN) {
+      fov = 2 * zeal->camera_mods->fov.get();  // Account for the 0.5x scale factor within t3dSetCameraLens.
+    }
+  }
   int rval = zeal->hooks->hook_map["SetCameraLens"]->original(SetCameraLens)(a1, fov, aspect_ratio, a4, a5);
   return rval;
 }
