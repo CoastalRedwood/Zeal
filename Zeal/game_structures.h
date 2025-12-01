@@ -150,7 +150,13 @@ enum PetCommand {
   Follow = 8,
   Sit = 9,
   Stand = 10,
-  Taunt = 11
+  Taunt = 11,
+  Hold = 12,
+  TauntOn = 13,
+  TauntOff = 14,
+  PetTarget = 15,
+  WhoLeader = 16,
+  Buy = 17,
 };
 
 enum SpellTargetType {

@@ -11,7 +11,7 @@ class CycleTarget {
   Zeal::GameStructures::Entity *get_next_ent(float dist, BYTE type);
   Zeal::GameStructures::Entity *get_nearest_ent(float dist, BYTE type);
   void handle_next_target(int key_down, Zeal::GameEnums::EntityTypes type);
-  void handle_toggle_last_two(int key_down);
+  void handle_toggle_last_two(int key_down, bool skip_input_check = false);
 
  private:
   void main_loop();
