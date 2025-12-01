@@ -602,6 +602,11 @@ void ZealService::AddCommands() {
                      [](std::vector<std::string> &args) { return handle_tell_consent(); });
   commands_hook->Add("/replyconsent", {"/rc"}, "Does a /consent to the sender of most recent tell.",
                      [](std::vector<std::string> &args) { return handle_reply_consent(); });
+  commands_hook->Add("/targetprevious", {}, "Switches to previous target (can toggle last two).",
+                     [this](std::vector<std::string> &args) {
+                       cycle_target->handle_toggle_last_two(true, true);
+                       return true;
+                     });
 }
 
 void ZealService::AddBinds() {
@@ -880,6 +885,18 @@ void ZealService::AddBinds() {
                          if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
                            ZealService::get_instance()->tells->CloseMostRecentWindow();
                        });
+  binds_hook->add_bind(249, "Pet Hold", "PetHold", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      Zeal::Game::pet_command(Zeal::GameEnums::PetCommand::Hold, 0);
+    }
+  });
+  binds_hook->add_bind(250, "Assist", "Assist", key_category::Target, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      auto do_assist_fn = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
+      do_assist_fn(Zeal::Game::get_self(), "");
+    }
+  });
+
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
                        [](int key_down) {
                          if (key_down) {

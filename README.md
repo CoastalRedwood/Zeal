@@ -333,6 +333,9 @@ ___
   - **Aliases:** `/cleartarget`
   - **Description:** acts as normal /target unless you provide no argument in which case it will clear your target.
 
+- `/targetprevious`
+  - **Description:** Switches to previous target (can toggle last two like keybind).
+
 - `/targetring`
   - **Arguments:** `size`, `indicator`
   - **Example:** `/targetring 0.25`
@@ -404,6 +407,7 @@ ___
 ### Key Binds (Added to Options->Keyboard)
 - Cycle through nearest NPCs
 - Cycle through nearest PCs
+- Assist
 - Strafe Right
 - Strafe Left
 - Auto Inventory
@@ -416,6 +420,7 @@ ___
 - Pet Back
 - Pet Sit
 - Pet Health
+- Pet Hold
 - Do /loot (targeted corpse)
 - Slow turn left
 - Slow turn right

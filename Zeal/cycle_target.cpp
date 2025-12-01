@@ -17,8 +17,8 @@ void CycleTarget::handle_next_target(int key_down, Zeal::GameEnums::EntityTypes 
   }
 }
 
-void CycleTarget::handle_toggle_last_two(int key_down) {
-  if (!key_down || Zeal::Game::GameInternal::UI_ChatInputCheck()) return;
+void CycleTarget::handle_toggle_last_two(int key_down, bool skip_input_check) {
+  if (!key_down || (!skip_input_check && Zeal::Game::GameInternal::UI_ChatInputCheck())) return;
 
   Zeal::GameStructures::Entity *target = Zeal::Game::get_target();
   if (target) {
