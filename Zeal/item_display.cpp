@@ -326,7 +326,7 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
   BYTE display_index = effect_index + 1;
   switch (effect) {
     case 0:                    // CurrentHP
-      if (spell->ID == 742) {  // Fix - Denon's Depserate Dirge missing accurate base description
+      if (spell->ID == 742) {  // Fix - Denon's Desperate Dirge missing accurate base description
         line = std::format("  {}: Decrease hitpoints by ", display_index);
         append_effect_description(line, spell, caster_level, effect_index);
       }
@@ -351,8 +351,8 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
       append_effect_description(line, spell, caster_level, effect_index);
       break;
     case 21:  // Stun
-      line = std::format("  {}: Stun ", display_index);
-      append_effect_description(line, spell, caster_level, effect_index);
+      // SE_Stun: There is a client / server mismatch where the server uses the max field to set the max level
+      // but the client treats the max field as an upper value limit in the calc, so don't try to calculate.
       break;
     case 78:  // Absorb Magic
       line = std::format("  {}: Increase Absorb Magic Damage by ", display_index);
