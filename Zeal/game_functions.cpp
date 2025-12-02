@@ -1968,6 +1968,11 @@ void dump_spell_info(int spell_id) {
   };
 
   print_chat("[%d]: %s:, SpellType: %d, TargetType: %d", spell_id, spell->Name, spell->SpellType, spell->TargetType);
+  for (int i = 0; i < 12; ++i) {
+    if (spell->Attrib[i] == 254) continue;  // Inactive effect slot.
+    print_chat("[Idx %d]: Id: %d:, Formula: %d, Base: %d, Max: %d,", i, spell->Attrib[i], spell->Calc[i],
+               spell->Base[i], spell->Max[i]);
+  }
 }
 
 Zeal::GameStructures::Entity *get_self() { return *(Zeal::GameStructures::Entity **)Zeal::Game::Self; }
@@ -2370,8 +2375,8 @@ bool spellbook_window_open() {
   // flicker. ISSUE: Spamming chat while in spellboolk ultimately causes chat to scroll which makes the value flicker
   // like the above issue.
   HMODULE dx8 = GetModuleHandleA("eqgfx_dx8.dll");
-  // feedback/help window increase offset of pointer by 44, but they also get hit by game_wants_input(), so don't bother
-  // check them.
+  // feedback/help window increase offset of pointer by 44, but they also get hit by game_wants_input(), so don't
+  // bother checking them.
   if (dx8) {
     int offset = GAME_NUM_SPELL_GEMS * 88;
     for (size_t i = 0; i < GAME_NUM_SPELL_GEMS; ++i)
