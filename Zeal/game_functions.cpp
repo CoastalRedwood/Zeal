@@ -367,18 +367,18 @@ Zeal::GameStructures::ActorLocation get_actor_location(int actor) {
 }
 
 bool show_context_menu() {
-  int ctx = GameInternal::CXWndShowContextMenu(*(int *)0x809db4, 0, *(int *)0x8092e8, *(int *)0x8092ec);
+  int ctx = GameInternal::CXWndShowContextMenu(*(int *)Game::WndManager, 0, *(int *)0x8092e8, *(int *)0x8092ec);
   return ctx;
 }
 
-GameUI::CXWndManager *get_wnd_manager() { return *(GameUI::CXWndManager **)0x809db4; }
+GameUI::CXWndManager *get_wnd_manager() { return *Game::WndManager; }
 
 bool is_gui_visible() {
   return *(reinterpret_cast<int *>(0x0063b918)) != 3;  // ScreenMode == 3 when F10 is pressed.
 }
 
 bool is_game_ui_window_hovered() {
-  GameUI::CXWndManager *mgr = *(GameUI::CXWndManager **)0x809db4;
+  GameUI::CXWndManager *mgr = *Game::WndManager;
   if (mgr)
     return mgr->Hovered != 0;
   else
@@ -389,7 +389,7 @@ bool game_wants_input() {
   int chat_input = GameInternal::UI_ChatInputCheck();
   bool focused_window_needs_input = false;
   if (is_new_ui()) {
-    int focused_wnd = GameInternal::GetFocusWnd(*(int *)0x809db4, 0);
+    int focused_wnd = GameInternal::GetFocusWnd(*(int *)Game::WndManager, 0);
     if (focused_wnd) focused_window_needs_input = GameInternal::CXWndIsType(focused_wnd, 0, 2);
   }
   return chat_input != 0 || focused_window_needs_input;

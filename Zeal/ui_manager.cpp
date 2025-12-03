@@ -497,6 +497,55 @@ static int __fastcall SkillsWnd_WndNotification(Zeal::GameUI::SidlWnd *wnd, int 
   return 0;
 }
 
+static void __fastcall BazaarFacePlayer(Zeal::GameStructures::Entity *self, int unused_edx,
+                                        Zeal::GameStructures::Entity *player) {
+  if (player) {
+    Zeal::Game::set_target(player);
+    ZealService::get_instance()->zone_map->add_marker(static_cast<int>(player->Position.x),
+                                                      static_cast<int>(player->Position.y), player->Name);
+  }
+
+  ZealService::get_instance()->hooks->hook_map["BazaarFacePlayer"]->original(BazaarFacePlayer)(self, unused_edx,
+                                                                                               player);
+}
+
+// Returns true if it was a bazaar search click on an item.
+static bool CheckIfBazaarSearchClick(Zeal::GameUI::InvSlot *slot) {
+  // Must be non-empty and in the bazaar zone.
+  auto self = Zeal::Game::get_self();
+  auto item = slot ? slot->Item : nullptr;
+  if (!item || !item->Name || !self || self->ZoneId != 151) return false;
+
+  // And the bazaar search window must be visible.
+  auto bazaar = Zeal::Game::Windows->BazaarSearch;
+  if (!bazaar || !bazaar->IsVisible || !bazaar->Activated || !bazaar->ItemNameInput) return false;
+
+  // And the ctrl + shift but not the alt modifier keys must be pressed.
+  auto wnd_manager = Zeal::Game::get_wnd_manager();
+  if (!wnd_manager || wnd_manager->AltKeyState || !wnd_manager->ControlKeyState || !wnd_manager->ShiftKeyState)
+    return false;
+
+  // Duplicate the other pre-checks within the original HandleLButtonUp call.
+  if (!Zeal::Game::Windows->Quantity || Zeal::Game::Windows->Quantity->Activated) return false;
+  if (!slot->invSlotWnd) return false;
+  int slot_id = slot->invSlotWnd->SlotID;
+  if (slot_id < 0 || (slot_id >= 8000 && slot_id < 0x1f5f)) return false;
+
+  // Finally populate the bazaar search edit box and run the query.
+  bazaar->ItemNameInput->SetText(item->Name);
+  bazaar->doQuery();
+  return true;
+}
+
+// Intercept the left mouse button up to check for the bazaar search case.
+static void __fastcall InvSlot_HandleLButtonUp(Zeal::GameUI::InvSlot *slot, int unused_edx, int mouse_x, int mouse_y,
+                                               unsigned char flags) {
+  if (CheckIfBazaarSearchClick(slot)) return;  // Bail out if handled.
+
+  ZealService::get_instance()->hooks->hook_map["InvSlot_HandleLButtonUp"]->original(InvSlot_HandleLButtonUp)(
+      slot, unused_edx, mouse_x, mouse_y, flags);
+}
+
 bool UIManager::handle_uierrors(const std::vector<std::string> &args) {
   if (args.size() != 2 || (args[1] != "on" && args[1] != "off")) {
     Zeal::Game::print_chat("Usage: /uierrors <on | off>");
@@ -601,6 +650,8 @@ UIManager::UIManager(ZealService *zeal) {
   zeal->hooks->Add("LogUIError", 0x00435eae, LogUIError, hook_type_detour);
   zeal->hooks->Add("XMLRead", 0x58D640, XMLRead, hook_type_detour);
   zeal->hooks->Add("XMLReadNoValidate", 0x58DA10, XMLReadNoValidate, hook_type_detour);
+  zeal->hooks->Add("BazaarFacePlayer", 0x004067bb, BazaarFacePlayer, hook_type_replace_call);
+  zeal->hooks->Add("InvSlot_HandleLButtonUp", 0x00421e48, InvSlot_HandleLButtonUp, hook_type_detour);
 
   // Patch the CSkillsWnd vtable so that it calls our custom WndNotification handler.
   auto vtable = reinterpret_cast<Zeal::GameUI::SidlScreenWndVTable *>(0x005e6b3c);

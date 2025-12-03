@@ -140,6 +140,9 @@ class ZoneMap {
   void add_dynamic_label(const std::string &label, int loc_y, int loc_x, unsigned int duration_ms = 0,
                          D3DCOLOR font_color = D3DCOLOR_XRGB(250, 250, 51));
 
+  // Public interface for adding markers programmatically.
+  void add_marker(int y, int x, const char *label = nullptr, bool clear_others = true);
+
   Zeal::GameUI::SidlWnd *get_internal_window() { return wnd; }  // For short-term use only.
 
   // Private methods exposed for callback use only.

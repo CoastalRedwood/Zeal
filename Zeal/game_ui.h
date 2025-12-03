@@ -1191,6 +1191,52 @@ class CastSpellWnd : public SidlWnd  // Aka CastSpellWnd in client.
   /*0x15C*/ SidlWnd *SpellBook;
 };
 
+class QuantityWnd : public SidlWnd {
+ public:
+  /*0x134*/ BYTE Activated;  // Set to 1 when activated and 0 in Deactivate().
+  /*0x135*/ BYTE Unknown0x135[3];
+  /*0x138*/ DWORD Unknown0x138;
+  /*0x13C*/ DWORD Unknown0x13C;
+  /*0x140*/ DWORD Unknown0x140;  // Set to 0 in constructor.
+  /*0x144*/ DWORD Unknown0x144;  // Quantity slider.
+  /*0x148*/ DWORD Unknonw0x148;  // Quantity slider input.
+  /*0x14C*/ DWORD Unknown0x14c;  // Quantity accept button.
+};
+
+class BazaarSearchWnd : public SidlWnd {
+ public:
+  void doQuery() { reinterpret_cast<void(__thiscall *)(BazaarSearchWnd *)>(0x0040614c)(this); }
+
+  /*0x0134*/ BYTE Activated;  // Set to 1 when activated and 0 in Deactivate().
+  /*0x0135*/ BYTE Unknown0x135[3];
+  /*0x0138*/ BYTE Unknown0x138[0x3854];
+  /*0x398c*/ DWORD ItemList;               // BZR_ItemList.
+  /*0x3990*/ DWORD QueryButton;            // BZR_QueryButton.
+  /*0x3994*/ DWORD WelcomeButton;          // BZR_WelcomeButton.
+  /*0x3998*/ DWORD UpdatePlayerButton;     // BZR_UpdatePlayerButton.
+  /*0x399c*/ DWORD RequestItemButton;      // BZR_RequestItemButton.
+  /*0x39a0*/ DWORD Default;                // BZR_Default.
+  /*0x39a4*/ DWORD ItemNameLabel;          // BZR_ItemNameLabel.
+  /*0x39a8*/ DWORD PlayersLabel;           // BZR_PlayersLabel.
+  /*0x39ac*/ DWORD ItemSlotLabel;          // BZR_ItemSlotLabel.
+  /*0x39b0*/ DWORD StatSlotLabel;          // BZR_StatSlotLabel.
+  /*0x39b4*/ DWORD RaceSlotLabel;          // BZR_RaceSlotLabel.
+  /*0x39b8*/ DWORD CLassSlotLabel;         // BZR_CLassSlotLabel.
+  /*0x39bc*/ DWORD ItemTypeLabel;          // BZR_ItemTypeLabel.
+  /*0x39c0*/ DWORD SearchResultLabel;      // BZR_SearchResultLabel.
+  /*0x39c4*/ DWORD MaxPriceLabel;          // BZR_MaxPriceLabel.
+  /*0x39c8*/ DWORD MinPriceLabel;          // BZR_MinPriceLabel.
+  /*0x39cc*/ ComboWnd *ItemSlotCombobox;   // BZR_ItemSlotCombobox.
+  /*0x39d0*/ ComboWnd *StatSlotCombobox;   // BZR_StatSlotCombobox.
+  /*0x39d4*/ ComboWnd *RaceSlotCombobox;   // BZR_RaceSlotCombobox.
+  /*0x39d8*/ ComboWnd *ClassSlotCombobox;  // BZR_ClassSlotCombobox.
+  /*0x39dc*/ ComboWnd *ItemTypeCombobox;   // BZR_ItemTypeCombobox.
+  /*0x39e0*/ ComboWnd *PlayersCombobox;    // BZR_PlayersCombobox.
+  /*0x39e4*/ EditWnd *ItemNameInput;       // BZR_ItemNameInput.
+  /*0x39e8*/ EditWnd *MaxPriceInput;       // BZR_MaxPriceInput.
+  /*0x39ec*/ EditWnd *MinPriceInput;       // BZR_MinPriceInput.
+};
+
 struct pInstWindows {
   CContextMenuManager *ContextMenuManager;  // 0x63D5CC
   CChatManager *ChatManager;                // 0x63D5D0
@@ -1227,14 +1273,14 @@ struct pInstWindows {
   SpellBookWnd *SpellBook;                  // 0x63D64C
   SidlWnd *Inventory;                       // 0x63D650
   SidlWnd *Bank;                            // 0x63D654
-  SidlWnd *Quantity;                        // 0x63D658
+  QuantityWnd *Quantity;                    // 0x63D658
   LootWnd *Loot;                            // 0x63D65C
   SidlWnd *Actions;                         // 0x63D660
   MerchantWnd *Merchant;                    // 0x63D664
   TradeWnd *Trade;                          // 0x63D668
   SidlWnd *Selector;                        // 0x63D66C
   SidlWnd *Bazaar;                          // 0x63D670
-  SidlWnd *BazaarSearch;                    // 0x63D674
+  BazaarSearchWnd *BazaarSearch;            // 0x63D674
   SidlWnd *Give;                            // 0x63D678
   SidlWnd *Tracking;                        // 0x63D67C
   SidlWnd *Inspect;                         // 0x63D680
