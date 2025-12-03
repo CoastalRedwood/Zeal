@@ -2164,6 +2164,11 @@ bool ZoneMap::set_marker_size(int new_size_percent, bool update_default) {
   return true;  // Just clamp and report success.
 }
 
+void ZoneMap::add_marker(int y, int x, const char *label, bool clear_others) {
+  if (clear_others) clear_markers();
+  set_marker(y, x, label);
+}
+
 void ZoneMap::clear_markers(bool erase_list) {
   if (erase_list) markers_list.clear();
   if (marker_vertex_buffer) {

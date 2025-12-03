@@ -21,7 +21,7 @@ static GameStructures::RaidInfo *RaidInfo = (GameStructures::RaidInfo *)0x7914D0
 static GameStructures::ViewActor *ViewActor = (GameStructures::ViewActor *)0x63D6C0;
 static GameStructures::KeyboardModifiers *KeyMods = (GameStructures::KeyboardModifiers *)0x799738;
 static GameUI::pInstWindows *Windows = (GameUI::pInstWindows *)0x63D5CC;
-static GameUI::CXWndManager *WndManager = (GameUI::CXWndManager *)0x809DB4;
+static GameUI::CXWndManager **WndManager = (GameUI::CXWndManager **)0x809DB4;
 
 // The client maintains a 5000 entry spawn_id to entity (GamePlayer) LUT for faster access to the linked list.
 static constexpr int kEntityIdArraySize = 5000;
