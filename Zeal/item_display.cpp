@@ -244,6 +244,13 @@ static void ApplyInstrumentModifiers(Zeal::GameStructures::_GAMEITEMINFO *item, 
 static void ApplyWeaponRatio(Zeal::GameStructures::_GAMEITEMINFO *item, std::string &s) {
   if (item->Common.Damage <= 0 || item->Common.AttackDelay <= 0) return;
 
+  // First handle bane lines to avoid collisions with the generic DMG search.
+  if (s.starts_with("Bane DMG: ")) {
+    float ratio = (item->Common.Damage + item->Common.BaneDmgAmount) / (float)(item->Common.AttackDelay);
+    s += std::format(" ({:.3f})", ratio);
+    return;
+  }
+
   size_t pos = s.find("DMG: ");
   if (pos != std::string::npos) {
     pos = s.find(" ", pos + strlen("DMG: "));  // Find next space (if any) after dmg.
