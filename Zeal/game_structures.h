@@ -504,7 +504,8 @@ typedef struct _GAMEITEMCOMMONINFO {
   /* 0x00F0 */ INT16 Health;       // HP
   /* 0x00F2 */ INT16 Mana;         // Mana
   /* 0x00F4 */ INT16 ArmorClass;   // AC
-  /* 0x00F6 */ BYTE Unknown0246[2];
+  /* 0x00F6 */ BYTE MaxCharges;
+  /* 0x00F7 */ BYTE GmFlag;
   /* 0x00F8 */ BYTE Light;
   /* 0x00F9 */ BYTE AttackDelay;  // Atk Delay
   /* 0x00FA */ BYTE Damage;       // DMG
@@ -513,26 +514,30 @@ typedef struct _GAMEITEMCOMMONINFO {
   /* 0x00FC */ BYTE Range;
   /* 0x00FD */ BYTE Skill;  // 21 = Expendable Potion
   /* 0x00FE */ BYTE Magic;
-  /* 0x00FF */ BYTE CastingLevelEx;
-  /* 0x0100 */ BYTE Material;  // 0=None, 1=Leather, 2=Chain, 3=Plate, 4=Silk, etc
-  /* 0x0101 */ BYTE Unknown0258[3];
+  /* 0x00FF */ BYTE CastingLevelEx;  // EffectLevel1
+  /* 0x0100 */ BYTE Material;        // 0=None, 1=Leather, 2=Chain, 3=Plate, 4=Silk, etc
+  /* 0x0101 */ BYTE Unknown0101[3];  // Top bytes of 32-bit Material.
   /* 0x0104 */ DWORD Color;
-  /* 0x0108 */ BYTE Unknown0264[2];
-  /* 0x010A */ WORD SpellIdEx;
-  /* 0x010C */ WORD Classes;  // bitwise flag
-  /* 0x010E */ BYTE Unknown0270[2];
-  /* 0x0110 */ WORD Races;  // bitwise flag
-  /* 0x0112 */ BYTE Unknown0274[2];
+  /* 0x0108 */ INT16 Faction;
+  /* 0x010A */ WORD SpellIdEx;       // Spell ID of special effect.
+  /* 0x010C */ WORD Classes;         // bitwise flag
+  /* 0x010E */ BYTE Unknown010e[2];  // Top bytes of 32-bit Classes.
+  /* 0x0110 */ WORD Races;           // bitwise flag
+  /* 0x0112 */ BYTE Unknown0112[2];  // Top bytes of 32-bit Races.
   /* 0x0114 */ BYTE IsStackable;
-  /* 0x0115 */ BYTE CastingLevel;  // also weapon proc level
+  /* 0x0115 */ BYTE CastingLevel;  // EffectLevel2: also weapon proc level
   union {
     /* 0x0116 */ BYTE StackCount;
-    /* 0x0116 */ BYTE Charges;
+    /* 0x0116 */ BYTE Charges;  // -1 = unlimited
   };
 
-  /* 0x0117 */ BYTE EffectType;
-  /* 0x0118 */ WORD SpellId;
-  /* 0x011A */ BYTE Unknown0123[10];
+  /* 0x0117 */ BYTE EffectType;  // EffectType2: 0=combat, 1=click anywhere w/o class check, 2=latent/worn, 3=click
+                                 // anywhere EXPENDABLE, 4=click worn, 5=click anywhere w/ class check, -1=no effect
+  /* 0x0118 */ INT16 SpellId;    // Effect2: spellId of special effect
+  /* 0x011A */ INT16 EffectDuration;  // Effect2Duration (purpose unknown)
+  /* 0x011C */ INT16 HouseLockID;     // SMG_REQ_HOUSELOCK
+  /* 0x011E */ BYTE Unknown011e[2];
+  /* 0x0120 */ float SellRate;
   /* 0x0124 */ union {
     struct {
       /* 0x0124 */ WORD SkillModId;
@@ -540,10 +545,18 @@ typedef struct _GAMEITEMCOMMONINFO {
       /* 0x0127 */ BYTE Unknown0127;
     } SkillMod;
 
-    /* 0x0124 */ int CastTime;
+    /* 0x0124 */ int CastTime;  // Cast time of clicky item in miliseconds
   };
 
-  /* 0x0128 */ BYTE Unknown0128[28];
+  /* 0x0128 */ BYTE Unknown0128[12];
+  /* 0x0134 */ INT32 RecastTime;  // Recast time of clicky in milliseconds.
+  /* 0x0138 */ WORD SkillModType;
+  /* 0x013A */ INT16 SkillModValue;
+  /* 0x013C */ INT16 BaneDmgRace;
+  /* 0x013E */ INT16 BaneDmgBody;
+  /* 0x0140 */ BYTE BaneDmgAmount;
+  /* 0x0141 */ BYTE Unknown0141;
+  /* 0x0142 */ WORD title;
   /* 0x0144 */ BYTE RecLevel;  // Used in Game_Character::AntiTwinkAdj.
   /* 0x0145 */ BYTE RecSkill;  // Client: Adjusted if Level < RecLevel, Skill < RecSkill.
   /* 0x0146 */ BYTE Unknown0146[22];
