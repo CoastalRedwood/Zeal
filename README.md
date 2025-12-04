@@ -55,11 +55,12 @@ To disable Zeal, just delete the zeal.asi file.
 
 ### Commands (`/help zeal`)
 ___
-- `/abc` (abbreviated chat)
+- `/abbreviatedchat`
+  - **Aliases:** `/abc`
   - **Arguments:** none, `0`-`2`
-  - **Example:** `/abc` toggles on and off
-  - **Example:** `/abc 0` disabled, normal chat and logging
-  - **Example:** `/abc 1` abbreviates chat messages
+  - **Example:** `/abc` toggles on (1) and off (0)
+  - **Example:** `/abc 0` off: normal chat and logging
+  - **Example:** `/abc 1` on: abbreviates chat messages
   - **Example:** `/abc 2` abbreviates chat messages and logging
   - **Description:** Slims down most player chat messages.
 
@@ -107,6 +108,9 @@ ___
   - **Aliases** `/cc`
   - **Example:** `/cc`
   - **Description:** toggles classic classes in who and other areas.
+
+- `/clearchat`
+  - **Description:** Clears chat in old ui.
 
 - `/clienthptick`
   - **Aliases** `/cht`
@@ -268,12 +272,12 @@ ___
           enable, value, and protected list are stored per character with the list stored in the
           `./<character_name>_protected.ini` file.
 
+- `/reloadskin`
+  - **Description:** reloads your current skin using ini.
+
 - `/replyconsent`
   - **Aliases:** `/rc`
   - **Description:** Executes a /consent on the last player to send you a tell.
-
-- `/reloadskin`
-  - **Description:** reloads your current skin using ini.
 
 - `/resetexp`
   - **Arguments:** `` (none resets exp), `ding` (enables aa ding sound), `off` (disables ding sound)
@@ -301,6 +305,9 @@ ___
   - **Aliases:** `/showlootlockout`, `/showlockouts`, `/sll`
   - **Description:** Shows you your current loot lockouts on supporting servers.
 
+- `/shownames`
+  - **Description:** Default commmand extended to support options 5, 6, and 7.
+
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
   - **Description:** Toggles on and off the single click auto-transfer of stackable items to open
@@ -324,6 +331,9 @@ ___
   - **Example:** `/spellset load nukes`
   - **Example:** `/spellset delete buffs`
   - **Description:** allows you to save and load spellsets
+
+- `/stopsong`
+  - **Description:** Fixes a client bug so /stopsong doesn't desync from server with clickies.
 
 - `/survey`
   - **Arguments:** `on`, `off`, `channel`, `new`, `response`, `results`, `share`

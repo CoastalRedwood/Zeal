@@ -84,6 +84,7 @@ class ZoneMap {
   void set_marauders_map(bool enable) { map_show_all = enable; }  // Resets to false on zone.
 
   ZealSetting<bool> setting_add_loc_text = {false, "Zeal", "MapAddLocText", false};
+  ZealSetting<bool> setting_add_speed_text = {false, "Zeal", "MapAddSpeedText", false};
   ZealSetting<bool> setting_show_all_player_headings = {false, "Zeal", "MapShowPlayerHeadings", false};
   ZealSetting<bool> setting_show_ring_heading = {false, "Zeal", "MapShowRingHeading", false};
 

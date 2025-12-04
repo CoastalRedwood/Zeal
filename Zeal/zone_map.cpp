@@ -706,9 +706,17 @@ void ZoneMap::render_labels(IDirect3DDevice8 &device) {
     const ZoneMapData *zone_map_data = get_zone_map(zone_id);
     label += (zone_map_data) ? zone_map_data->name : "Unknown";
     label += " ";
-  } else if (setting_add_loc_text.get()) {
-    const Vec3 &position = Zeal::Game::get_self()->Position;
-    label += std::format("{0:.0f}, {1:.0f}\n", position.x, position.y);
+  } else {
+    if (setting_add_loc_text.get()) {
+      const Vec3 &position = Zeal::Game::get_self()->Position;
+      label += std::format("{0:.0f}, {1:.0f}\n", position.x, position.y);
+    }
+    auto self = Zeal::Game::get_self();
+    if (self && setting_add_speed_text.get()) {
+      auto horse = self->ActorInfo ? self->ActorInfo->Mount : nullptr;
+      float speed = horse ? horse->MovementSpeed : self->MovementSpeed;
+      label += std::format("{:.0f}%\n", speed * (100.f / 0.7f));
+    }
   }
   if (map_level_index == -1 && !default_to_zlevel_autofade)
     label += "Auto";
