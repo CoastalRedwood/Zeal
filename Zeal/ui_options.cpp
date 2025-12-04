@@ -17,6 +17,7 @@
 #include "hook_wrapper.h"
 #include "item_display.h"
 #include "looting.h"
+#include "memory.h"
 #include "music.h"
 #include "nameplate.h"
 #include "npc_give.h"
@@ -324,6 +325,8 @@ void ui_options::InitGeneral() {
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_RaidEscapeLock",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape_raid_lock.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_DialogPosition",
+                          [this](Zeal::GameUI::BasicWnd *wnd) { setting_dialog_position.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_ShowHelm", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->helm->ShowHelmEnabled.set(wnd->Checked);
   });
@@ -914,6 +917,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_Input", ZealService::get_instance()->chat_hook->UseZealInput.get());
   ui->SetChecked("Zeal_Escape", setting_escape.get());
   ui->SetChecked("Zeal_RaidEscapeLock", setting_escape_raid_lock.get());
+  ui->SetChecked("Zeal_DialogPosition", setting_dialog_position.get());
   ui->SetChecked("Zeal_ShowHelm", ZealService::get_instance()->helm->ShowHelmEnabled.get());
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
   ui->SetChecked("Zeal_SpellbookAutoStand", ZealService::get_instance()->movement->SpellBookAutoStand.get());
@@ -1289,6 +1293,62 @@ static int __fastcall SidlScreenWndHandleRButtonDown(Zeal::GameUI::SidlWnd *wnd,
       SidlScreenWndHandleRButtonDown)(wnd, unused_edx, mouse_x, mouse_y, unknown3);
 }
 
+// Disables centering of the confirmation dialog window if enabled.
+static void __fastcall CConfirmationDialog_Center(Zeal::GameUI::CConfirmationDialog *dialog, int unused_edx) {
+  auto zeal = ZealService::get_instance();
+  if (zeal->ui->options->setting_dialog_position.get()) return;  // Skip centering.
+  ZealService::get_instance()->hooks->hook_map["CConfirmationDialog_Center"]->original(CConfirmationDialog_Center)(
+      dialog, unused_edx);
+}
+
+// Enables loading / store confirmation dialog position if enabled.
+void ui_options::SyncDialogPosition() {
+  BYTE *const flags = reinterpret_cast<BYTE *>(0x0041590f);  // Sidl ini settings in constructor.
+  bool sticky_position = setting_dialog_position.get();
+  BYTE target_value = sticky_position ? 0x1d : 0x1c;  // Enable load/store position.
+  if (*flags != target_value) {
+    mem::write<BYTE>(reinterpret_cast<int>(flags), target_value);
+
+    // If dialog is already created need to update the existing object to properly store settings.
+    auto dialog = Zeal::Game::Windows->ConfirmationDialog;
+    if (dialog) {
+      if (sticky_position)
+        dialog->EnableINIStorage |= 0x1;  // Enable storage of position.
+      else
+        dialog->EnableINIStorage &= ~0x1;
+    }
+  }
+}
+
+// Block storing the ini in character select (which won't be properly loaded).
+static void __fastcall CConfirmationDialog_StoreIniInfo(Zeal::GameUI::CConfirmationDialog *dialog, int unused_edx) {
+  if (Zeal::Game::get_gamestate() != GAMESTATE_INGAME) return;
+  Zeal::Game::GameInternal::CSidlScreenWndStoreIniInfo(dialog, 0);
+}
+
+// Adds a countdown (if active) tooltip to the confirmation dialog window.
+static int __fastcall CConfirmationDialog_PostDraw(Zeal::GameUI::CConfirmationDialog *dialog, int unused_edx) {
+  auto display = Zeal::Game::get_display();
+  if (display && dialog && dialog->Activated && dialog->Timeout) {
+    DWORD game_time = display->GameTimeMs;
+    int remaining_ms = (dialog->Timeout - game_time);
+    if (remaining_ms >= 1000) {
+      int seconds = remaining_ms / 1000;
+      char time_text[64];
+      int minutes = seconds / 60;
+      if (minutes)
+        std::snprintf(time_text, sizeof(time_text) - 1, "%dm", minutes);
+      else
+        std::snprintf(time_text, sizeof(time_text) - 1, "%ds", seconds);
+      dialog->ToolTipText.Set(time_text);
+      Zeal::GameUI::CXRect relativeRect = dialog->GetScreenRect();
+      dialog->DrawTooltipAtPoint(relativeRect.Right, relativeRect.Top);
+    }
+  }
+
+  return 0;  // Default function just returns 0.
+}
+
 // Support modifying / substituting animations.
 static bool handle_animation_packet(Zeal::Packets::Animation_Struct *animation) {
   const auto char_info = Zeal::Game::get_char_info();
@@ -1332,6 +1392,10 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, const std::string &msg, const short &channel) {
     if (channel == USERCOLOR_TELL) this->PlayTellSound();
   });
+
+  zeal->hooks->Add("CConfirmationDialog_Center", 0x00415b57, CConfirmationDialog_Center, hook_type_replace_call);
+  zeal->hooks->Add("CConfirmationDialog_PostDraw", 0x005e4828, CConfirmationDialog_PostDraw, hook_type_vtable);
+  zeal->hooks->Add("CConfirmationDialog_StoreIniInfo", 0x005e4918, CConfirmationDialog_StoreIniInfo, hook_type_vtable);
 
   zeal->hooks->Add("RaidHandleCreateInviteRaid", 0x0049e54c, RaidHandleCreateInviteRaid, hook_type_detour);
   zeal->hooks->Add("RaidSendInviteResponse", 0x0049debd, RaidSendInviteResponse, hook_type_detour);

@@ -39,6 +39,8 @@ class ui_options {
   ZealSetting<bool> setting_slash_not_poke = {false, "Zeal", "SlashNotPoke", false};
   ZealSetting<bool> setting_escape = {false, "Zeal", "Escape", false};
   ZealSetting<bool> setting_escape_raid_lock = {false, "Zeal", "EscapeRaidLock", false};
+  ZealSetting<bool> setting_dialog_position = {false, "Zeal", "DialogPosition", false,
+                                               [this](const bool &) { SyncDialogPosition(); }};
 
  private:
   void InitUI();
@@ -56,6 +58,7 @@ class ui_options {
   void Deactivate();
   int FindComboIndex(std::string combobox, std::string text_value);
   void UpdateComboBox(const std::string &name, const std::string &label, const std::string &default_label);
+  void SyncDialogPosition();
 
   Zeal::GameUI::SidlWnd *wnd = nullptr;
   std::vector<Zeal::GameUI::BasicWnd *> color_buttons;

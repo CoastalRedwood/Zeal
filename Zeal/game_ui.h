@@ -1199,7 +1199,7 @@ class QuantityWnd : public SidlWnd {
   /*0x13C*/ DWORD Unknown0x13C;
   /*0x140*/ DWORD Unknown0x140;  // Set to 0 in constructor.
   /*0x144*/ DWORD Unknown0x144;  // Quantity slider.
-  /*0x148*/ DWORD Unknonw0x148;  // Quantity slider input.
+  /*0x148*/ DWORD Unknown0x148;  // Quantity slider input.
   /*0x14C*/ DWORD Unknown0x14c;  // Quantity accept button.
 };
 
@@ -1237,10 +1237,50 @@ class BazaarSearchWnd : public SidlWnd {
   /*0x39ec*/ EditWnd *MinPriceInput;       // BZR_MinPriceInput.
 };
 
+class CConfirmationDialog : public SidlWnd {
+  enum Categories {
+    GuildInvite = 0x0,       // Message 0x4118.
+    Pvp = 0x1,               // Unsupported message 0x41cf.
+    RezzAnswer = 0x2,        // Message 0x419b.
+    DestroyItem = 0x5,       // Message 0x412d.
+    GuildWar = 0x8,          // Unsupported message 0x4193.
+    GuildPeace = 0x9,        // Unsupported message 0x4194.
+    Surname = 0xa,           // Message 0x41c4.
+    GmKill = 0xd,            // Message 0x406c.
+    Sacrifice = 0x14,        // Message 0x41ea.
+    DropItem = 0x15,         // Message 0x402c.
+    LootItem = 0x16,         // Message 0x40a0.
+    GuildDelete = 0x17,      // Message 0x411a.
+    Translocate = 0x19,      // Message 0x4206.
+    DropMoney = 0x1a,        // Message 0x4007.
+    DeleteCharacter = 0x1b,  // Message 0x405a.
+    ResetKeys = 0x1c,        // Resets keyboard ini settings.
+    OkPrompt = 0x1d,         // Informational dialog with an ok button.
+    OldVideoMode = 0x1f,     // Accepts or restores video mode.
+    Msg0x408c = 0x20,        // Unsupported message 0x408c.
+    DefaultColors = 0x21,    // Restores to default UI colors.
+    DeleteSpell = 0x22,      // Message 0x424a.
+  };
+
+ public:
+  /*0x134*/ BYTE Activated;  // Set to 1 when activated and 0 in Deactivate().
+  /*0x135*/ BYTE Unknown0x135[3];
+  /*0x138*/ DWORD YesButton;
+  /*0x13C*/ DWORD NoButton;
+  /*0x140*/ DWORD OkButton;
+  /*0x144*/ DWORD TextOutput;
+  /*0x148*/ DWORD Category;      // Dialog type (category). 0x14 = sacrifice, 0x1d = Ok, 0x20 = no process.
+  /*0x14C*/ DWORD Timeout;       // If non-zero, set to current time + timeout duration in Activate().
+  /*0x150*/ DWORD Unknown0x14c;  // Set to 0 in constructor.
+  /*0x154*/ BYTE Unknown0x154[0x200 - 0x154];
+  /*0x200*/ DWORD FocusWnd;                    //  Set in Activate().
+  /*0x204*/ BYTE Unknown0x204[0x390 - 0x204];  // 0x390 bytes allocated
+};
+
 struct pInstWindows {
   CContextMenuManager *ContextMenuManager;  // 0x63D5CC
   CChatManager *ChatManager;                // 0x63D5D0
-  SidlWnd *uknownWnd1;                      // 0x63D5D4
+  CConfirmationDialog *ConfirmationDialog;  // 0x63D5D4
   CharSelect *CharacterSelect;              // 0x63D5D8
   SidlWnd *FacePick;                        // 0x63D5DC
   ItemDisplayWnd *ItemWnd;                  // 0x63D5E0
