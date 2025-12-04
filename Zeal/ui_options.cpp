@@ -614,6 +614,9 @@ void ui_options::InitMap() {
   ui->AddCheckboxCallback(wnd, "Zeal_MapAddLocText", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->setting_add_loc_text.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_MapAddSpeedText", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->zone_map->setting_add_speed_text.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_MapShowPlayerHeadings", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->setting_show_all_player_headings.set(wnd->Checked);
   });
@@ -1096,6 +1099,7 @@ void ui_options::UpdateOptionsMap() {
   ui->SetChecked("Zeal_MapShowRaid", ZealService::get_instance()->zone_map->is_show_raid_enabled());
   ui->SetChecked("Zeal_MapShowGrid", ZealService::get_instance()->zone_map->is_show_grid_enabled());
   ui->SetChecked("Zeal_MapAddLocText", ZealService::get_instance()->zone_map->setting_add_loc_text.get());
+  ui->SetChecked("Zeal_MapAddSpeedText", ZealService::get_instance()->zone_map->setting_add_speed_text.get());
   ui->SetChecked("Zeal_MapShowPlayerHeadings",
                  ZealService::get_instance()->zone_map->setting_show_all_player_headings.get());
   ui->SetComboValue("Zeal_MapShowGroup_Combobox", ZealService::get_instance()->zone_map->get_show_group_mode());

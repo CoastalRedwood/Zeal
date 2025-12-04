@@ -998,6 +998,36 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  <Button item="Zeal_MapAddSpeedText">
+    <ScreenID>Zeal_MapAddSpeedText</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>960</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Adds current normalized speed to map</TooltipReference>
+    <Text>Add speed text</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
 
   
   <Page item="Tab_Map">
@@ -1047,6 +1077,7 @@
     <Pieces>Zeal_MapFadedZLevelAlpha_Value</Pieces>
     <Pieces>Zeal_MapAutoFadeEnable</Pieces>
     <Pieces>Zeal_MapAddLocText</Pieces>
+    <Pieces>Zeal_MapAddSpeedText</Pieces>
     <Pieces>Zeal_MapNamesLength_Label</Pieces>
     <Pieces>Zeal_MapNamesLength_Slider</Pieces>
     <Pieces>Zeal_MapNamesLength_Value</Pieces>
