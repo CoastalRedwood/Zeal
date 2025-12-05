@@ -142,7 +142,6 @@ ZealService::ZealService() {
 
   // Adds DirectX (and UISkin for resource file paths) dependencies.
   target_ring = MakeCheckedUnique(TargetRing);
-  nameplate = MakeCheckedUnique(NamePlate);             // Uses target ring blink rate setting.
   floating_damage = MakeCheckedUnique(FloatingDamage);  // Uses target ring method.
 
   // Classes that add more explicit dependencies on the new UI.
@@ -153,6 +152,7 @@ ZealService::ZealService() {
   equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
+  nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate setting and Chat.
   tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
   looting_hook = MakeCheckedUnique(Looting);        // Uses new UI Loot window (and ChatManager).
   give = MakeCheckedUnique(NPCGive);                // Uses new Ui Trade & Give and also looting.

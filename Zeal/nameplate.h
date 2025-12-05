@@ -29,6 +29,7 @@ class NamePlate {
     NpcCorpse = 10,
     PlayerCorpse = 11,
     Target = 18,
+    Tagged = 29,
     GuildLFG = 30,
     PvpAlly = 31,
   };
@@ -45,6 +46,7 @@ class NamePlate {
   ZealSetting<bool> setting_con_colors = {false, "Zeal", "NameplateConColors", false};
   ZealSetting<bool> setting_target_color = {false, "Zeal", "NameplateTargetColor", false};
   ZealSetting<bool> setting_char_select = {false, "Zeal", "NameplateCharSelect", false};
+  ZealSetting<bool> setting_tag_enable = {false, "Zeal", "NameplateTagEnable", false};
 
   // Text settings.
   ZealSetting<bool> setting_hide_self = {false, "Zeal", "NameplateHideSelf", false};
@@ -98,6 +100,7 @@ class NamePlate {
  private:
   struct NamePlateInfo {
     std::string text;
+    std::string tag_text;
     DWORD color;
   };
 
@@ -117,6 +120,10 @@ class NamePlate {
   bool is_group_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
   bool handle_shownames_command(const std::vector<std::string> &args);
+  bool handle_tag_command(const std::vector<std::string> &args);
+  void enable_tags(bool enable);
+  void clear_tags();
+  bool check_message_for_broadcast(const char *message);
 
   void clean_ui();
   void render_ui();

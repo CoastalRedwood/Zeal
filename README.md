@@ -1,3 +1,5 @@
+## [Download instructions](#installation)
+
 ### Description
 Zeal adds quality of life functionality to legacy TAKP game clients. It aims to make the experience
 more enjoyable and accessible while not fundamentally changing the game's difficulty, but it should
@@ -7,7 +9,8 @@ Zeal custom code is entirely open source. The releases are built by github serve
 from the repo source, providing full transparency on the release contents.
 
 ### Installation
-- Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest)
+- Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest) zip
+  (not the repo source code zip)
 - Unzip contents to root game directory (not the uifiles/ subfolder).
 - Test Zeal installation in game by typing "/zeal version" and "/help zeal".
 - Configure Zeal by assigning new key binds and using the new Zeal options window.
@@ -338,6 +341,15 @@ ___
 - `/survey`
   - **Arguments:** `on`, `off`, `channel`, `new`, `response`, `results`, `share`
   - **Description:** Survey helper for polling raid groups. See /survey section below.
+
+- `/tag`
+  - **Description:** sets a unique color and a text tag to the top of a target NPC's nameplate
+    (requires Zeal fonts nameplate mode)
+  - **Arguments:** `clear`: clears all tags, `on`, `off`: Used to enable/disable
+  - **Arguments:** `<rsay | gsay | local> <tag_text | clear>`
+  - **Example:** `/tag rsay Assist me` broadcasts to trigger a raid-wide tag with 'Assist Me'
+  - **Example:** `/tag gsay clear` broadcasts a special message to clear all group members' tags
+  - **Example:** `/tag clear` clears all tags on local client
 
 - `/target`
   - **Aliases:** `/cleartarget`
