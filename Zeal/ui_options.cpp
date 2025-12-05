@@ -200,7 +200,7 @@ static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_de
     {"OtherDmgShld", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 26: White
     {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 27: Unused
     {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 28: Unused
-    {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 29: Unused
+    {"Tagged", D3DCOLOR_XRGB(0xff, 0x80, 0xf0)},         // 29: Orange
     {"GuildLFG", D3DCOLOR_XRGB(0xcf, 0xff, 0x00)},       // 30: Yellow
     {"PVPAlly", D3DCOLOR_XRGB(0x3d, 0x6b, 0xdc)},        // 31: Default blue
     {"MyMelee", D3DCOLOR_XRGB(0x00, 0xf0, 0xf0)},        // 32: Light blue
