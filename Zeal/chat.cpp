@@ -211,37 +211,56 @@ std::string add_class_colors(std::string message, short channel) {
   auto entity_manager = ZealService::get_instance()->entity_manager.get();
   if (!entity_manager) return message;  // Abort if entity manager unavailable
 
-  static const std::regex possible_names_pattern(R"(\b(?:[a-zA-Z]{4,}|Your?)\b)", std::regex::icase);
-  std::set<std::string> unique_matches;
+  // Pattern to find STML tags or possible names
+  static const std::regex tags_or_names_pattern(R"((<[^>]*>)|(\b(?:[a-zA-Z]{4,}|Your?)\b))", std::regex::icase);
 
-  std::sregex_iterator words_begin(message.begin(), message.end(), possible_names_pattern);
-  std::sregex_iterator words_end;
+  // Find matches
+  auto words_begin = std::sregex_iterator(message.cbegin(), message.cend(), tags_or_names_pattern);
+  auto words_end = std::sregex_iterator();
 
-  while (words_begin != words_end) {
-    unique_matches.insert(words_begin->str());
-    ++words_begin;
-  }
+  // Return original message if no matches were found
+  if (words_begin == words_end) { return message; }
 
-  for (const auto &match : unique_matches) {
-    std::string possible_name = match.data();
-    std::string possible_name_lower = possible_name;
-    std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
-    std::string possible_name_capitalized = possible_name_lower;
-    possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
+  // Modified string for output
+  std::string result;
+  result.reserve(message.length() * 2);
 
-    // Try to find class color for name
-    DWORD class_color = get_class_color(possible_name_capitalized, channel);
+  // Keep track of the last match postion
+  std::string::const_iterator last_match_pos = message.cbegin();
 
-    // Add color tags if a match was found
-    if (class_color) {
-      // Replace name with STML-Colored Name
-      std::string replacement_name = std::format("<c \"#{:06x}\">{}</c>", class_color & 0x00ffffff, possible_name);
-      std::string name_pattern_string = R"(\b)" + possible_name + R"(\b)";
-      std::regex name_pattern(name_pattern_string);
-      message = std::regex_replace(message, name_pattern, replacement_name);
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    std::smatch match = *i;
+
+    // Append non-matched data up to the current match
+    result.append(last_match_pos, match[0].first);
+    last_match_pos = match[0].second;
+
+    // If this matches a STML tag, no modifications are needed
+    if (match[1].matched) { result.append(match.str()); }
+    // Possible name, if it matches an entiy, add color tags
+    else if (match[2].matched) {
+      std::string possible_name = match.str();
+      std::string possible_name_lower = possible_name;
+      std::transform(possible_name_lower.begin(), possible_name_lower.end(), possible_name_lower.begin(), ::tolower);
+      std::string possible_name_capitalized = possible_name_lower;
+      possible_name_capitalized[0] = std::toupper(possible_name_capitalized[0]);
+
+      // Try to find class color for name
+      DWORD class_color = get_class_color(possible_name_capitalized, channel);
+
+      // Add color tags if a match was found
+      if (class_color) {
+        std::string replacement_name = std::format("<c \"#{:06x}\">{}</c>", class_color & 0x00ffffff, possible_name);
+        result.append(replacement_name);
+      } else {
+        result.append(possible_name);
+      }
     }
   }
-  return (message);
+  // Append remaining message
+  result.append(last_match_pos, message.cend());
+
+  return result;
 }
 
 std::string generateTimestampedString(const std::string &message, bool longform = true) {
