@@ -934,10 +934,10 @@ put in the target channel with a Zeal map trigger header followed by the command
 
 #### Map data source
 The map has simple support for external map data files. The map data_mode can be set to `internal`,
-`both`, or `external`. In `both`, the internal maps are combined with any available data from an
-external file for that zone. In `external`, the internal map data for the zone is ignored if
-external file data exists for that zone. In all cases internal data is used if external data is
-not present.
+`both`, `external`, or `nointernalpoi`. In `both`, the internal maps are combined with any available
+data from an external file for that zone. In `external`, the internal map data for the zone is ignored if
+external map line data exists for that zone. In `nointernalpoi` it uses the internal map and loads in external
+map data if it exists for that zone. In all cases internal data is used if external data is not present.
 
 Note that some features, such as level recognition, are not currently supported with external data.
 
@@ -945,7 +945,9 @@ The external map files must be placed in a `map_files` directory in the root gam
 with zones named to match their short names (ie `map_files/commons.txt` contains the data for
 West Commonlands). If that short name file is present, it will also look for an optional `_1.txt`
 file (ie `map_files/commons_1.txt`) and parse it if present. Most Brewall map files with POIs can
-be directly dropped in (although any `_2.txt` or higher will be ignored).
+be directly dropped in. Optional files are supported up to _10.txt (ie `map_files/commons_10.txt`).
+The previous optional file must exist (ie: `map_files/commons_2.txt` must exist) before it will check
+for the following one (ie: `map_files/commons_3.txt`)
 
 The external map support requires a format compatible with Brewall map data.
 ```
