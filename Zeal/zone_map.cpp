@@ -1772,7 +1772,7 @@ const ZoneMapData *ZoneMap::get_zone_map(int zone_id) {
 
   if (map_data_mode == MapDataMode::kBoth && internal_map) {
     add_map_data_from_internal(*internal_map, *new_map);  // Add all lines, labels and levels
-  } else if (map_data_mode == MapDataMode::kHybrid && internal_map && new_map->labels.size() > 0) {
+  } else if (map_data_mode == MapDataMode::kNoInternalPOI && internal_map && new_map->labels.size() > 0) {
     add_map_lines_from_internal(*internal_map, *new_map); // Add internal lines and levels
     add_map_levels_from_internal(*internal_map, *new_map);
   } else if (new_map->lines.size() == 0) {
@@ -2509,12 +2509,12 @@ void ZoneMap::parse_map_data_mode(const std::vector<std::string> &args) {
       mode = MapDataMode::kBoth;
     else if (args[2] == "external")
       mode = MapDataMode::kExternal;
-    else if (args[2] == "hybrid")
-      mode = MapDataMode::kHybrid;
+    else if (args[2] == "nointernalpoi")
+      mode = MapDataMode::kNoInternalPOI;
   }
 
   if ((mode < MapDataMode::kFirst) || !set_map_data_mode(mode, false)) {
-    Zeal::Game::print_chat("Usage: /map data_mode internal, both, external, hybrid");
+    Zeal::Game::print_chat("Usage: /map data_mode internal, both, external, nointernalpoi");
   }
 }
 

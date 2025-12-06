@@ -35,7 +35,7 @@ class ZoneMap {
   };
 
   struct MapDataMode {
-    enum e : int { kInternal = 0, kBoth, kExternal, kHybrid, kFirst = kInternal, kLast = kHybrid };
+    enum e : int { kInternal = 0, kBoth, kExternal, kNoInternalPOI, kFirst = kInternal, kLast = kNoInternalPOI };
   };
 
   struct ShowGroupMode {

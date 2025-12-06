@@ -883,9 +883,9 @@ put in the target channel with a Zeal map trigger header followed by the command
 
 #### Map data source
 The map has simple support for external map data files. The map data_mode can be set to `internal`,
-`both`, `external`, or `hybrid`. In `both`, the internal maps are combined with any available data from an
-external file for that zone. In `external`, the internal map data for the zone is ignored if
-external map line data exists for that zone. In `hybrid` it uses the internal map and loads in external
+`both`, `external`, or `nointernalpoi`. In `both`, the internal maps are combined with any available
+data from an external file for that zone. In `external`, the internal map data for the zone is ignored if
+external map line data exists for that zone. In `nointernalpoi` it uses the internal map and loads in external
 map data if it exists for that zone. In all cases internal data is used if external data is not present.
 
 Note that some features, such as level recognition, are not currently supported with external data.

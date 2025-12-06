@@ -967,7 +967,7 @@
     <Choices>Internal only</Choices>
     <Choices>Both</Choices>
     <Choices>External</Choices>
-	<Choices>Hybrid</Choices>
+	<Choices>No Internal POI</Choices>
   </Combobox>
   <Button item="Zeal_MapAddLocText">
     <ScreenID>Zeal_MapAddLocText</ScreenID>
