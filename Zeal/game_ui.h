@@ -298,8 +298,9 @@ struct BasicWnd  // Equivalent to CXWnd in client.
   /* 0x0010 */ BYTE FadedAlpha;  // Alpha transparency value when faded
   /* 0x0011 */ BYTE IsNotFaded;  // Set to 0 when faded, 1 when not faded
   /* 0x0012 */ BYTE IsLocked;
-  /* 0x0013 */ BYTE LockEnable;  // Enable Lock option in CContextMenuManager::WarnDefaultMenu.
-  /* 0x0014 */ PVOID Unknown0014;
+  /* 0x0013 */ BYTE LockEnable;         // Enable Lock option in CContextMenuManager::WarnDefaultMenu.
+  /* 0x0014 */ BYTE DisableRightClick;  // Set to 1 to ignore RMB down (like in CChatWindow() for CW_ChatOutput).
+  /* 0x0015 */ BYTE Unknown0015[0x3];
   /* 0x0018 */ DWORD Unknown0018;
   /* 0x001C */ struct SidlWnd *ParentWnd;
   /* 0x0020 */ struct SidlWnd *FirstChildWnd;
@@ -711,8 +712,10 @@ struct EditWnd : public BasicWnd  // Note: this definition has a truncated vtbl.
 };
 
 struct ChatWnd : public SidlWnd {
-  /*0x134*/ EditWnd *unk;
-  /*0x138*/ EditWnd *edit;
+  /*0x134*/ class CChatManager *ChatManager;  // Points back so Deactivate can release itself.
+  /*0x138*/ EditWnd *edit;                    // CW_ChatInput
+  /*0x13C*/ EditWnd *ChatOutput;              // CW_ChatOutput
+  /*0x140*/ BYTE Uknown0x140[0x240 - 0x140];
 };
 
 // onetimehero 09-17-03

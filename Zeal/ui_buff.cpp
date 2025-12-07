@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "callbacks.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
@@ -156,10 +157,39 @@ int __fastcall CastSpellWnd_PostDraw(Zeal::GameUI::CastSpellWnd *this_ptr, void 
   return result;
 }
 
+// Return the 'no hit' value of -100 for click through mode.
+static int __fastcall BuffWindow_HandleLButtonDown(Zeal::GameUI::SidlWnd *wnd, int unusedEDX, int32_t mouse_x,
+                                                   int32_t mouse_y, uint32_t unused3) {
+  if (wnd->IsLocked && ZealService::get_instance()->ui->buffs->BuffClickThru.get()) return -100;
+  return ZealService::get_instance()->hooks->hook_map["BuffWindow_HandleLButtonDown"]->original(
+      BuffWindow_HandleLButtonDown)(wnd, unusedEDX, mouse_x, mouse_y, unused3);
+}
+
+// Return the 'no hit' value of -100 for click through mode.
+static int __fastcall BuffWindow_HandleLButtonUp(Zeal::GameUI::SidlWnd *wnd, int unusedEDX, int32_t mouse_x,
+                                                 int32_t mouse_y, uint32_t unused3) {
+  if (wnd->IsLocked && ZealService::get_instance()->ui->buffs->BuffClickThru.get()) return -100;
+  return ZealService::get_instance()->hooks->hook_map["BuffWindow_HandleLButtonUp"]->original(
+      BuffWindow_HandleLButtonUp)(wnd, unusedEDX, mouse_x, mouse_y, unused3);
+}
+
+// Set the right click disable flag here before all of the dependent process mouse click callsbacks happen.
+static int __fastcall BuffWindow_HitTest(Zeal::GameUI::SidlWnd *wnd, int unusedEDX, int32_t mouse_x, int32_t mouse_y,
+                                         uint32_t *hitcode) {
+  bool click_thru = wnd->IsLocked && ZealService::get_instance()->ui->buffs->BuffClickThru.get();
+  wnd->DisableRightClick = click_thru && !Zeal::Game::get_wnd_manager()->ControlKeyState;
+
+  return ZealService::get_instance()->hooks->hook_map["BuffWindow_HitTest"]->original(BuffWindow_HitTest)(
+      wnd, unusedEDX, mouse_x, mouse_y, hitcode);
+}
+
 ui_buff::ui_buff(ZealService *zeal, UIManager *mgr) {
   zeal->hooks->Add("BuffWindow_PostDraw", 0x4095FE, BuffWindow_PostDraw, hook_type_detour);
   zeal->hooks->Add("BuffWindow_Refresh", 0x409334, BuffWindow_Refresh, hook_type_detour);
   zeal->hooks->Add("CastSpellWnd_PostDraw", 0x0040a2a4, CastSpellWnd_PostDraw, hook_type_detour);
+  zeal->hooks->Add("BuffWindow_HandleLButtonDown", 0x005e3ed4, BuffWindow_HandleLButtonDown, hook_type_vtable);
+  zeal->hooks->Add("BuffWindow_HandleLButtonUp", 0x005e3ed8, BuffWindow_HandleLButtonUp, hook_type_vtable);
+  zeal->hooks->Add("BuffWindow_HitTest", 0x005e3f6c, BuffWindow_HitTest, hook_type_vtable);
   ui = mgr;
   // zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   // zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
