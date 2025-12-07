@@ -15,6 +15,7 @@ class ui_buff {
   ZealSetting<bool> BuffTimers = {true, "Zeal", "Bufftimers", false};
   ZealSetting<bool> RecastTimers = {false, "Zeal", "Recasttimers", false};
   ZealSetting<bool> RecastTimersLeftAlign = {false, "Zeal", "RecasttimersLeftAlign", false};
+  ZealSetting<bool> BuffClickThru = {false, "Zeal", "BuffClickThru", false};
 
  private:
   UIManager *ui;

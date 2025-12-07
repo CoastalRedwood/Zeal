@@ -1641,6 +1641,36 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_BuffClickThru">
+    <ScreenID>Zeal_BuffClickThru</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>360</X>
+      <Y>486</Y>
+    </Location>
+    <Size>
+      <CX>150</CX>
+      <CY>20</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Makes buff non-button area click thru when locked (use ctrl+click to unlock)</TooltipReference>
+    <Text>Buff click thru</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
 
   <!-- end -->
     
@@ -1725,6 +1755,7 @@
     <Pieces>Zeal_SuppressLifetapFeeling</Pieces>
     <Pieces>Zeal_SuppressOtherPets</Pieces>
     <Pieces>Zeal_ReportOtherNonMeleeDmg</Pieces>
+    <Pieces>Zeal_BuffClickThru</Pieces>
     <Location>
       <X>0</X>
       <Y>22</Y>

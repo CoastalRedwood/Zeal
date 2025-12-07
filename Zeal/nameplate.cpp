@@ -306,7 +306,8 @@ void NamePlate::render_ui() {
     position.z += get_nameplate_z_offset(*entity);
 
     // Support optional tag text and healthbar for zeal font mode only.
-    std::string full_text = info.tag_text.empty() ? info.text : info.tag_text + info.text;
+    bool no_tag = info.tag_text.empty() || (entity->Type >= Zeal::GameEnums::NPCCorpse);
+    std::string full_text = no_tag ? info.text : info.tag_text + info.text;
     if (setting_health_bars.get() && is_hp_updated(entity)) {
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       full_text += healthbar;
@@ -674,6 +675,10 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
 }
 
 void NamePlate::enable_tags(bool enable) {
+  if (enable && !setting_zeal_fonts.get()) {
+    Zeal::Game::print_chat("Nameplate tags requires Zeal fonts to be enabled");
+    enable = false;
+  }
   setting_tag_enable.set(enable);
   Zeal::Game::print_chat("Nameplate tags %s", enable ? "enabled" : "disabled");
   if (!enable) clear_tags();
@@ -770,7 +775,12 @@ bool NamePlate::check_message_for_broadcast(const char *message) {
   auto it = nameplate_info_map.find(entity);
   if (it == nameplate_info_map.end()) return false;
 
-  it->second.tag_text = split[1] + "\n";
+  // Convert any characters that are not visible ASCII to ?.
+  std::string tag_text = split[1];
+  for (char &c : tag_text)
+    if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
+
+  it->second.tag_text = tag_text + "\n";
   // Update color immediately (otherwise there is typically a lag).
   if (entity != Zeal::Game::get_target() && ZealService::get_instance()->ui && get_color_callback)
     it->second.color = get_color_callback(static_cast<int>(ColorIndex::Tagged));
