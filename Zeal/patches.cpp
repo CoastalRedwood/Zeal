@@ -63,6 +63,105 @@ void Patches::SetBrownSkeletons() {
   }
 }
 
+// Support an option to simply no-op the DoSpriteEffects() call to avoid the dvps.dll crash.
+void Patches::SyncDisableSprites() {
+  const BYTE kOpcodeNop = 0x90;
+  const int kDoSpriteEffectAddr = 0x0052cbb1;
+  bool disable = setting_DisableSprites.get();
+  bool currently_disabled = (*reinterpret_cast<BYTE *>(kDoSpriteEffectAddr) == kOpcodeNop);
+  if (disable == currently_disabled) return;
+
+  if (disable) {
+    mem::set(kDoSpriteEffectAddr, kOpcodeNop, 5);  // No-op out the call.
+  } else {
+    const BYTE orig_code[5] = {0xe8, 0x89, 0xeb, 0xff, 0xff};  // Restore call.
+    mem::write(kDoSpriteEffectAddr, orig_code);
+  }
+}
+
+static constexpr int kNumBardEffects = 3;
+
+// Optional bard effects modes to reduce the super bright blue sparklies of constant bard song refreshes.
+bool Patches::SyncBardEffects() {
+  // Option 1: Use the pulsing sphere from Selo's (SpellAnim 98).
+  // Option 2: Use the more subtle floating notes animation from Nature's Melody (SpellAnim 45).
+  // Option 3: Use the even more subtle snowflake-like from Hymn/Cantata's (SpellAnim 69).
+  static constexpr int kReferenceSongIds[kNumBardEffects] = {717, 2050, 7};
+  static const char *kReferenceSongNames[kNumBardEffects] = {"Selo`s Accelerando", "Nature's Melody",
+                                                             "Hymn of Restoration"};
+
+  // These songs are by default all using old particle effects with SpellAffectIndex = 6.
+  static constexpr std::pair<int, const char *> kSongsToModify[] = {
+      {709, "Guardian Rhythms"},
+      {710, "Elemental Rhythms"},
+      {711, "Purifying Rhythms"},
+      {712, "Psalm of Warmth"},
+      {713, "Psalm of Cooling"},
+      {714, "Psalm of Mystic Shielding"},
+      {715, "Psalm of Vitality"},
+      {716, "Psalm of Purity"},
+      {722, "Jaxan`s Jig o` Vigor"},
+      {723, "Cassindra`s Chorus of Clarity"},
+      {1287, "Cassindra`s Chant of Clarity"},
+      {2607, "Elemental Chorus"},
+      {2608, "Purifying Chorus"},
+      {3368, "Psalm of Veeshan"},
+  };
+
+  // First check we have access to the spell list and the reference song is a match.
+  const auto *spell_mgr = Zeal::Game::get_spell_mgr();
+  if (!spell_mgr) return false;
+
+  int mode = setting_BardEffects.get();
+  DWORD new_effect = (DWORD) nullptr;  // Default uses the old particle effect.
+  if (mode > 0 && mode <= kNumBardEffects) {
+    int index = mode - 1;
+    const auto ref_spell = spell_mgr->Spells[kReferenceSongIds[index]];
+    if (!ref_spell || !ref_spell->Name || !ref_spell->NewParticleEffect ||
+        strcmp(ref_spell->Name, kReferenceSongNames[index]))
+      return false;
+    new_effect = ref_spell->NewParticleEffect;
+  }
+
+  // For every song, double-check it's a match (maybe the db gets updated) and apply the target
+  // effect only if there's a match.
+  bool no_errors = true;
+  for (auto &pair : kSongsToModify) {
+    auto spell = spell_mgr->Spells[pair.first];
+    if (!spell || !spell->Name || spell->SpellAffectIndex != 6 || strcmp(spell->Name, pair.second))
+      no_errors = false;
+    else
+      spell->NewParticleEffect = new_effect;
+  }
+  return no_errors;
+}
+
+bool Patches::HandleSpellEffectsCommand(const std::vector<std::string> &args) {
+  if (args.size() == 2 && args[1] == "nosprites") {
+    setting_DisableSprites.toggle();
+    Zeal::Game::print_chat("No sprites: %s", setting_DisableSprites.get() ? "True" : "False");
+  } else if (args.size() == 3 && args[1] == "bard") {
+    int mode = 0;
+    if (!Zeal::String::tryParse(args[2], &mode, true) || mode < 0 || mode > kNumBardEffects) {
+      Zeal::Game::print_chat("Error: bard effects mode must be between 0 and %d", kNumBardEffects);
+      return true;
+    }
+    setting_BardEffects.set(mode);
+    Zeal::Game::print_chat("Bard effects mode: %d", setting_BardEffects.get());
+    // This sync happens in the set above but call again to see if there was an error.
+    if (!SyncBardEffects()) Zeal::Game::print_chat("Unable to modify bard effects (spell db change?)");
+  } else {
+    Zeal::Game::print_chat("Usage: /spelleffects nosprites (toggles mode), /spelleffects bard <0, 1, 2, 3>");
+    Zeal::Game::print_chat(
+        "nosprites: Disables the minor sprite enhancement of the 180 songs (out of 4000) that can cause a crash"
+        " when `/showspelleffects on` is enabled");
+    Zeal::Game::print_chat(
+        "bard: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs to optionally"
+        " be more subtle (0 is invisible with /showspelleffects off)");
+  }
+  return true;
+}
+
 // Returns the class / level / monk-epic dependent hand to hand delay in milliseconds.
 static int get_hand_to_hand_delay_ms() { return Zeal::Game::get_hand_to_hand_delay() * 100; }
 
@@ -116,4 +215,8 @@ Patches::Patches() {
 
   ZealService::get_instance()->hooks->Add("ProcessDeath", 0x00528E16, ProcessDeath, hook_type_detour);
   ZealService::get_instance()->hooks->Add("CanIBreathe", 0x004C0DAB, CanIBreathe, hook_type_detour);
+
+  ZealService::get_instance()->commands_hook->Add(
+      "/spelleffects", {}, "Modify spell effects (prevent crashes, make less flashy, etc).",
+      [this](std::vector<std::string> &args) { return HandleSpellEffectsCommand(args); });
 }

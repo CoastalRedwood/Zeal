@@ -1973,6 +1973,18 @@ void dump_spell_info(int spell_id) {
     print_chat("[Idx %d]: Id: %d:, Formula: %d, Base: %d, Max: %d,", i, spell->Attrib[i], spell->Calc[i],
                spell->Base[i], spell->Max[i]);
   }
+
+  const bool effect_debug = true;  // Optional extra debug spam.
+  if (effect_debug) {
+    print_chat("[%d]: SpellAffectIndex: %d @ 0x%08x, SpellAnim: %d @ 0x%08x", spell_id, spell->SpellAffectIndex,
+               (int)spell->OldParticleEffect, spell->SpellAnim, (int)spell->NewParticleEffect);
+    for (int ii = 0; ii < 3; ++ii) {
+      if (spell->OldParticleEffect->subEffect[ii].effectMode >= 0)
+        print_chat("[%d][%d]: effectMode: %d, Name[0]: %s", spell_id, ii,
+                   spell->OldParticleEffect->subEffect[ii].effectMode,
+                   spell->OldParticleEffect->subEffect[ii].blitSprite[0]);
+    }
+  }
 }
 
 Zeal::GameStructures::Entity *get_self() { return *(Zeal::GameStructures::Entity **)Zeal::Game::Self; }

@@ -72,16 +72,11 @@ void AutoFire::SetAutoFire(bool enabled, bool do_print) {
     enabled = false;
   }
 
-  if (enabled && Zeal::Game::is_autoattacking()) {
-    if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire blocked by autoattack");
-    enabled = false;
-  }
-
   if (autofire && !enabled) {
     if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire disabled");
     Zeal::Game::SetMusicSelection(2, false);
   } else if (enabled) {
-    Zeal::Game::do_autoattack(false);
+    Zeal::Game::do_autoattack(false);  // Automatically disable auto-attack when enabling.
     if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire enabled.");
     if (!(*(bool *)0x61d25c))  // combat music disabled flag
       Zeal::Game::SetMusicSelection(2, true);
