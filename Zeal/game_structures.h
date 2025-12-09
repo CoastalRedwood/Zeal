@@ -1402,6 +1402,43 @@ struct ActorLocation {
   float unk7;
 };
 
+// Old Particle effect.
+struct SpellEffectRecordSub  // sizeof=0x3A0
+{
+  /*0x000*/ char blitSprite[3][32];
+  /*0x060*/ char role[32];
+  /*0x080*/ int32_t attachmentType[3];
+  /*0x08C*/ int32_t effectType[3];
+  /*0x098*/ char spriteEffectSprite[12][32];
+  /*0x218*/ int32_t effectMode;  // -1 = disabled, 0, 1, 2 = rings
+  /*0x21C*/ int32_t soundRef;
+  /*0x220*/ uint8_t colorBGRA[3][4];
+  /*0x22C*/ float gravity[3];
+  /*0x238*/ float spawnNormal[3][3];
+  /*0x25C*/ float spawnRadius[3];
+  /*0x268*/ float spawnAngle[3];
+  /*0x274*/ uint32_t lifespanMs[3];
+  /*0x280*/ float spawnVelMul[3];
+  /*0x28C*/ uint32_t spawnRateMs[3];
+  /*0x298*/ float spawnScale[3];
+  /*0x2A4*/ uint8_t spriteColorBGR[12][3];
+  /*0x2C8*/ float spriteSpin[12];
+  /*0x2F8*/ int16_t spriteAngleA[12];
+  /*0x310*/ int16_t spriteAngleB[12];
+  /*0x328*/ float spriteRadius[12];
+  /*0x358*/ int16_t spriteType[12];
+  /*0x370*/ float spriteScale[12];
+  /*0x3A0*/
+};
+
+// Old Particle effect.
+struct SpellEffectRecord {
+  /*0x000*/ uint32_t header0;
+  /*0x004*/ uint32_t header4;
+  /*0x008*/ SpellEffectRecordSub subEffect[3];  // 0 = Caster, 1 = Missile travel, 2 = Target
+  /*0xAE8*/
+};
+
 struct SPELL {
   // Note: Technically this is a GAMECHARINFO::CalculateSpellDuration, but declared here for now
   short CalculateSpellDuration(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE caster_level) {
@@ -1471,54 +1508,65 @@ struct SPELL {
   /*0x004*/ FLOAT Range;
   /*0x008*/ FLOAT AERange;
   /*0x00c*/ FLOAT PushBack;
-  /*0x010*/ BYTE Unknown0x00c[0x04];
+  /*0x010*/ FLOAT PushUp;
   /*0x014*/ DWORD CastTime;
-  /*0x018*/ DWORD FizzleTime;
+  /*0x018*/ DWORD FizzleTime;  // RecoveryTime
   /*0x01c*/ DWORD RecastTime;
-  /*0x020*/ DWORD DurationType;  // DurationFormula on Lucy
-  /*0x024*/ DWORD DurationValue1;
-  /*0x028*/ BYTE Unknown0x028[0x4];
-  /*0x02c**/ WORD Mana;
-
-  /*0x02e*/ short Base[0x0c];  // has to be signed for  ShowSpellSlotInfo to work      //Base1-Base12
-  /*0x046**/ short Max[0x0c];  // has to be signed for  ShowSpellSlotInfo to work        //Max1-Max12
-
-  /*0x05e**/ WORD BookIcon;
-  /*0x060**/ WORD GemIcon;
-
-  /*0x062**/ WORD ReagentId[0x4];     // ReagentId1-ReagentId4
-  /*0x06a**/ WORD ReagentCount[0x4];  // ReagentCount1-ReagentCount4
-  /*0x072*/ BYTE Unknown0x072[0x8];
-  /*0x07a**/ BYTE Calc[0x0c];  // Calc1-Calc12
+  /*0x020*/ DWORD DurationType;    // DurationFormula on Lucy
+  /*0x024*/ DWORD DurationValue1;  // Duration
+  /*0x028*/ DWORD AoeDuration;
+  /*0x02c*/ WORD Mana;
+  /*0x02e*/ INT16 Base[0x0c];
+  /*0x046*/ INT16 Max[0x0c];
+  /*0x05e*/ WORD BookIcon;
+  /*0x060*/ WORD GemIcon;
+  /*0x062*/ WORD ReagentId[0x4];     // ReagentId1-ReagentId4
+  /*0x06a*/ WORD ReagentCount[0x4];  // ReagentCount1-ReagentCount4
+  /*0x072*/ WORD NoExpendReagent[0x4];
+  /*0x07a*/ BYTE Calc[0x0c];  // Calc1-Calc12
   /*0x086*/ BYTE LightType;
   /*0x087*/ BYTE SpellType;  // 0=detrimental, 1=Beneficial, 2=Beneficial, Group Only
-  /*0x088*/ BYTE Unknown0x088;
-  /*0x089**/ BYTE Resist;  // 0=un 1=mr 2=fr 3=cr 4=pr 5=dr 6=chromatic
-  /*0x08a**/ BYTE Attrib[0xc];
-  /*0x096**/ BYTE TargetType;  // 3=Groupv1, 4=PBAoE, 5=Single, 6=Self, 8=TargetAoE, 9=Animal, 10=Undead, 11=Summoned,
-                               // 13=Tap, 14=Pet, 15=Corpse, 16=Plant, 20=TargetAoETap 28=AE PC v2, 29=Group v2
-  /*0x097**/ BYTE FizzleAdj;
-  /*0x098**/ BYTE Skill;
-  /*0x099*/ BYTE Location;  // 01=Outdoors, 02=dungeons, ff=Any
-  /*0x09a*/ BYTE Environment;
-  /*0x09b*/ BYTE TimeOfDay;         // 0=any, 1=day only, 2=night only
-  /*0x09c*/ BYTE ClassLevel[0x10];  // per class using GAMECHARINFO.Class (CLASS_X) as offset.
-  /*0x0a7*/ BYTE Unknown0x14f[0x10];
-  /*0x0bc**/ BYTE CastingAnim;
-  /*0x0bd*/ BYTE Unknown0x0bd[0x13];
-  /*0x0d0**/ CHAR *Name;
-  /*0x0d4**/ CHAR *Target;
-  /*0x0d8**/ CHAR *Extra;  // This is 'Extra' from Lucy (portal shortnames etc)
-  /*0x0dc**/ CHAR *Unknown0x0dc;
-  /*0x0e0**/ CHAR *Unknown0x0e0;
-  /*0x0e4**/ CHAR *CastOnYou;
-  /*0x0e8**/ CHAR *CastOnAnother;
-  /*0x0ec**/ CHAR *WearOff;
-  /*0x0f0*/ BYTE Unknown0x0f0[0x18];
-  /*0x108**/ DWORD Icon;  // Icon index in spells tgas
-  /*0x10c**/ BYTE ResistAdj;
-  /*0x10d*/ BYTE Unknown0x10d[0xb];
-  /*0x114*/
+  /*0x088*/ BYTE BuffType;
+  /*0x089*/ BYTE Resist;  // ResistType: 0=un 1=mr 2=fr 3=cr 4=pr 5=dr 6=chromatic
+  /*0x08a*/ BYTE Attrib[0xc];
+  /*0x096*/ BYTE TargetType;  // 3=Groupv1, 4=PBAoE, 5=Single, 6=Self, 8=TargetAoE, 9=Animal, 10=Undead, 11=Summoned,
+                              // 13=Tap, 14=Pet, 15=Corpse, 16=Plant, 20=TargetAoETap 28=AE PC v2, 29=Group v2
+  /*0x097*/ BYTE FizzleAdj;
+  /*0x098*/ BYTE Skill;               // SkillType
+  /*0x099*/ BYTE Location;            // ZoneType: 01=Outdoors, 02=dungeons, ff=Any
+  /*0x09a*/ BYTE Environment;         // EnvironmentType
+  /*0x09b*/ BYTE TimeOfDay;           // 0=any, 1=day only, 2=night only
+  /*0x09c*/ BYTE ClassLevel[0x10];    // per class using GAMECHARINFO.Class (CLASS_X) as offset.
+  /*0x0a7*/ BYTE Unknown0x14f[0x10];  // Possibly extension of ClassLevel.
+  /*0x0bc*/ BYTE CastingAnim;
+  /*0x0bd*/ BYTE TargetAnim;
+  /*0x0be*/ BYTE TravelType;
+  /*0x0bf*/ BYTE DisallowSit;
+  /*0x0c0*/ BYTE Uinterruptible;
+  /*0x0c1*/ BYTE DotStackingExempt;
+  /*0x0c2*/ BYTE Deleteable;
+  /*0x0c3*/ BYTE Unknown0x0c3;
+  /*0x0c4*/ int RecourseSpellId;
+  /*0x0c8*/ int NoPartialResist;
+  /*0x0cc*/ BYTE Unknown0x0cc[0x4];
+  /*0x0d0*/ CHAR *Name;
+  /*0x0d4*/ CHAR *Target;
+  /*0x0d8*/ CHAR *Extra;  // This is 'Extra' from Lucy (portal shortnames etc)
+  /*0x0dc*/ CHAR *YouCast;
+  /*0x0e0*/ CHAR *OtherCasts;
+  /*0x0e4*/ CHAR *CastOnYou;
+  /*0x0e8*/ CHAR *CastOnAnother;  // CastOnOther
+  /*0x0ec*/ CHAR *WearOff;        // SpellFades
+  /*0x0f0*/ SpellEffectRecord *OldParticleEffect;
+  /*0x0f4*/ int SpellAffectIndex;     // Index for OldParticleEffect, 0x3d to 0x40 = DragonBreath
+  /*0x0f8*/ DWORD NewParticleEffect;  // SpellEffectPtr
+  /*0x0fc*/ int SpellAnim;            // Index for NewParticleEffect ptr lookup, 0 = No new effect
+  /*0x100*/ int Deities;
+  /*0x104*/ BYTE NpcNoCast;
+  /*0x105*/ BYTE Unknown0x105;
+  /*0x106*/ INT16 AiPtBonus;
+  /*0x108*/ DWORD Icon;      // New Icon index in spells tgas
+  /*0x10c*/ int ResistDiff;  // ResistAdj
 };
 
 struct SPELLMGR {

@@ -328,6 +328,14 @@ ___
   - **Example:** `/sq` `/sq 1 2`
   - **Description:** sorts your current group members in the ui  using /sq 1 2 will swap players 1 and 2 in your group on your ui.
 
+- `/spelleffects`
+  - **Arguments:** `nosprites`, `bard <0, 1, 2, 3>`
+  - **Example:** `/spelleffects nosprites`: Disables the minor sprite enhancement of the 180 songs (out of 4000)
+    that can cause the dpvs.dll crash when `/showspelleffects on` is enabled
+  - **Example:** `/spelleffects bard`: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs
+    (mostly resists and mana regen) to optionally be more subtle (0 is invisible with /showspelleffects off).
+  - **Description:** allows you to modify spell effects
+
 - `/spellset`
   - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
   - **Example:** `/spellset save heals`

@@ -452,6 +452,19 @@ void ZealService::AddCommands() {
       if (Zeal::String::tryParse(args[2], &spell_id)) Zeal::Game::dump_spell_info(spell_id);
       return true;
     }
+    if (args.size() == 2 && args[1] == "spelleffects") {
+      const auto *spell_mgr = Zeal::Game::get_spell_mgr();
+      int count = 0;
+      for (int i = 1; i < GAME_NUM_SPELLS; ++i) {
+        const auto *spell = spell_mgr->Spells[i];
+        if (spell && spell->OldParticleEffect && !spell->NewParticleEffect) {
+          Zeal::Game::dump_spell_info(i);
+          count++;
+        }
+      }
+      Zeal::Game::print_chat("Number of spells missing new effects: %d", count);
+      return true;
+    }
     if (args.size() == 3 && args[1] == "get_command") {
       auto command = Zeal::Game::get_command_struct(args[2]);
       if (command)
