@@ -102,6 +102,7 @@ class NamePlate {
     std::string text;
     std::string tag_text;
     DWORD color;
+    DWORD tag_color;
   };
 
   struct RenderInfo {
@@ -130,6 +131,7 @@ class NamePlate {
   void load_sprite_font();
 
   std::unique_ptr<SpriteFont> sprite_font;
+  std::unique_ptr<class TagArrows> tag_arrows;
   std::unordered_map<struct Zeal::GameStructures::Entity *, NamePlateInfo> nameplate_info_map;
   std::function<void()> update_options_ui_callback;
   std::function<unsigned int(int)> get_color_callback;

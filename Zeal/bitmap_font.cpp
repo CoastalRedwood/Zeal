@@ -741,7 +741,6 @@ void SpriteFont::render_queue() {
   device.GetTransform(D3DTS_VIEW, &viewMatrix);
 
   // Need to scale the bitmap font to roughly the right size in world data.
-  const float scale_factor = 0.025f;  // Empirically set so arial_24_bold roughly matches client.
   D3DXMATRIX scaleMatrix, rotationMatrix, translationMatrix;
   D3DXMatrixScaling(&scaleMatrix, scale_factor, scale_factor, scale_factor);
   // And we need to rotate it so that it faces the camera.
@@ -864,4 +863,18 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
     glyph_vertices[i].z = z;
     glyph_vertices[i].color = color;
   }
+}
+
+float SpriteFont::get_text_height(const std::string &text) const {
+  auto text_lines = Zeal::String::split_text(text);
+  float y_height = 0;
+  float y_advance = 0;
+  for (const auto &line : text_lines) {
+    y_height += y_advance;
+    Vec3 size = measure_string(line.c_str());
+    y_height += size.y;
+    y_advance = std::max(0.f, size.z - size.y);  // Save if needed for next line.
+  }
+
+  return y_height * scale_factor;
 }

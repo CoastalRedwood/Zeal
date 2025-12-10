@@ -206,7 +206,13 @@ class SpriteFont : public BitmapFontBase {
   void flush_queue_to_screen() override;
   void release() override;
 
+  // Note: The measure_string() and other bases do not include the internal scale factor. This method does
+  // return the height in corrected screen dimensions.
+  float get_text_height(const std::string &text) const;
+
  protected:
+  const float scale_factor = 0.025f;  // Empirically set so arial_24_bold roughly matches client.
+
   struct GlyphString {
     Vec3 position;  // Origin anchor point for a string of glyphs.
     int start_index;
