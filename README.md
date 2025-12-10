@@ -191,7 +191,7 @@ ___
 - `/loc noprint`
   - **Description:** adds noprint argument to /loc, this just sends loc directly to your log.
 
-- `/locktogglebag`
+- `/locktogglebagslot`
   - **Arguments:** `# (1 to 8 = inventory slot #, 0 = disable)`
   - **Description:** Locks an inventory bag open (toggle containers keybind will not close).
 
@@ -352,10 +352,12 @@ ___
 
 - `/tag`
   - **Description:** sets a unique color and a text tag to the top of a target NPC's nameplate
-    (requires Zeal fonts nameplate mode)
+    (requires Zeal fonts nameplate mode) and an arrow above it
   - **Arguments:** `clear`: clears all tags, `on`, `off`: Used to enable/disable
   - **Arguments:** `<rsay | gsay | local> <tag_text | clear>`
+    - <tag_text> prefixes: `+` to append, `^R^`: to color arrow (R, O, Y, G, B, W)
   - **Example:** `/tag rsay Assist me` broadcasts to trigger a raid-wide tag with 'Assist Me'
+  - **Example:** `/tag rsay +^Y^OFFTANK` appends 'OFFTANK' to the tag text and sets the arrow to yellow
   - **Example:** `/tag gsay clear` broadcasts a special message to clear all group members' tags
   - **Example:** `/tag clear` clears all tags on local client
 

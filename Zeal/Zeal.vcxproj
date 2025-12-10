@@ -83,6 +83,7 @@
     <ClInclude Include="helm_manager.h" />
     <ClInclude Include="music.h" />
     <ClInclude Include="survey.h" />
+    <ClInclude Include="tag_arrows.h" />
     <ClInclude Include="tick.h" />
     <ClInclude Include="ui_buff.h" />
     <ClInclude Include="ui_group.h" />
@@ -162,6 +163,7 @@
     <ClCompile Include="items.cpp" />
     <ClCompile Include="music.cpp" />
     <ClCompile Include="survey.cpp" />
+    <ClCompile Include="tag_arrows.cpp" />
     <ClCompile Include="tick.cpp" />
     <ClCompile Include="ui_buff.cpp" />
     <ClCompile Include="ui_group.cpp" />

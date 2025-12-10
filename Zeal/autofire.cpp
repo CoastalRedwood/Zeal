@@ -74,7 +74,7 @@ void AutoFire::SetAutoFire(bool enabled, bool do_print) {
 
   if (autofire && !enabled) {
     if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire disabled");
-    Zeal::Game::SetMusicSelection(2, false);
+    if (!Zeal::Game::is_autoattacking()) Zeal::Game::SetMusicSelection(2, false);
   } else if (enabled) {
     Zeal::Game::do_autoattack(false);  // Automatically disable auto-attack when enabling.
     if (do_print) Zeal::Game::print_chat(USERCOLOR_ECHO_SHOUT, "Autofire enabled.");

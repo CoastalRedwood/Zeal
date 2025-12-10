@@ -1,6 +1,7 @@
 #include "nameplate.h"
 
 #include <algorithm>
+#include <array>
 
 #include "callbacks.h"
 #include "chat.h"
@@ -8,6 +9,7 @@
 #include "game_addresses.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
+#include "tag_arrows.h"
 #include "target_ring.h"
 #include "zeal.h"
 
@@ -167,6 +169,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
 
   if (args.size() == 2 && args[1] == "dump") {
     if (sprite_font) sprite_font->dump();
+    if (tag_arrows) tag_arrows->Dump();
     return;
   }
   if (args.size() == 3 && args[1] == "offset") {
@@ -220,11 +223,15 @@ void NamePlate::load_sprite_font() {
   sprite_font->set_drop_shadow(setting_drop_shadow.get());
   sprite_font->set_align_bottom(true);  // Bottom align for multi-line and font sizes.
   sprite_font->set_shadow_offset_factor(setting_shadow_offset_factor.get());
+
+  // Tag text with zeal fonts and arrows are linked together so just create it here as well.
+  if (!tag_arrows) tag_arrows = std::make_unique<TagArrows>(*device);
 }
 
 void NamePlate::clean_ui() {
   nameplate_info_map.clear();
   sprite_font.reset();  // Relying on spritefont destructor to be invoked to release resources.
+  tag_arrows.reset();   // Also relying on destructor to release resources.
 }
 
 // Approximation for the client behavior. Exact formula is unknown.
@@ -306,8 +313,9 @@ void NamePlate::render_ui() {
     position.z += get_nameplate_z_offset(*entity);
 
     // Support optional tag text and healthbar for zeal font mode only.
-    bool no_tag = info.tag_text.empty() || (entity->Type >= Zeal::GameEnums::NPCCorpse);
-    std::string full_text = no_tag ? info.text : info.tag_text + info.text;
+    bool is_corpse = entity->Type >= Zeal::GameEnums::NPCCorpse;
+    bool add_text_tag = !is_corpse && !info.tag_text.empty();
+    std::string full_text = add_text_tag ? info.tag_text + info.text : info.text;
     if (setting_health_bars.get() && is_hp_updated(entity)) {
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       full_text += healthbar;
@@ -330,7 +338,16 @@ void NamePlate::render_ui() {
     }
 
     sprite_font->queue_string(full_text.c_str(), position, true, info.color | 0xff000000);
+
+    // If an explicit tag color was sent, use that color otherwise use the nameplate color.
+    bool use_tag_color = info.tag_color && !is_corpse;
+    if (add_text_tag || use_tag_color) {
+      auto color = use_tag_color ? info.tag_color : (info.color | 0xff000000);
+      position.z += sprite_font->get_text_height(full_text) + 1.5f;
+      tag_arrows->QueueArrow(position, color);
+    }
   }
+  tag_arrows->FlushQueueToScreen();
   sprite_font->flush_queue_to_screen();
 }
 
@@ -657,8 +674,8 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
     if (!text.empty()) {
       auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
       if (it == nameplate_info_map.end()) {
-        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color};
-      } else {  // Already exists, so leave tag_text untouched.
+        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = 0};
+      } else {  // Already exists, so leave tag_text and tag_color untouched.
         it->second.text = text;
         it->second.color = color;
       }
@@ -685,8 +702,13 @@ void NamePlate::enable_tags(bool enable) {
 }
 
 void NamePlate::clear_tags() {
-  for (auto &pair : nameplate_info_map) pair.second.tag_text = "";
+  for (auto &pair : nameplate_info_map) {
+    pair.second.tag_text = "";
+    pair.second.tag_color = 0;
+  }
 }
+
+static constexpr int kMaxTagTextLength = 32;
 
 bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   if (args.size() == 2 && (args[1] == "on" || args[1] == "off")) {
@@ -722,7 +744,7 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     // Assemble the broadcast message.
     std::string tag_text = args[2];
     for (int i = 3; i < args.size(); ++i) tag_text += " " + args[i];
-    if (tag_text.size() > 32) tag_text.resize(32);  // Constrain to reasonable length.
+    if (tag_text.size() > kMaxTagTextLength) tag_text.resize(kMaxTagTextLength);  // Constrain to reasonable length.
 
     std::string name = is_clear ? "0" : Zeal::Game::strip_name(target->Name);
     int spawn_id = is_clear ? 0 : target->SpawnId;
@@ -744,12 +766,32 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
 
   Zeal::Game::print_chat("Usage: /tag <on | off | clear>");
   Zeal::Game::print_chat("Usage: /tag <gsay | rsay | local> <string | clear>");
+  Zeal::Game::print_chat("Usage: <string> prefixes: '+' to append, ^R^: to color (R, O, Y, G, B, W)");
   Zeal::Game::print_chat("Example: /tag rsay Assist me");
   Zeal::Game::print_chat("Example: /tag gsay Off tank");
   Zeal::Game::print_chat("Example: /tag gsay clear (broadcasts a clear all tags)");
-
   return true;
 }
+
+// Returns a RGB color based on the color_key (else 0 if no match).
+static D3DCOLOR GetTagColor(char color_key) {
+  struct Entry {
+    char key;
+    D3DCOLOR color;
+  };
+
+  static constexpr std::array<Entry, 6> kColorLut = {
+      Entry('r', D3DCOLOR_XRGB(0xff, 0, 0)),    Entry('g', D3DCOLOR_XRGB(0, 0xff, 0)),
+      Entry('b', D3DCOLOR_XRGB(0, 0, 0xff)),    Entry('y', D3DCOLOR_XRGB(0xff, 0xff, 0)),
+      Entry('o', D3DCOLOR_XRGB(0xff, 0x80, 0)), Entry('w', D3DCOLOR_XRGB(0xff, 0xff, 0xff)),
+  };
+
+  color_key = std::tolower(color_key);
+  for (const auto &entry : kColorLut) {
+    if (entry.key == color_key) return entry.color;
+  }
+  return 0;
+};
 
 bool NamePlate::check_message_for_broadcast(const char *message) {
   if (!setting_tag_enable.get() || !setting_zeal_fonts.get()) return true;  // Quickly bail out.
@@ -780,10 +822,26 @@ bool NamePlate::check_message_for_broadcast(const char *message) {
   for (char &c : tag_text)
     if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
 
-  it->second.tag_text = tag_text + "\n";
+  bool append = tag_text.size() && tag_text[0] == '+';
+  if (append) tag_text = tag_text.substr(1);
+  D3DCOLOR color = 0;
+  if (tag_text.size() > 2 && tag_text[0] == '^' && tag_text[2] == '^') {
+    color = GetTagColor(tag_text[1]);
+    tag_text = tag_text.substr(3);
+  }
+  it->second.tag_color = color;
+
+  if (!tag_text.empty()) {
+    tag_text += "\n";
+    if (append && !it->second.tag_text.empty()) {
+      tag_text = it->second.tag_text.substr(0, it->second.tag_text.size() - 1) + tag_text;
+      if (tag_text.size() > kMaxTagTextLength) tag_text = tag_text.substr(tag_text.size() - kMaxTagTextLength);
+    }
+  }
+  it->second.tag_text = tag_text;
   // Update color immediately (otherwise there is typically a lag).
   if (entity != Zeal::Game::get_target() && ZealService::get_instance()->ui && get_color_callback)
-    it->second.color = get_color_callback(static_cast<int>(ColorIndex::Tagged));
+    it->second.color = color ? color : get_color_callback(static_cast<int>(ColorIndex::Tagged));
 
   return true;
 }
