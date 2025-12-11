@@ -356,10 +356,13 @@ ___
   - **Arguments:** `clear`: clears all tags, `on`, `off`: Used to enable/disable
   - **Arguments:** `<rsay | gsay | local> <tag_text | clear>`
     - <tag_text> prefixes: `+` to append, `^R^`: to color arrow (R, O, Y, G, B, W)
+    - <tag_text> prefixes: `-` to delete existing text, `^-^`: to disable arrow
   - **Example:** `/tag rsay Assist me` broadcasts to trigger a raid-wide tag with 'Assist Me'
-  - **Example:** `/tag rsay +^Y^OFFTANK` appends 'OFFTANK' to the tag text and sets the arrow to yellow
+  - **Example:** `/tag rsay +^Y^OFFTANK` appends ' | OFFTANK' to the tag text and sets the arrow to yellow
+  - **Example:** `/tag rsay -` clears text but leaves arrow if explicitly colored
+  - **Example:** `/tag rsay ^-^` leaves text but clears the arrow
   - **Example:** `/tag gsay clear` broadcasts a special message to clear all group members' tags
-  - **Example:** `/tag clear` clears all tags on local client
+  - **Example:** `/tag clear` clears target tag if target else all tags on local client
 
 - `/target`
   - **Aliases:** `/cleartarget`

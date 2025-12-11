@@ -24,6 +24,8 @@
 
 static constexpr char kZealTagHeader[] = "ZEALTAG";
 static constexpr char kDelimiter[] = " | ";
+static constexpr char kTagArrowColorOff = 0;
+static constexpr char kTagArrowColorNameplate = 1;
 
 static float z_position_offset = 1.5f;  // Static global to allow parse overrides during evaluation.
 
@@ -337,14 +339,14 @@ void NamePlate::render_ui() {
       sprite_font->set_stamina_percent(stamina_percent);
     }
 
-    sprite_font->queue_string(full_text.c_str(), position, true, info.color | 0xff000000);
+    auto nameplate_color = info.color | 0xff000000;
+    sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
 
-    // If an explicit tag color was sent, use that color otherwise use the nameplate color.
-    bool use_tag_color = info.tag_color && !is_corpse;
-    if (add_text_tag || use_tag_color) {
-      auto color = use_tag_color ? info.tag_color : (info.color | 0xff000000);
+    // If an explicit tag color was set, use that color otherwise use the nameplate color.
+    if (!is_corpse && info.tag_color != kTagArrowColorOff) {
+      auto tag_color = (info.tag_color == kTagArrowColorNameplate) ? nameplate_color : info.tag_color;
       position.z += sprite_font->get_text_height(full_text) + 1.5f;
-      tag_arrows->QueueArrow(position, color);
+      tag_arrows->QueueArrow(position, tag_color);
     }
   }
   tag_arrows->FlushQueueToScreen();
@@ -674,7 +676,7 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
     if (!text.empty()) {
       auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
       if (it == nameplate_info_map.end()) {
-        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = 0};
+        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = kTagArrowColorOff};
       } else {  // Already exists, so leave tag_text and tag_color untouched.
         it->second.text = text;
         it->second.color = color;
@@ -704,7 +706,7 @@ void NamePlate::enable_tags(bool enable) {
 void NamePlate::clear_tags() {
   for (auto &pair : nameplate_info_map) {
     pair.second.tag_text = "";
-    pair.second.tag_color = 0;
+    pair.second.tag_color = kTagArrowColorOff;
   }
 }
 
@@ -717,6 +719,16 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   }
 
   if (args.size() == 2 && args[1] == "clear") {
+    auto target = Zeal::Game::get_target();
+    if (target) {
+      auto it = nameplate_info_map.find(target);
+      if (it != nameplate_info_map.end()) {
+        it->second.tag_text = "";
+        it->second.tag_color = kTagArrowColorOff;
+      }
+      Zeal::Game::print_chat("Target nameplate tag cleared");
+      return true;
+    }
     clear_tags();
     Zeal::Game::print_chat("Nameplate tags cleared");
     return true;
@@ -745,7 +757,8 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     std::string tag_text = args[2];
     for (int i = 3; i < args.size(); ++i) tag_text += " " + args[i];
     if (tag_text.size() > kMaxTagTextLength) tag_text.resize(kMaxTagTextLength);  // Constrain to reasonable length.
-
+    for (char &c : tag_text)                                                      // Limit to visible ASCII.
+      if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
     std::string name = is_clear ? "0" : Zeal::Game::strip_name(target->Name);
     int spawn_id = is_clear ? 0 : target->SpawnId;
     std::string message = std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, tag_text, kDelimiter, name,
@@ -773,24 +786,26 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   return true;
 }
 
-// Returns a RGB color based on the color_key (else 0 if no match).
-static D3DCOLOR GetTagColor(char color_key) {
-  struct Entry {
-    char key;
-    D3DCOLOR color;
-  };
-
-  static constexpr std::array<Entry, 6> kColorLut = {
-      Entry('r', D3DCOLOR_XRGB(0xff, 0, 0)),    Entry('g', D3DCOLOR_XRGB(0, 0xff, 0)),
-      Entry('b', D3DCOLOR_XRGB(0, 0, 0xff)),    Entry('y', D3DCOLOR_XRGB(0xff, 0xff, 0)),
-      Entry('o', D3DCOLOR_XRGB(0xff, 0x80, 0)), Entry('w', D3DCOLOR_XRGB(0xff, 0xff, 0xff)),
-  };
-
+// Returns a RGB color based on the color_key (else kTagArrowColorOff if no match).
+static D3DCOLOR GetTagArrowColor(char color_key) {
   color_key = std::tolower(color_key);
-  for (const auto &entry : kColorLut) {
-    if (entry.key == color_key) return entry.color;
+  switch (color_key) {
+    case 'r':
+      return D3DCOLOR_XRGB(0xff, 0, 0);
+    case 'o':
+      return D3DCOLOR_XRGB(0xff, 0x80, 0);
+    case 'y':
+      return D3DCOLOR_XRGB(0xff, 0xff, 0);
+    case 'g':
+      return D3DCOLOR_XRGB(0, 0xff, 0);
+    case 'b':
+      return D3DCOLOR_XRGB(0, 0, 0xff);
+    case 'w':
+      return D3DCOLOR_XRGB(0xff, 0xff, 0xff);
+    default:
+      break;
   }
-  return 0;
+  return kTagArrowColorOff;
 };
 
 bool NamePlate::check_message_for_broadcast(const char *message) {
@@ -823,25 +838,34 @@ bool NamePlate::check_message_for_broadcast(const char *message) {
     if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
 
   bool append = tag_text.size() && tag_text[0] == '+';
-  if (append) tag_text = tag_text.substr(1);
-  D3DCOLOR color = 0;
-  if (tag_text.size() > 2 && tag_text[0] == '^' && tag_text[2] == '^') {
-    color = GetTagColor(tag_text[1]);
-    tag_text = tag_text.substr(3);
-  }
-  it->second.tag_color = color;
+  bool erase = !append && tag_text.size() && tag_text[0] == '-';
+  if (append || erase) tag_text = tag_text.substr(1);
+  if (erase) it->second.tag_text = "";
 
-  if (!tag_text.empty()) {
-    tag_text += "\n";
-    if (append && !it->second.tag_text.empty()) {
-      tag_text = it->second.tag_text.substr(0, it->second.tag_text.size() - 1) + tag_text;
-      if (tag_text.size() > kMaxTagTextLength) tag_text = tag_text.substr(tag_text.size() - kMaxTagTextLength);
-    }
+  // The tag arrow is either enabled explicitly with a specific color (which must be disabled explicitly)
+  // or enabled by default if there is any tag text (can suppress with ^-^).
+  if (tag_text.size() > 2 && tag_text[0] == '^' && tag_text[2] == '^') {
+    it->second.tag_color = GetTagArrowColor(tag_text[1]);
+    tag_text = tag_text.substr(3);
+  } else if (it->second.tag_color == kTagArrowColorOff || it->second.tag_color == kTagArrowColorNameplate) {
+    it->second.tag_color =
+        tag_text.empty() && it->second.tag_text.empty() ? kTagArrowColorOff : kTagArrowColorNameplate;
   }
+
+  // If empty now it was a prefix only command which were handled above (append is a no-op).
+  if (tag_text.empty()) return true;
+
+  if (append && !it->second.tag_text.empty()) {
+    tag_text = it->second.tag_text.substr(0, it->second.tag_text.size() - 1) + kDelimiter + tag_text;
+  }
+  if (tag_text.size() > kMaxTagTextLength) tag_text = tag_text.substr(tag_text.size() - kMaxTagTextLength);
+  tag_text += "\n";
+
   it->second.tag_text = tag_text;
-  // Update color immediately (otherwise there is typically a lag).
+
+  // Update nameplate color immediately (otherwise there is typically a lag).
   if (entity != Zeal::Game::get_target() && ZealService::get_instance()->ui && get_color_callback)
-    it->second.color = color ? color : get_color_callback(static_cast<int>(ColorIndex::Tagged));
+    it->second.color = get_color_callback(static_cast<int>(ColorIndex::Tagged));
 
   return true;
 }
