@@ -124,8 +124,8 @@ NamePlate::NamePlate(ZealService *zeal) {
 
   zeal->commands_hook->Add("/tag", {}, "Tag currently targeted NPC nameplate with a string and color",
                            [this](std::vector<std::string> &args) { return handle_tag_command(args); });
-  zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { check_message_for_broadcast(msg); });
-  zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { check_message_for_broadcast(msg); });
+  zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { handle_tag_message(msg); });
+  zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { handle_tag_message(msg); });
 
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::InitUI);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
@@ -764,9 +764,10 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     std::string message = std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, tag_text, kDelimiter, name,
                                       kDelimiter, spawn_id);
 
-    // The sender doesn't receive the message, so we do this check both to update the local tag and
-    // to verify the message format is parseable before broadcast spamming others.
-    if (check_message_for_broadcast(message.c_str())) {
+    // The sender doesn't receive a rsay message but does receive a gsay message, so we want to update our
+    // own local state here if not gsay. We also use this to verify the message is parseable before
+    // broadcast spamming others.
+    if (handle_tag_message(message.c_str(), !gsay)) {
       if (rsay)
         Zeal::Game::send_raid_chat(message);
       else if (gsay)
@@ -808,7 +809,7 @@ static D3DCOLOR GetTagArrowColor(char color_key) {
   return kTagArrowColorOff;
 };
 
-bool NamePlate::check_message_for_broadcast(const char *message) {
+bool NamePlate::handle_tag_message(const char *message, bool apply) {
   if (!setting_tag_enable.get() || !setting_zeal_fonts.get()) return true;  // Quickly bail out.
 
   static const int header_length = strlen(kZealTagHeader);
@@ -831,6 +832,8 @@ bool NamePlate::check_message_for_broadcast(const char *message) {
   if (!entity) return false;
   auto it = nameplate_info_map.find(entity);
   if (it == nameplate_info_map.end()) return false;
+
+  if (!apply) return true;
 
   // Convert any characters that are not visible ASCII to ?.
   std::string tag_text = split[1];
