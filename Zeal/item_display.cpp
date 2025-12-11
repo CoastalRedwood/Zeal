@@ -1,6 +1,7 @@
 #include "item_display.h"
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <fstream>
 #include <regex>
@@ -599,6 +600,22 @@ static bool UpdateSetSpellTextEnhanced(Zeal::GameUI::ItemDisplayWnd *wnd, int sp
   return true;
 }
 
+// Appends the meal or drink duration if applicable.
+static void ApplyMealTime(Zeal::GameStructures::_GAMEITEMINFO *item, std::string &s) {
+  const BYTE kSkillMeal = 0xe;
+  const BYTE kSkillDrink = 0xf;
+  if (item->Type != 0 || (item->Common.Skill != kSkillMeal && item->Common.Skill != kSkillDrink)) return;
+
+  static constexpr std::array<const char *, 7> kSuffixes = {" snack.",  " meal.",  " feast!", " meal!",
+                                                            " wetter.", " drink.", " drink!"};
+  for (const auto suffix : kSuffixes) {
+    if (s.ends_with(suffix)) {
+      s += std::format(" ({})", item->Common.CastTime);
+      return;
+    }
+  }
+}
+
 // Generate our customized item description text.
 static void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStructures::_GAMEITEMINFO *item) {
   if (!item || wnd->DisplayText.Data == nullptr) return;
@@ -612,6 +629,7 @@ static void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStruc
     ApplySpellInfo(item, s);
     ApplyInstrumentModifiers(item, s);
     ApplyWeaponRatio(item, s);
+    ApplyMealTime(item, s);
     s += stml_line_break;
     wnd->DisplayText.Append(s.c_str());
   }
