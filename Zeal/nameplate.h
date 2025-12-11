@@ -124,7 +124,7 @@ class NamePlate {
   bool handle_tag_command(const std::vector<std::string> &args);
   void enable_tags(bool enable);
   void clear_tags();
-  bool check_message_for_broadcast(const char *message);
+  bool handle_tag_message(const char *message, bool apply = true);
 
   void clean_ui();
   void render_ui();
