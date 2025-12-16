@@ -280,7 +280,7 @@
       <CX>300</CX>
       <CY>28</CY>
     </Size>
-    <Text>Outter Size</Text>
+    <Text>Outer Size</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -335,7 +335,7 @@
       <CX>300</CX>
       <CY>28</CY>
     </Size>
-    <Text>Rotation</Text>
+    <Text>Rotation Rate</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>

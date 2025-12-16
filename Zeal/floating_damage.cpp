@@ -4,40 +4,9 @@
 
 #include "callbacks.h"
 #include "commands.h"
+#include "game_functions.h"
 #include "string_util.h"
-#include "target_ring.h"
 #include "zeal.h"
-
-#if 0  // Not currently used.
-
-template <typename VertexType>
-LPDIRECT3DVERTEXBUFFER8 CreateVertexBuffer(LPDIRECT3DDEVICE8 d3dDevice, VertexType* vertices, int vertexCount, DWORD fvf)
-{
-	LPDIRECT3DVERTEXBUFFER8 vertexBuffer = nullptr;
-
-	// Create the vertex buffer
-	HRESULT result = d3dDevice->CreateVertexBuffer(
-		vertexCount * sizeof(VertexType),   // Size of the buffer
-		D3DUSAGE_WRITEONLY,                 // Usage flags
-		fvf,                                // Flexible Vertex Format (FVF)
-		D3DPOOL_DEFAULT,                    // Memory pool to use
-		&vertexBuffer                       // Output vertex buffer
-	);
-
-	if (FAILED(result)) {
-		// Handle error
-		return nullptr;
-	}
-
-	// Lock the vertex buffer and copy the vertex data into it
-	void* pVertices;
-	vertexBuffer->Lock(0, vertexCount * sizeof(VertexType), (BYTE**)&pVertices, 0);
-	memcpy(pVertices, vertices, vertexCount * sizeof(VertexType));
-	vertexBuffer->Unlock();
-
-	return vertexBuffer;
-}
-#endif
 
 int getRandomIntBetween(int min, int max) {
   // Create a random device and a random engine
@@ -352,12 +321,32 @@ void FloatingDamage::draw_icon(int texture_index, float y, float x, float opacit
                        {x + image_size, y, 0.0f, 1.0f, color, u_end, v_start},
                        {x, y + image_size, 0.0f, 1.0f, color, u_start, v_end},
                        {x + image_size, y + image_size, 0.0f, 1.0f, color, u_end, v_end}};
-  ZealService::get_instance()->target_ring->setup_render_states();
+
+  // Configure with our rendering settings while preserving state to restore.
+  D3DRenderStateStash render_state(*device);
+  render_state.store_and_modify({D3DRS_CULLMODE, D3DCULL_NONE});  // Future optimization.
+  render_state.store_and_modify({D3DRS_ALPHABLENDENABLE, TRUE});
+  render_state.store_and_modify({D3DRS_SRCBLEND, D3DBLEND_SRCALPHA});
+  render_state.store_and_modify({D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA});
+  render_state.store_and_modify({D3DRS_BLENDOP, D3DBLENDOP_ADD});
+  render_state.store_and_modify({D3DRS_ZENABLE, TRUE});
+  render_state.store_and_modify({D3DRS_ZWRITEENABLE, TRUE});
+  render_state.store_and_modify({D3DRS_LIGHTING, FALSE});
+
+  D3DTextureStateStash texture_state(*device);
+  texture_state.store_and_modify({D3DTSS_COLOROP, D3DTOP_MODULATE});  // Mix color with white font.
+  texture_state.store_and_modify({D3DTSS_COLORARG1, D3DTA_TEXTURE});
+  texture_state.store_and_modify({D3DTSS_COLORARG2, D3DTA_DIFFUSE});
+  texture_state.store_and_modify({D3DTSS_ALPHAOP, D3DTOP_MODULATE});  // Support color alpha.
+  texture_state.store_and_modify({D3DTSS_ALPHAARG1, D3DTA_TEXTURE});
+  texture_state.store_and_modify({D3DTSS_ALPHAARG2, D3DTA_DIFFUSE});
+
   device->SetTexture(0, texture);
   device->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE);
   device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, vertices, sizeof(Vertex));
   device->SetTexture(0, NULL);  // Release reference to texture.
-  ZealService::get_instance()->target_ring->reset_render_states();
+  texture_state.restore_state();
+  render_state.restore_state();
 }
 
 IDirect3DTexture8 *FloatingDamage::load_texture(std::string path) {

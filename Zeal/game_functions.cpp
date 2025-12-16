@@ -39,7 +39,7 @@ int GetSpellCastingTime()  // GetSpellCastingTime() in client.
   return reinterpret_cast<int(__cdecl *)(void)>(0x00435f28)();
 }
 
-DWORD GetLevelCon(Zeal::GameStructures::Entity *ent) {
+DWORD GetLevelCon(const Zeal::GameStructures::Entity *ent) {
   if (!ent || !Zeal::Game::get_self()) return 0;
   int mylevel = Zeal::Game::get_self()->Level;
   short diff = ent->Level - mylevel;

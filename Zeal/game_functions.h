@@ -143,7 +143,7 @@ bool spellbook_window_open();
 }
 
 int GetSpellCastingTime();  // Used by CCastingWnd. Returns -1 if done otherwise in units of 0.1% of time left.
-DWORD GetLevelCon(Zeal::GameStructures::Entity *ent);
+DWORD GetLevelCon(const Zeal::GameStructures::Entity *ent);
 bool IsPlayableRace(WORD race);
 const char *get_aa_title_name(BYTE class_id, int aa_rank, BYTE gender_id);
 float CalcCombatRange(Zeal::GameStructures::Entity *entity1, Zeal::GameStructures::Entity *entity2);
