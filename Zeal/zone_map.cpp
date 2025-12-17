@@ -3565,7 +3565,12 @@ bool ZoneMap::initialize_d3d_external_window() {
   int external_width = win_rect.right - win_rect.left;
   int external_height = win_rect.bottom - win_rect.top;
 
-  if (!external_d3d) external_d3d = Direct3DCreate8(D3D_SDK_VERSION);  // create the Direct3D interface
+  if (!external_d3d) {
+    // Create the Direct3D interface using the already loaded (and likely modified) dll table.
+    HMODULE dll = ::GetModuleHandleA("d3d8.dll");
+    FARPROC create_fn = dll ? ::GetProcAddress(dll, "Direct3DCreate8") : nullptr;
+    if (create_fn) external_d3d = reinterpret_cast<IDirect3D8 *(WINAPI *)(UINT)>(create_fn)(D3D_SDK_VERSION);
+  }
 
   if (!external_d3d) {
     Zeal::Game::print_chat("Error creating external map D3D");

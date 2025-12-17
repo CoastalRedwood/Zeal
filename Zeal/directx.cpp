@@ -3,8 +3,8 @@
 #include "callbacks.h"
 #include "hook_wrapper.h"
 #include "zeal.h"
-#pragma comment(lib, "d3dx8/d3d8.lib")
-#pragma comment(lib, "d3dx8/d3dx8.lib")
+
+#pragma comment(lib, "d3dx8/d3dx8.lib")  // DirectX math helper library with D3DX functions and classes.
 
 HRESULT WINAPI Local_BeginScene(LPDIRECT3DDEVICE8 pDevice) {
   if (pDevice) {

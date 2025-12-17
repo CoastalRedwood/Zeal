@@ -49,6 +49,9 @@
     <Filter Include="UI Files">
       <UniqueIdentifier>{5ac2a0c8-3a18-4026-bc6e-1cf0e43c27cf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\d3dx8">
+      <UniqueIdentifier>{3c241bc2-2636-4c6e-9cf2-ce7385370209}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="memory.h">
@@ -282,14 +285,47 @@
     <ClInclude Include="operator_overloads.h">
       <Filter>Header Files\helpers</Filter>
     </ClInclude>
+    <ClInclude Include="d3dx8\d3d8.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3d8caps.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3d8types.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8core.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8effect.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8math.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8mesh.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8shape.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\d3dx8tex.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx8\dxfile.h">
+      <Filter>Header Files\d3dx8</Filter>
+    </ClInclude>
     <ClInclude Include="ui_skin.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\ui</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\other</Filter>
     </ClInclude>
     <ClInclude Include="tag_arrows.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\hooks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -504,7 +540,7 @@
       <Filter>Source Files\helpers</Filter>
     </ClCompile>
     <ClCompile Include="tag_arrows.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\hooks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -529,6 +565,12 @@
     </None>
     <None Include="uifiles\zeal\big_xml\generate_big_xml.py">
       <Filter>UI Files</Filter>
+    </None>
+    <None Include="d3dx8\d3dx8math.inl">
+      <Filter>Header Files\d3dx8</Filter>
+    </None>
+    <None Include="d3dx8\README.md">
+      <Filter>Header Files\d3dx8</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@
 
 #include "d3dx8/d3d8.h"
 #include "d3dx8/d3d8types.h"
-#include "d3dx8/d3dx8math.h"
+#include "d3dx8/d3dx8.h"  // Convenience D3DX convenience functions.
 #include "vectors.h"
 #include "zeal_settings.h"
 

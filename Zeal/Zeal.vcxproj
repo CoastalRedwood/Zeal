@@ -62,6 +62,7 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>winmm.lib;Dbghelp.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <IgnoreSpecificDefaultLibraries>libci.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -69,6 +70,17 @@
     <ClInclude Include="assist.h" />
     <ClInclude Include="autofire.h" />
     <ClInclude Include="bitmap_font.h" />
+    <ClInclude Include="d3dx8\d3d8.h" />
+    <ClInclude Include="d3dx8\d3d8caps.h" />
+    <ClInclude Include="d3dx8\d3d8types.h" />
+    <ClInclude Include="d3dx8\d3dx8.h" />
+    <ClInclude Include="d3dx8\d3dx8core.h" />
+    <ClInclude Include="d3dx8\d3dx8effect.h" />
+    <ClInclude Include="d3dx8\d3dx8math.h" />
+    <ClInclude Include="d3dx8\d3dx8mesh.h" />
+    <ClInclude Include="d3dx8\d3dx8shape.h" />
+    <ClInclude Include="d3dx8\d3dx8tex.h" />
+    <ClInclude Include="d3dx8\dxfile.h" />
     <ClInclude Include="operator_overloads.h" />
     <ClInclude Include="character_select.h" />
     <ClInclude Include="chatfilter.h" />
@@ -225,6 +237,8 @@
   <ItemGroup>
     <None Include="..\CHANGELOG.md" />
     <None Include="..\README.md" />
+    <None Include="d3dx8\d3dx8math.inl" />
+    <None Include="d3dx8\README.md" />
     <None Include="uifiles\zeal\big_xml\generate_big_xml.py" />
     <None Include="uifiles\zeal\big_xml\README.md" />
     <None Include="uifiles\zeal\optional\README.md" />
