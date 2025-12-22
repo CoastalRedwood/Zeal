@@ -351,18 +351,9 @@ ___
   - **Description:** Survey helper for polling raid groups. See /survey section below.
 
 - `/tag`
-  - **Description:** sets a unique color and a text tag to the top of a target NPC's nameplate
-    (requires Zeal fonts nameplate mode) and an arrow above it
-  - **Arguments:** `clear`: clears all tags, `on`, `off`: Used to enable/disable
-  - **Arguments:** `<rsay | gsay | local> <tag_text | clear>`
-    - <tag_text> prefixes: `+` to append, `^R^`: to color arrow (R, O, Y, G, B, W)
-    - <tag_text> prefixes: `-` to delete existing text, `^-^`: to disable arrow
-  - **Example:** `/tag rsay Assist me` broadcasts to trigger a raid-wide tag with 'Assist Me'
-  - **Example:** `/tag rsay +^Y^OFFTANK` appends ' | OFFTANK' to the tag text and sets the arrow to yellow
-  - **Example:** `/tag rsay -` clears text but leaves arrow if explicitly colored
-  - **Example:** `/tag rsay ^-^` leaves text but clears the arrow
-  - **Example:** `/tag gsay clear` broadcasts a special message to clear all group members' tags
-  - **Example:** `/tag clear` clears target tag if target else all tags on local client
+  - **Description:** adds an optional text tag to the top of a target NPC's nameplate
+    (requires Zeal fonts nameplate mode) and an optional shape above it.
+    See the [Tagging](#Nameplate-tagging) section for more details.
 
 - `/target`
   - **Aliases:** `/cleartarget`
@@ -505,6 +496,49 @@ ___
   RingRight, Ammo
 - Can hold Shift (2nd) / Ctrl (3rd) / Shift+Ctrl (4th) to equip the item to alternate slots
   if it can be equipped in several slots in the list.
+
+## Nameplate tagging
+- Controlled through either the `/tag` command or Nameplate tab options
+- Requires enabling both Nameplates Zeal fonts and tags (`/tag on`)
+- Tagged NPC nameplates use either the dedicated `Tagged` color or if targeted the `Target` color
+- Tagged nameplates have a matching colored arrow added if `Default tag arrow` is set
+- Tags can be cleared with:
+  - `/tag clear`: Clears tag from current target if there is one else all tags
+  - `/tag local -`: Clears text only from current target locally (can also gsay, rsay)
+  - `/tag local ^-^`: Clears arrow only from current target locally (can also gsay, rsay)
+- Tags can be set with locally or broadcast through rsay, gsay, or a joined chat channel
+  - `/tag <rsay | gsay | local> <tag_text>`
+  - Note: % replacement commands (%t, %n) aren't supported in `<tag_text>`
+  - A <tag_text> == `clear` will clear the tags of everyone receiving it
+  - The <tag_text> message supports special prefixes:
+    - `+` to append tag text (must be first character)
+    - `-` to erase only existing text (must be first character)
+    - `^R^`: to set explicit arrow where R = colors (R, O, Y, G, B, W) or `-` to remove arrow
+- Chat channel support / usage
+  - Note: Zeal does not autojoin the channel at boot. Use `/tag channel`, `/tag join`, or autojoin.
+  - `/tag channel <name>` broadcasts a special message to rsay (if in raid) else gsay (if in group) 
+    that will trigger other clients to autojoin `<name>`.  `<name>` must start with `ZT`.
+  - `/tag join <name>` joins the chat channel for broadcasting and receiving tags
+    - If `<name>` is omitted, it joins the last chat channel previously used
+- Broadcast messages can be filtered by setting `/tag filter on`
+  - This routes received messages to the `Zeal Spam` chat filter channel
+  - Allows the use of `/tag suppress on` to completely squelch the broadcasts
+  - Allows the use of `/tag prettyprint on` to abbreviate the broadcast messages
+    - Note: Must receive a language with skill = 100 and /filter badword must be off
+    - Enabling prettyprint will disable the badword filter (non-persistently)
+- The tag text of the current target can be added as a tooltip to the target window by 
+  setting `/tag tooltip on` (there is also an alignment option in Nameplate tab)
+- International keyboard support:
+  - Nameplate Tab Alternate Symbols options allows `*` in place of `^`.
+
+### Tagging Examples
+  - `/tag rsay Assist me` broadcasts a raid-wide tag that sets 'Assist Me'
+  - `/tag rsay +^Y^OFFTANK` appends ' | OFFTANK' to the tag text and sets the arrow to yellow
+  - `/tag rsay -` clears text but leaves arrow if explicitly colored
+  - `/tag rsay ^-^` leaves text but clears the arrow
+  - `/tag gsay clear` broadcasts a special message to clear all group members' tags
+  - `/tag clear` clears target tag if target else all tags on local client
+
 
 ## Polling of raid using /survey
 ### Usage by Zeal-enabled raidmembers:

@@ -5,8 +5,10 @@
 
 #include "callbacks.h"
 #include "chat.h"
+#include "chatfilter.h"
 #include "commands.h"
 #include "game_addresses.h"
+#include "game_ui.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "tag_arrows.h"
@@ -23,9 +25,22 @@
 // - Tab cycle targeting updates of text and tint
 
 static constexpr char kZealTagHeader[] = "ZEALTAG";
+static constexpr char kZealTagHeaderAbbreviated[] = "ZT";  // Possible migration path; add support now.
 static constexpr char kDelimiter[] = " | ";
-static constexpr char kTagArrowColorOff = 0;
-static constexpr char kTagArrowColorNameplate = 1;
+static constexpr char kZealTagChannelPrefix[] = "Zt";  // Chat channels only allow first character capitalization.
+static constexpr char kZealTagChannelBroadcastPrefix[] = "ChatChannel: ";
+static constexpr int kTagChannelJoinPending = -2;
+
+enum TagArrowColor : DWORD {
+  Off = 0,  // Alpha == 0 for these special cases.
+  Nameplate = 1,
+  Red = D3DCOLOR_XRGB(0xff, 0, 0),
+  Orange = D3DCOLOR_XRGB(0xff, 0x80, 0),
+  Yellow = D3DCOLOR_XRGB(0xff, 0xff, 0),
+  Green = D3DCOLOR_XRGB(0, 0xff, 0),
+  Blue = D3DCOLOR_XRGB(0, 0, 0xff),
+  White = D3DCOLOR_XRGB(0xff, 0xff, 0xff),
+};
 
 static float z_position_offset = 1.5f;  // Static global to allow parse overrides during evaluation.
 
@@ -93,11 +108,18 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   return false;  // Let the original command run fully update (beyond shortcuts above).
 }
 
+// Support adding text_tag as a tooltip of the target window.
+int __fastcall TargetWnd_PostDraw(Zeal::GameUI::SidlWnd *this_ptr, void *not_used) {
+  ZealService::get_instance()->nameplate->handle_targetwnd_postdraw(this_ptr);
+  return 0;  // The original just returns zero. Skip for efficiency.
+}
+
 NamePlate::NamePlate(ZealService *zeal) {
   // mem::write<byte>(0x4B0B3D, 0); //arg 2 for SetStringSpriteYonClip (extended nameplate)
 
   zeal->hooks->Add("SetNameSpriteState", 0x4B0BD9, SetNameSpriteState, hook_type_detour);
   zeal->hooks->Add("SetNameSpriteTint", 0x4B114D, SetNameSpriteTint, hook_type_detour);
+  zeal->hooks->Add("TargetWnd_PostDraw", 0x005e6f78, TargetWnd_PostDraw, hook_type_vtable);
 
   // Replace the tint only updates in RealRender_World with one that also updates the text
   // when there is a change in target. This processing happens shortly after the DoPassageOfTime()
@@ -122,10 +144,19 @@ NamePlate::NamePlate(ZealService *zeal) {
                                  args);  // Return the result to control suppression, Let the original command run too
                            });
 
-  zeal->commands_hook->Add("/tag", {}, "Tag currently targeted NPC nameplate with a string and color",
-                           [this](std::vector<std::string> &args) { return handle_tag_command(args); });
+  zeal->commands_hook->Add("/tag", {}, "Tag currently targeted nameplate with a string and shape",
+                           [this](std::vector<std::string> &args) {
+                             handle_tag_command(args);
+                             if (update_options_ui_callback) update_options_ui_callback();
+                             return true;
+                           });
   zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { handle_tag_message(msg); });
   zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { handle_tag_message(msg); });
+  zeal->chat_hook->add_incoming_chat_callback(
+      [this](const char *msg, int color_index) { return check_for_tag_channel_message(msg, color_index); });
+
+  zeal->chatfilter_hook->AddZealSpamFilterCallback(
+      [this](short &channel, std::string &msg) { return handle_zeal_spam_filter(channel, msg); });
 
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::InitUI);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::CleanUI);
@@ -172,6 +203,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
   if (args.size() == 2 && args[1] == "dump") {
     if (sprite_font) sprite_font->dump();
     if (tag_arrows) tag_arrows->Dump();
+    dump();
     return;
   }
   if (args.size() == 3 && args[1] == "offset") {
@@ -206,6 +238,11 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("shadows: /nameplate shadowfactor <float> (0.005 to 0.1 range)");
 }
 
+void NamePlate::dump() const {
+  Zeal::Game::print_chat("Info_map: %d entries", nameplate_info_map.size());
+  Zeal::Game::print_chat("Tag channel: %s, number: %d", setting_tag_channel.get().c_str(), tag_channel_number);
+}
+
 std::vector<std::string> NamePlate::get_available_fonts() const {
   return BitmapFont::get_available_fonts();  // Note that we customize the "default" one.
 }
@@ -232,8 +269,9 @@ void NamePlate::load_sprite_font() {
 
 void NamePlate::clean_ui() {
   nameplate_info_map.clear();
-  sprite_font.reset();  // Relying on spritefont destructor to be invoked to release resources.
-  tag_arrows.reset();   // Also relying on destructor to release resources.
+  sprite_font.reset();      // Relying on spritefont destructor to be invoked to release resources.
+  tag_arrows.reset();       // Also relying on destructor to release resources.
+  tag_channel_number = -1;  // Force a reset.
 }
 
 // Approximation for the client behavior. Exact formula is unknown.
@@ -343,8 +381,8 @@ void NamePlate::render_ui() {
     sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
 
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
-    if (!is_corpse && info.tag_color != kTagArrowColorOff) {
-      auto tag_color = (info.tag_color == kTagArrowColorNameplate) ? nameplate_color : info.tag_color;
+    if (!is_corpse && info.tag_color != TagArrowColor::Off) {
+      auto tag_color = (info.tag_color == TagArrowColor::Nameplate) ? nameplate_color : info.tag_color;
       position.z += sprite_font->get_text_height(full_text) + 1.5f;
       tag_arrows->QueueArrow(position, tag_color);
     }
@@ -676,7 +714,7 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
     if (!text.empty()) {
       auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
       if (it == nameplate_info_map.end()) {
-        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = kTagArrowColorOff};
+        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = TagArrowColor::Off};
       } else {  // Already exists, so leave tag_text and tag_color untouched.
         it->second.text = text;
         it->second.color = color;
@@ -706,16 +744,63 @@ void NamePlate::enable_tags(bool enable) {
 void NamePlate::clear_tags() {
   for (auto &pair : nameplate_info_map) {
     pair.second.tag_text = "";
-    pair.second.tag_color = kTagArrowColorOff;
+    pair.second.tag_color = TagArrowColor::Off;
   }
 }
 
 static constexpr int kMaxTagTextLength = 32;
 
-bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
+// This may not be 100% correct in terms of visible nameplates but should be fairly good.
+static bool is_taggable_target(const Zeal::GameStructures::Entity *target) {
+  if (!target) return false;
+
+  if (target->Type != Zeal::GameEnums::EntityTypes::Player && target->Type != Zeal::GameEnums::EntityTypes::NPC)
+    return false;
+
+  if (!target->ActorInfo || !target->ActorInfo->ViewActor_ || !target->ActorInfo->DagHeadPoint) return false;
+
+  return true;
+}
+
+void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   if (args.size() == 2 && (args[1] == "on" || args[1] == "off")) {
     enable_tags(args[1] == "on");
-    return true;
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "join") {
+    std::string channel = (args.size() == 2) ? setting_tag_channel.get() : args[2];
+    join_tag_channel(channel);
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "filter") {
+    if (args.size() > 2) setting_tag_filter.set(args[2] == "on");
+    Zeal::Game::print_chat("Tag message filter: %s", setting_tag_filter.get() ? "on" : "off");
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "suppress") {
+    if (args.size() > 2) setting_tag_suppress.set(args[2] == "on");
+    Zeal::Game::print_chat("Tag message suppression: %s", setting_tag_suppress.get() ? "on" : "off");
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "prettyprint") {
+    if (args.size() > 2) setting_tag_prettyprint.set(args[2] == "on");
+    Zeal::Game::print_chat("Tag prettyprint: %s", setting_tag_prettyprint.get() ? "on" : "off");
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "tooltip") {
+    if (args.size() > 2) setting_tag_tooltip.set(args[2] == "on");
+    Zeal::Game::print_chat("Tag text tooltip: %s", setting_tag_tooltip.get() ? "on" : "off");
+    return;
+  }
+
+  if (args.size() == 3 && args[1] == "channel") {
+    broadcast_tag_set_channel(args[2]);
+    return;
   }
 
   if (args.size() == 2 && args[1] == "clear") {
@@ -724,33 +809,37 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
       auto it = nameplate_info_map.find(target);
       if (it != nameplate_info_map.end()) {
         it->second.tag_text = "";
-        it->second.tag_color = kTagArrowColorOff;
+        it->second.tag_color = TagArrowColor::Off;
       }
       Zeal::Game::print_chat("Target nameplate tag cleared");
-      return true;
+      return;
     }
     clear_tags();
     Zeal::Game::print_chat("Nameplate tags cleared");
-    return true;
+    return;
   }
 
-  if (args.size() > 2 && (args[1] == "rsay" || args[1] == "gsay" || args[1] == "local")) {
+  if (args.size() > 2 && (args[1] == "rsay" || args[1] == "gsay" || args[1] == "local" || args[1] == "chat")) {
     if (!setting_tag_enable.get()) enable_tags(true);  // Auto-set to on if sending a message.
     bool rsay = (args[1] == "rsay");
     bool gsay = (args[1] == "gsay");
+    bool chat = (args[1] == "chat");
     if (rsay && !Zeal::Game::RaidInfo->is_in_raid()) {
       Zeal::Game::print_chat("Must be in a raid to rsay");
-      return true;
+      return;
     } else if (gsay && !Zeal::Game::GroupInfo->is_in_group()) {
       Zeal::Game::print_chat("Must be in a group to gsay");
-      return true;
+      return;
+    } else if (chat && setting_tag_channel.get().empty()) {
+      Zeal::Game::print_chat("Must have a chat channel set");
+      return;
     }
 
     bool is_clear = args.size() == 3 && args[2] == "clear";
     auto target = Zeal::Game::get_target();
-    if (!is_clear && (!target || target->Type != Zeal::GameEnums::EntityTypes::NPC)) {
-      Zeal::Game::print_chat("Must have a valid NPC target to tag");
-      return true;
+    if (!is_clear && !is_taggable_target(target)) {
+      Zeal::Game::print_chat("Must have a valid target with a visible nameplate to tag");
+      return;
     }
 
     // Assemble the broadcast message.
@@ -759,6 +848,7 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     if (tag_text.size() > kMaxTagTextLength) tag_text.resize(kMaxTagTextLength);  // Constrain to reasonable length.
     for (char &c : tag_text)                                                      // Limit to visible ASCII.
       if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
+    if (setting_tag_alternate_symbols.get()) std::replace(tag_text.begin(), tag_text.end(), '*', '^');
     std::string name = is_clear ? "0" : Zeal::Game::strip_name(target->Name);
     int spawn_id = is_clear ? 0 : target->SpawnId;
     std::string message = std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, tag_text, kDelimiter, name,
@@ -766,63 +856,76 @@ bool NamePlate::handle_tag_command(const std::vector<std::string> &args) {
 
     // The sender doesn't receive a rsay message but does receive a gsay message, so we want to update our
     // own local state here if not gsay. We also use this to verify the message is parseable before
-    // broadcast spamming others.
-    if (handle_tag_message(message.c_str(), !gsay)) {
+    // broadcast spamming others. The chat channel also has an echo.
+    if (handle_tag_message(message.c_str(), !gsay && !chat)) {
       if (rsay)
         Zeal::Game::send_raid_chat(message);
       else if (gsay)
         Zeal::Game::do_gsay(message);
+      else if (chat)
+        send_tag_message_to_channel(message);
     } else {
-      Zeal::Game::print_chat("Zeal error: badly formatted message");
+      Zeal::Game::print_chat("Tagging failed (Check message formatting or validity of target)");
     }
-    return true;
+    return;
   }
 
   Zeal::Game::print_chat("Usage: /tag <on | off | clear>");
-  Zeal::Game::print_chat("Usage: /tag <gsay | rsay | local> <string | clear>");
-  Zeal::Game::print_chat("Usage: <string> prefixes: '+' to append, ^R^: to color (R, O, Y, G, B, W)");
+  Zeal::Game::print_chat("Usage: /tag <tooltip | filter | suppress | prettyprint> <on | off>");
+  Zeal::Game::print_chat("Usage: /tag <gsay | rsay | chat> local> <message | clear | channel>");
+  Zeal::Game::print_chat("Usage: <message> prefixes: '+' to append, '^R^' or '*R:' for color arrow (R, O, Y, G, B, W)");
   Zeal::Game::print_chat("Example: /tag rsay Assist me");
   Zeal::Game::print_chat("Example: /tag gsay Off tank");
   Zeal::Game::print_chat("Example: /tag gsay clear (broadcasts a clear all tags)");
-  return true;
+  return;
 }
 
-// Returns a RGB color based on the color_key (else kTagArrowColorOff if no match).
+// Returns a RGB color based on the color_key (else TagArrowColor::Off if no match).
 static D3DCOLOR GetTagArrowColor(char color_key) {
   color_key = std::tolower(color_key);
   switch (color_key) {
     case 'r':
-      return D3DCOLOR_XRGB(0xff, 0, 0);
+      return TagArrowColor::Red;
     case 'o':
-      return D3DCOLOR_XRGB(0xff, 0x80, 0);
+      return TagArrowColor::Orange;
     case 'y':
-      return D3DCOLOR_XRGB(0xff, 0xff, 0);
+      return TagArrowColor::Yellow;
     case 'g':
-      return D3DCOLOR_XRGB(0, 0xff, 0);
+      return TagArrowColor::Green;
     case 'b':
-      return D3DCOLOR_XRGB(0, 0, 0xff);
+      return TagArrowColor::Blue;
     case 'w':
-      return D3DCOLOR_XRGB(0xff, 0xff, 0xff);
+      return TagArrowColor::White;
     default:
       break;
   }
-  return kTagArrowColorOff;
+  return TagArrowColor::Off;
 };
 
+// Parses "raw" (w/out any channel prefix like "Bob tells the raid, '") tag message to
+// confirm it is in a valid format and if apply is true updates the nameplate info map.
 bool NamePlate::handle_tag_message(const char *message, bool apply) {
   if (!setting_tag_enable.get() || !setting_zeal_fonts.get()) return true;  // Quickly bail out.
 
   static const int header_length = strlen(kZealTagHeader);
-  if (!message || strncmp(message, kZealTagHeader, header_length)) return false;
+  static const int header_length_abbrev = strlen(kZealTagHeaderAbbreviated);
+  if (!message || (strncmp(message, kZealTagHeader, header_length) &&
+                   strncmp(message, kZealTagHeaderAbbreviated, header_length_abbrev)))
+    return false;
 
   std::string message_str = message;
   auto split = Zeal::String::split_text(message_str, kDelimiter);
-  if (split.size() != 4) return false;
+  if (split.size() < 4) return false;
 
-  if (split[0] != kZealTagHeader || split[1].empty()) return false;
+  bool is_new_header = (split[0] == kZealTagHeaderAbbreviated);
+  bool is_old_header = !is_new_header && (split[0] == kZealTagHeader);
+  if ((!is_new_header && !is_old_header) || split[1].empty()) return false;
 
   if (split[1] == "clear") {
-    clear_tags();
+    if (apply) clear_tags();
+    return true;
+  } else if (split[1].starts_with(kZealTagChannelBroadcastPrefix)) {
+    if (apply) handle_tag_set_channel_message(split[1]);
     return true;
   }
 
@@ -840,23 +943,33 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
   for (char &c : tag_text)
     if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
 
+  int original_length = tag_text.size();
   bool append = tag_text.size() && tag_text[0] == '+';
   bool erase = !append && tag_text.size() && tag_text[0] == '-';
   if (append || erase) tag_text = tag_text.substr(1);
   if (erase) it->second.tag_text = "";
 
   // The tag arrow is either enabled explicitly with a specific color (which must be disabled explicitly)
-  // or enabled by default if there is any tag text (can suppress with ^-^).
-  if (tag_text.size() > 2 && tag_text[0] == '^' && tag_text[2] == '^') {
+  // or enabled by default on a NPC if there is any tag text (can suppress with ^-^).
+  if (tag_text.size() > 2 && tag_text[0] == '^') {
     it->second.tag_color = GetTagArrowColor(tag_text[1]);
-    tag_text = tag_text.substr(3);
-  } else if (it->second.tag_color == kTagArrowColorOff || it->second.tag_color == kTagArrowColorNameplate) {
-    it->second.tag_color =
-        tag_text.empty() && it->second.tag_text.empty() ? kTagArrowColorOff : kTagArrowColorNameplate;
+    tag_text = tag_text.substr(2);
+  } else if (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate) {
+    bool disable_arrow = !setting_tag_default_arrow.get() || entity->Type != Zeal::GameEnums::NPC ||
+                         (tag_text.empty() && it->second.tag_text.empty());
+    it->second.tag_color = disable_arrow ? TagArrowColor::Off : TagArrowColor::Nameplate;
+  }
+
+  // Support skipping any unrecognized future prefix.
+  if (tag_text.size() != original_length) {
+    auto prefix_end_index = tag_text.find('^');  // Legacy end of prefix format.
+    if (prefix_end_index != std::string::npos)
+      tag_text = (prefix_end_index == tag_text.length()) ? "" : tag_text.substr(prefix_end_index + 1);
   }
 
   // If empty now it was a prefix only command which were handled above (append is a no-op).
-  if (tag_text.empty()) return true;
+  // We also only allow text tag content on NPCs's.
+  if (tag_text.empty() || entity->Type != Zeal::GameEnums::NPC) return true;
 
   if (append && !it->second.tag_text.empty()) {
     tag_text = it->second.tag_text.substr(0, it->second.tag_text.size() - 1) + kDelimiter + tag_text;
@@ -871,4 +984,228 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
     it->second.color = get_color_callback(static_cast<int>(ColorIndex::Tagged));
 
   return true;
+}
+
+// The chat channel callback requires an additional layer of filtering beyond the single-channel only
+// /rsay and /gsay channels that ccan directly call handle_tag_message(). This callback also supports
+// immediate suppression of the message.
+bool NamePlate::check_for_tag_channel_message(const char *message, int color_index) {
+  if (!message || !message[0] || !setting_tag_enable.get()) return false;
+
+  // The tag_channel_number is not set immediately when joining so we opportunistically try
+  // to update it here.
+  if (tag_channel_number < 0 && !setting_tag_channel.get().empty())
+    tag_channel_number = Zeal::Game::get_channel_number(setting_tag_channel.get().c_str());
+  if (tag_channel_number < 0) return false;
+
+  // Only scan the expected response channel (if not joined, channel will be -1 and bail out above).
+  if ((USERCOLOR_CHAT_1 + tag_channel_number) != color_index &&
+      (USERCOLOR_ECHO_CHAT_1 + tag_channel_number) != color_index)
+    return false;
+
+  // Unlike gsay and rsay, the chat channel includes the sender prefix so extract the contents.
+  std::string msg(message);
+  auto start_index = msg.find('\'');
+  auto end_index = msg.length() - 1;  // Known to be >= 1 from above.
+  if (start_index == std::string::npos || end_index < start_index + 10 || msg[end_index] != '\'') return false;
+
+  // And do another very simple and quick initial check to bail out early.
+  if (msg[start_index + 1] != 'Z') return false;
+
+  std::string contents = msg.substr(start_index + 1, end_index - 1);
+  if (!handle_tag_message(contents.c_str())) return false;
+
+  return setting_tag_suppress.get();
+}
+
+void NamePlate::handle_tag_set_channel_message(const std::string &text) {
+  static const int kPrefixLength = strlen(kZealTagChannelBroadcastPrefix);
+  if (text.length() <= kPrefixLength) return;
+  std::string channel = text.substr(kPrefixLength);
+  if (!join_tag_channel(channel)) Zeal::Game::print_chat("Zeal tag error: failed to join channel %s", channel.c_str());
+}
+
+void NamePlate::broadcast_tag_set_channel(const std::string &channel) {
+  bool in_raid = Zeal::Game::RaidInfo->is_in_raid();
+  if (!in_raid && !Zeal::Game::GroupInfo->is_in_group()) {
+    Zeal::Game::print_chat("Must be in a raid or group to broadcast the channel");
+    return;
+  }
+
+  // Check that the channel name is valid before broadcasting. Also apply if in_raid but not group which echoes.
+  if (!join_tag_channel(channel, in_raid)) {
+    Zeal::Game::print_chat("Invalid chat channel. It must start with %s (like '%s123')", kZealTagChannelPrefix,
+                           kZealTagChannelPrefix);
+    return;
+  }
+
+  std::string text = kZealTagChannelBroadcastPrefix + channel;
+  std::string message =
+      std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, text, kDelimiter, "0", kDelimiter, 0);
+
+  if (in_raid)
+    Zeal::Game::send_raid_chat(message.c_str());
+  else
+    Zeal::Game::do_gsay(message);
+}
+
+bool NamePlate::join_tag_channel(const std::string &channel_in, bool apply) {
+  if (channel_in.empty()) return false;
+
+  // Chat channels require the first character to be capitalized and the rest lowercase.
+  std::string channel = channel_in;
+  std::transform(channel.begin(), channel.end(), channel.begin(), [](unsigned char c) { return std::tolower(c); });
+  channel[0] = std::toupper(channel[0]);
+
+  static const int kPrefixLength = strlen(kZealTagChannelPrefix);
+  if (!channel.starts_with(kZealTagChannelPrefix) || channel.length() <= kPrefixLength) return false;
+
+  if (!apply) return true;
+
+  setting_tag_channel.set(channel);
+
+  // Join the channel to send and receive responses. First check if already joined though.
+  tag_channel_number = Zeal::Game::get_channel_number(setting_tag_channel.get().c_str());
+  if (tag_channel_number < 0) {
+    tag_channel_number = kTagChannelJoinPending;
+    Zeal::Game::print_chat("Attempting to join channel: %s", setting_tag_channel.get().c_str());
+    Zeal::Game::do_join(Zeal::Game::get_self(), setting_tag_channel.get().c_str());
+  }
+
+  return true;
+}
+
+// Sends the formatted response back to the response channel.
+void NamePlate::send_tag_message_to_channel(const std::string &message) {
+  if (tag_channel_number < 0 && !setting_tag_channel.get().empty())
+    tag_channel_number = Zeal::Game::get_channel_number(setting_tag_channel.get().c_str());
+
+  if (tag_channel_number < 0) {
+    Zeal::Game::print_chat("You must join a channel (/tag join) before broadcasting to chat");
+    return;
+  }
+
+  Zeal::Game::send_to_channel(tag_channel_number, message.c_str());
+}
+
+static std::string prettyprint_tag_message(const std::string &msg) {
+  auto split = Zeal::String::split_text(msg, kDelimiter);
+  if (split.size() < 4 || split[1].empty() || split[2].empty()) return msg;
+
+  std::string prefix;
+  std::string text = split[1];  // Extract the tag text field first.
+
+  // Decode the prefix (if any).
+  auto original_length = text.length();
+  if (text[0] == '+') {
+    text = text.substr(1);  // Don't bother adding a prefix comment for Append.
+  } else if (text[0] == '-') {
+    text = text.substr(1);  // Don't bother adding a prefix comment for Erase.
+  }
+
+  if (text.size() > 2 && text[0] == '^') {
+    prefix += std::string("Arrow:") + text[1];
+    text = text.substr(2);
+  }
+
+  // Prefix ends with a ^ if one exists. Adding this search here to try and support
+  // future prefix enhancements so they just get ignored instead of breaking things.
+  if (text.size() != original_length) {
+    auto prefix_end_index = text.find('^');
+    if (prefix_end_index != std::string::npos)
+      text = (prefix_end_index == text.length()) ? "" : text.substr(prefix_end_index + 1);
+  }
+
+  text = text + " => " + split[2];                   // Append the target name.
+  if (!prefix.empty()) text += " (" + prefix + ")";  // And any prettified labels.
+  return text;
+}
+
+bool NamePlate::handle_zeal_spam_filter(short &channel, std::string &msg) {
+  if (msg.empty() || !setting_tag_filter.get()) return false;
+
+  // First do a quick channel check to bail out early.
+  static constexpr int kGroupTextChannel = 2;  // For chan_num in ChannelMessage_Struct.
+  static constexpr int kRaidTextChannel = 15;  // For chan_num in ChannelMessage_Struct.
+  short tag_channel = (tag_channel_number < 0) ? -1 : (USERCOLOR_CHAT_1 + tag_channel_number);
+  short tag_channel_echo = (tag_channel_number < 0) ? -1 : (USERCOLOR_ECHO_CHAT_1 + tag_channel_number);
+  if (channel != USERCOLOR_GROUP && channel != USERCOLOR_ECHO_GROUP && channel != USERCOLOR_RAID_SAY &&
+      channel != tag_channel && channel != tag_channel_echo)
+    return false;
+
+  // In all of these channels, the contents of the message lie between '' quotes.
+  auto start_index = msg.find('\'');
+  auto end_index = msg.length() - 1;
+  if (start_index == std::string::npos || end_index < start_index + 10 || msg[end_index] != '\'') return false;
+
+  // And do another very simple and quick initial check to bail out early.
+  if (msg[start_index + 1] != 'Z') return false;
+
+  // Then do a full check that it is a valid message.
+  std::string contents = msg.substr(start_index + 1, end_index - 1);
+  if (!handle_tag_message(contents.c_str(), false)) return false;
+
+  // Future option: Clean up the messages (strip/translate prefix, merge target name).
+  if (setting_tag_suppress.get())
+    msg = "";  // Clear the message to suppress it (dropped downstream).
+  else if (setting_tag_prettyprint.get())
+    msg = msg.substr(0, start_index + 1) + prettyprint_tag_message(contents) + "'";
+
+  channel = CHANNEL_ZEAL_SPAM;
+  return true;
+}
+
+// If prettyprint is enabled, disable the /filter badword which mangles the prefix in SpeakBabel.
+void NamePlate::synchronize_pretty_print() const {
+  int *const kDisableBadWordFilter = reinterpret_cast<int *>(0x00798b24);
+  if (setting_tag_prettyprint.get()) *kDisableBadWordFilter = 1;
+}
+
+static const char *get_tag_color_description(DWORD color) {
+  switch (color) {
+    case TagArrowColor::Off:
+      return "";
+    case TagArrowColor::Nameplate:
+      return "Arrow";
+    case TagArrowColor::Red:
+      return "Red Arrow";
+    case TagArrowColor::Orange:
+      return "Orange Arrow";
+    case TagArrowColor::Yellow:
+      return "Yellow Arrow";
+    case TagArrowColor::Green:
+      return "Green Arrow";
+    case TagArrowColor::Blue:
+      return "Blue Arrow";
+    case TagArrowColor::White:
+      return "White Arrow";
+    default:
+      break;
+  }
+  return "Unknown";
+}
+
+void NamePlate::handle_targetwnd_postdraw(Zeal::GameUI::SidlWnd *wnd) const {
+  if (!wnd || !setting_tag_tooltip.get()) return;
+
+  auto target = Zeal::Game::get_target();
+  if (!target) return;
+
+  // Find the text.
+  const auto it = nameplate_info_map.find(target);
+  if (it == nameplate_info_map.end()) return;
+  const auto &tag_text = it->second.tag_text;
+  const char *text = tag_text.empty() ? get_tag_color_description(it->second.tag_color) : tag_text.c_str();
+  if (!text || !text[0]) return;
+
+  // Just bail out if existing tooltip data. This isn't expected so keep it simple.
+  if (wnd->ToolTipText.Data) return;
+
+  // Add the text, draw it, and make sure to release to avoid a leak.
+  wnd->ToolTipText.Set(text);
+  Zeal::GameUI::CXRect relativeRect = wnd->GetScreenRect();
+  int x = setting_tag_tooltip_align.get() ? relativeRect.Left : relativeRect.Right;
+  int y = setting_tag_tooltip_align.get() ? relativeRect.Bottom : relativeRect.Top;
+  wnd->DrawTooltipAtPoint(x, y);
+  wnd->ToolTipText.FreeRep();
 }

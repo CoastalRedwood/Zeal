@@ -837,8 +837,8 @@ struct CXWndManager {
   /* 0x0060 */ DWORD unknown60[0x50 / 4];  // Accessed in ShowCursor
   /* 0x00B0 */ DWORD unknownB0;            // Accessed in ShowCursor
   /* 0x00B4 */ DWORD unknownB4[2];
-  /* 0x00BC */ DWORD unknownBC;
-  /* 0x00C0 */ DWORD unknownC0;
+  /* 0x00BC */ DWORD ScreenWidth;
+  /* 0x00C0 */ DWORD ScreenHeight;
   /* 0x00C4 */ DWORD unknownC4;  // Pointer.
   /* 0x00C8 */ DWORD unknownC8;
 };

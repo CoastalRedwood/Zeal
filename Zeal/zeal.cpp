@@ -152,7 +152,7 @@ ZealService::ZealService() {
   equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
-  nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate setting and Chat.
+  nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
   tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
   looting_hook = MakeCheckedUnique(Looting);        // Uses new UI Loot window (and ChatManager).
   give = MakeCheckedUnique(NPCGive);                // Uses new Ui Trade & Give and also looting.

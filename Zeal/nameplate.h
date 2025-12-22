@@ -7,6 +7,7 @@
 
 #include "bitmap_font.h"
 #include "game_structures.h"
+#include "game_ui.h"
 #include "memory.h"
 #include "zeal_settings.h"
 
@@ -46,7 +47,18 @@ class NamePlate {
   ZealSetting<bool> setting_con_colors = {false, "Zeal", "NameplateConColors", false};
   ZealSetting<bool> setting_target_color = {false, "Zeal", "NameplateTargetColor", false};
   ZealSetting<bool> setting_char_select = {false, "Zeal", "NameplateCharSelect", false};
+
+  // Tag settings.
   ZealSetting<bool> setting_tag_enable = {false, "Zeal", "NameplateTagEnable", false};
+  ZealSetting<bool> setting_tag_tooltip = {false, "Zeal", "NameplateTagToolTip", false};
+  ZealSetting<bool> setting_tag_tooltip_align = {false, "Zeal", "NameplateTagToolTipAlign", false};
+  ZealSetting<bool> setting_tag_filter = {false, "Zeal", "NameplateTagFilter", false};
+  ZealSetting<bool> setting_tag_suppress = {false, "Zeal", "NameplateTagSuppress", false,
+                                            [this](bool val) { synchronize_pretty_print(); }};
+  ZealSetting<bool> setting_tag_prettyprint = {false, "Zeal", "NameplateTagPrettyPrint", false};
+  ZealSetting<bool> setting_tag_default_arrow = {true, "Zeal", "NameplateTagDefaultArrow", false};
+  ZealSetting<bool> setting_tag_alternate_symbols = {false, "Zeal", "NameplateTagAlternateSymbols", false};
+  ZealSetting<std::string> setting_tag_channel = {"", "Zeal", "NameplateTagChannel", false};
 
   // Text settings.
   ZealSetting<bool> setting_hide_self = {false, "Zeal", "NameplateHideSelf", false};
@@ -96,6 +108,7 @@ class NamePlate {
   // Internal use only (public for use by callbacks).
   bool handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity);
   bool handle_SetNameSpriteState(void *this_display, Zeal::GameStructures::Entity *entity, int show);
+  void handle_targetwnd_postdraw(Zeal::GameUI::SidlWnd *wnd) const;
 
  private:
   struct NamePlateInfo {
@@ -112,6 +125,7 @@ class NamePlate {
   };
 
   void parse_args(const std::vector<std::string> &args);
+  void dump() const;
   ColorIndex get_color_index(const Zeal::GameStructures::Entity &entity);
   ColorIndex get_player_color_index(const Zeal::GameStructures::Entity &entity) const;
   ColorIndex get_pet_color_index(const Zeal::GameStructures::Entity &entity) const;
@@ -121,10 +135,17 @@ class NamePlate {
   bool is_group_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
   bool handle_shownames_command(const std::vector<std::string> &args);
-  bool handle_tag_command(const std::vector<std::string> &args);
+  void handle_tag_command(const std::vector<std::string> &args);
+  bool handle_zeal_spam_filter(short &channel, std::string &msg);
   void enable_tags(bool enable);
   void clear_tags();
   bool handle_tag_message(const char *message, bool apply = true);
+  void handle_tag_set_channel_message(const std::string &message);
+  void broadcast_tag_set_channel(const std::string &channel);
+  bool join_tag_channel(const std::string &channel, bool apply = true);
+  void send_tag_message_to_channel(const std::string &message);
+  bool check_for_tag_channel_message(const char *message, int color_index);
+  void synchronize_pretty_print() const;
 
   void clean_ui();
   void render_ui();
@@ -135,4 +156,5 @@ class NamePlate {
   std::unordered_map<struct Zeal::GameStructures::Entity *, NamePlateInfo> nameplate_info_map;
   std::function<void()> update_options_ui_callback;
   std::function<unsigned int(int)> get_color_callback;
+  int tag_channel_number = -1;
 };

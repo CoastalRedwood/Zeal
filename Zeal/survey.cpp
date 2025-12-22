@@ -16,15 +16,6 @@ static constexpr char kZealResponseHeader[] = "ZEAL_RESPONSE";
 static constexpr char kDelimiter[] = " | ";
 static constexpr char kZealSurveyPrefix[] = "survey";
 
-// This replaces the PrintChat call used by incoming chat channel messages.
-static void __fastcall chatPrintChat(int t, int unused, const char *data, short color_index, bool u) {
-  ZealService *zeal = ZealService::get_instance();
-  if (data && zeal->survey && zeal->survey->check_for_response_message(data, color_index)) return;
-
-  ZealService::get_instance()->hooks->hook_map["chatPrintChat"]->original(chatPrintChat)(t, unused, data, color_index,
-                                                                                         u);
-}
-
 // Utility function for pulling out an single quoted string within a string.
 std::string extract_quoted_string(const std::string &input) {
   size_t start = input.find('\'');
@@ -42,7 +33,8 @@ Survey::Survey(ZealService *zeal) {
 
   // Hook incoming text messages on raid and chat channels to intercept survey messages.
   zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { check_message_for_survey_trigger(msg); });
-  zeal->hooks->Add("chatPrintChat", 0x00524ca2, chatPrintChat, hook_type_replace_call);
+  zeal->chat_hook->add_incoming_chat_callback(
+      [this](const char *msg, int color_index) { return check_for_response_message(msg, color_index); });
 
   zeal->commands_hook->Add("/survey", {}, "Handles player surveys",
                            [this](const std::vector<std::string> &args) { return parse_command(args); });
@@ -85,7 +77,7 @@ void Survey::handle_start_of_survey(const std::string &channel, const std::strin
 
 // Scans for specifically formatted result replies on the response channel to accumulate results.
 bool Survey::check_for_response_message(const char *message, int color_index) {
-  if (!setting_enable.get() || survey_channel.empty()) return false;
+  if (!message || !setting_enable.get() || survey_channel.empty()) return false;
 
   // Only scan the expected response channel (if not joined, channel will be -1).
   int channel = Zeal::Game::get_channel_number(survey_channel.c_str());
