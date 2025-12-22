@@ -1005,6 +1005,12 @@ Chat::Chat(ZealService *zeal) {
         return true;
       });
 
+  zeal->commands_hook->Add("/optchat", {}, "Optionally broadcasts to raid or group if in one",
+                           [this](std::vector<std::string> &args) {
+                             handle_opt_chat(args);
+                             return true;
+                           });
+
   /*  zeal->commands_hook->Add("/uniquenaming", {}, "Toggles off the stripping of mob id and other identifiers from name
      of npc's (log only)", [this, ini](std::vector<std::string>& args) { uniquenames = !uniquenames;
             Zeal::Game::print_chat("Unique naming is %s", uniquenames ? "Enabled" : "Disabled");
@@ -1072,3 +1078,23 @@ void Chat::set_classes() {
 }
 
 Chat::~Chat() {}
+
+void Chat::handle_opt_chat(std::vector<std::string> &args) {
+  if (args.size() > 2) {
+    bool rsay = (args[1] == "rs" || args[1] == "rsgs");
+    bool gsay = (args[1] == "rsgs" || args[1] == "gs");
+    bool do_rsay = rsay && Zeal::Game::RaidInfo->is_in_raid();
+    bool do_gsay = !do_rsay && gsay && Zeal::Game::GroupInfo->is_in_group();
+    if (do_rsay || do_gsay) {
+      std::string message = args[2];
+      for (int i = 3; i < args.size(); ++i) message += " " + args[i];
+      if (do_rsay)
+        Zeal::Game::send_raid_chat(message);
+      else if (do_gsay)
+        Zeal::Game::do_gsay(message);
+    }
+    if (rsay || gsay) return;
+  }
+
+  Zeal::Game::print_chat("Usage: /optchat <rs | gs | rsgs> <message>");
+}
