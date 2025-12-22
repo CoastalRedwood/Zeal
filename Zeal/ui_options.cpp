@@ -815,6 +815,30 @@ void ui_options::InitNameplate() {
   ui->AddCheckboxCallback(wnd, "Zeal_NameplateStaminaBars", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->nameplate->setting_stamina_bars.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagEnable", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_enable.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagTooltip", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_tooltip.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagTooltipAlign", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_tooltip_align.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagFilter", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_filter.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagSuppress", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_suppress.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagPrettyPrint", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_prettyprint.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagDefaultArrow", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_default_arrow.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagAlternateSymbols", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_alternate_symbols.set(wnd->Checked);
+  });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateFont_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
     std::string font_name("");
@@ -1063,6 +1087,15 @@ void ui_options::UpdateOptionsNameplate() {
   ui->SetChecked("Zeal_NameplateHealthBars", ZealService::get_instance()->nameplate->setting_health_bars.get());
   ui->SetChecked("Zeal_NameplateManaBars", ZealService::get_instance()->nameplate->setting_mana_bars.get());
   ui->SetChecked("Zeal_NameplateStaminaBars", ZealService::get_instance()->nameplate->setting_stamina_bars.get());
+  ui->SetChecked("Zeal_TagEnable", ZealService::get_instance()->nameplate->setting_tag_enable.get());
+  ui->SetChecked("Zeal_TagTooltip", ZealService::get_instance()->nameplate->setting_tag_tooltip.get());
+  ui->SetChecked("Zeal_TagTooltipAlign", ZealService::get_instance()->nameplate->setting_tag_tooltip_align.get());
+  ui->SetChecked("Zeal_TagFilter", ZealService::get_instance()->nameplate->setting_tag_filter.get());
+  ui->SetChecked("Zeal_TagSuppress", ZealService::get_instance()->nameplate->setting_tag_suppress.get());
+  ui->SetChecked("Zeal_TagPrettyPrint", ZealService::get_instance()->nameplate->setting_tag_prettyprint.get());
+  ui->SetChecked("Zeal_TagDefaultArrow", ZealService::get_instance()->nameplate->setting_tag_default_arrow.get());
+  ui->SetChecked("Zeal_TagAlternateSymbols",
+                 ZealService::get_instance()->nameplate->setting_tag_alternate_symbols.get());
 
   std::string current_font = ZealService::get_instance()->nameplate->setting_fontname.get();
   UpdateComboBox("Zeal_NameplateFont_Combobox", current_font, BitmapFont::kDefaultFontName);

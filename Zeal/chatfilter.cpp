@@ -217,7 +217,7 @@ void chatfilter::callback_clean_ui() {
   isDamage = false;
 }
 
-void chatfilter::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string msg, short &channel) {
+void chatfilter::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
   for (auto &filter : Extended_ChannelMaps) {
     if (filter.isHandled(channel, msg)) wnd = filter.windowHandle;
   }
@@ -470,6 +470,15 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
   }
 }
 
+// The Zeal Spam producers (nameplate tagging as top priority) have options to
+// suppress / re-route the channels / modify the text.
+bool chatfilter::HandleZealSpamCallbacks(short &color_index, std::string &msg) {
+  for (const auto &callback : zeal_spam_callbacks) {
+    if (callback(color_index, msg)) return true;
+  }
+  return false;
+}
+
 chatfilter::chatfilter(ZealService *zeal) {
   if (!Zeal::Game::is_new_ui()) return;  // Old UI not supported.
 
@@ -480,15 +489,15 @@ chatfilter::chatfilter(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { isDamage = false; }, callback_type::ReportSuccessfulHitPost);
 
   Extended_ChannelMaps.push_back(
-      CustomFilter("Random", 0x10000, [this](short &color, std::string data) { return color == USERCOLOR_RANDOM; }));
+      CustomFilter("Random", 0x10000, [this](short &color, std::string &data) { return color == USERCOLOR_RANDOM; }));
   Extended_ChannelMaps.push_back(
-      CustomFilter("Loot", 0x10001, [this](short &color, std::string data) { return color == USERCOLOR_LOOT; }));
-  Extended_ChannelMaps.push_back(CustomFilter("Money", 0x10002, [this](short &color, std::string data) {
+      CustomFilter("Loot", 0x10001, [this](short &color, std::string &data) { return color == USERCOLOR_LOOT; }));
+  Extended_ChannelMaps.push_back(CustomFilter("Money", 0x10002, [this](short &color, std::string &data) {
     return color == USERCOLOR_MONEY_SPLIT || color == USERCOLOR_ECHO_AUTOSPLIT;
   }));
   Extended_ChannelMaps.push_back(CustomFilter(
-      "My Pet Say", 0x10003, [this, zeal](short &color, std::string data) { return color == CHANNEL_MYPETSAY; }));
-  Extended_ChannelMaps.push_back(CustomFilter("My Pet Damage", 0x10004, [this, zeal](short &color, std::string data) {
+      "My Pet Say", 0x10003, [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYPETSAY; }));
+  Extended_ChannelMaps.push_back(CustomFilter("My Pet Damage", 0x10004, [this, zeal](short &color, std::string &data) {
     if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
         damageData.source->PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId) {
       color = CHANNEL_MYPETDMG;
@@ -501,10 +510,11 @@ chatfilter::chatfilter(ZealService *zeal) {
     }
     return false;
   }));
-  Extended_ChannelMaps.push_back(CustomFilter(
-      "Other Pet Say", 0x10005, [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHERPETSAY; }));
+  Extended_ChannelMaps.push_back(CustomFilter("Other Pet Say", 0x10005, [this, zeal](short &color, std::string &data) {
+    return color == CHANNEL_OTHERPETSAY;
+  }));
   Extended_ChannelMaps.push_back(
-      CustomFilter("Other Pet Damage", 0x10006, [this, zeal](short &color, std::string data) {
+      CustomFilter("Other Pet Damage", 0x10006, [this, zeal](short &color, std::string &data) {
         if (isDamage && damageData.target == Zeal::Game::get_self()) return false;  // Don't re-route damage to self.
         if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
             damageData.source->PetOwnerSpawnId != Zeal::Game::get_self()->SpawnId) {
@@ -519,27 +529,30 @@ chatfilter::chatfilter(ZealService *zeal) {
         return false;
       }));
   Extended_ChannelMaps.push_back(
-      CustomFilter("/who", 0x10007, [this, zeal](short &color, std::string data) { return color == USERCOLOR_WHO; }));
+      CustomFilter("/who", 0x10007, [this, zeal](short &color, std::string &data) { return color == USERCOLOR_WHO; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("My Melee Special", 0x10008,
-                   [this, zeal](short &color, std::string data) { return color == CHANNEL_MYMELEESPECIAL; }));
+                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYMELEESPECIAL; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Melee Special", 0x10009,
-                   [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
+                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
   Extended_ChannelMaps.push_back(CustomFilter(
-      "/mystats", 0x1000A, [this, zeal](short &color, std::string data) { return color == CHANNEL_MYSTATS; }));
+      "/mystats", 0x1000A, [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYSTATS; }));
   Extended_ChannelMaps.push_back(CustomFilter(
-      "Item Speech", 0x1000B, [this, zeal](short &color, std::string data) { return color == CHANNEL_ITEMSPEECH; }));
+      "Item Speech", 0x1000B, [this, zeal](short &color, std::string &data) { return color == CHANNEL_ITEMSPEECH; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Melee Critical", 0x1000C,
-                   [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHER_MELEE_CRIT; }));
+                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHER_MELEE_CRIT; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Damage Shield", 0x1000D,
-                   [this, zeal](short &color, std::string data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
+                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "Zeal Spam", 0x1000E, [this](short &color, std::string &data) { return HandleZealSpamCallbacks(color, data); }));
 
   // Callbacks
-  zeal->callbacks->AddOutputText(
-      [this](Zeal::GameUI::ChatWnd *&wnd, std::string msg, short &channel) { this->AddOutputText(wnd, msg, channel); });
+  zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
+    this->AddOutputText(wnd, msg, channel);
+  });
   zeal->callbacks->AddGeneric([this]() { callback_clean_ui(); }, callback_type::CleanUI);
 
   // ChatManager

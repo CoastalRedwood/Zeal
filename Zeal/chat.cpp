@@ -177,7 +177,7 @@ DWORD get_class_color(std::string character_name, short channel) {
       USERCOLOR_SPELLS,         USERCOLOR_YOU_HIT_OTHER,   USERCOLOR_OTHER_HIT_YOU,  USERCOLOR_YOU_MISS_OTHER,
       USERCOLOR_OTHER_MISS_YOU, USERCOLOR_DISCIPLINES,     USERCOLOR_YOUR_DEATH,     USERCOLOR_OTHER_DEATH,
       USERCOLOR_NON_MELEE,      USERCOLOR_MONEY_SPLIT,     USERCOLOR_LOOT,           USERCOLOR_OTHERS_SPELLS,
-      USERCOLOR_SPELL_FAILURE,  USERCOLOR_MELEE_CRIT,      USERCOLOR_SPELL_CRIT,     USERCOLOR_NPC_RAMAGE,
+      USERCOLOR_SPELL_FAILURE,  USERCOLOR_MELEE_CRIT,      USERCOLOR_SPELL_CRIT,     USERCOLOR_NPC_RAMPAGE,
       USERCOLOR_NPC_FURRY,      USERCOLOR_NPC_ENRAGE,      CHANNEL_OTHERPETDMG,      CHANNEL_MYPETSAY,
       CHANNEL_MYMELEESPECIAL,   CHANNEL_OTHERMELEESPECIAL, CHANNEL_OTHER_MELEE_CRIT, CHANNEL_OTHER_DAMAGE_SHIELD,
   };
@@ -219,7 +219,9 @@ std::string add_class_colors(std::string message, short channel) {
   auto words_end = std::sregex_iterator();
 
   // Return original message if no matches were found
-  if (words_begin == words_end) { return message; }
+  if (words_begin == words_end) {
+    return message;
+  }
 
   // Modified string for output
   std::string result;
@@ -236,7 +238,9 @@ std::string add_class_colors(std::string message, short channel) {
     last_match_pos = match[0].second;
 
     // If this matches a STML tag, no modifications are needed
-    if (match[1].matched) { result.append(match.str()); }
+    if (match[1].matched) {
+      result.append(match.str());
+    }
     // Possible name, if it matches an entiy, add color tags
     else if (match[2].matched) {
       std::string possible_name = match.str();
@@ -321,6 +325,8 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
       return c->get_color_callback(25);
     case CHANNEL_OTHER_DAMAGE_SHIELD:
       return c->get_color_callback(26);
+    case CHANNEL_ZEAL_SPAM:
+      return 0xffd0d0d0;  // Just hard-code to light grey.
     default:
       break;
   }
@@ -841,6 +847,23 @@ void Chat::handle_incoming_rsay(const char *msg) {
   for (const auto &callback : rsay_callbacks) callback(msg);
 }
 
+bool Chat::handle_incoming_chat(const char *msg, int color_index) {
+  for (const auto &callback : chat_callbacks) {
+    if (callback(msg, color_index)) return true;
+  }
+  return false;
+}
+
+// Intercepts incoming chat channel messages from the server (replaces a specific print chat call).
+static void __fastcall chatPrintChat(int t, int unused, const char *data, short color_index, bool u) {
+  // Allow the handler to suppress the chat from printing if it returns a true.
+  ZealService *zeal = ZealService::get_instance();
+  if (data && zeal->chat_hook && zeal->chat_hook->handle_incoming_chat(data, color_index)) return;
+
+  ZealService::get_instance()->hooks->hook_map["chatPrintChat"]->original(chatPrintChat)(t, unused, data, color_index,
+                                                                                         u);
+}
+
 // Intercepts incoming channel messages from the server.
 static void msg_new_text(char *msg_data) {
   if (!Zeal::Game::get_self()) return;  // Self is null, drop text to avoid potential crashes.
@@ -1023,8 +1046,9 @@ Chat::Chat(ZealService *zeal) {
   zeal->hooks->Add("GetRGBAFromIndex6", 0x438719, GetRGBAFromIndex, hook_type_replace_call);
   InitPercentReplacements();
 
-  // Hook incoming text messages (raid, gsay) to intercept messages.
+  // Hook incoming text messages (raid, gsay, chat) to intercept messages.
   zeal->hooks->Add("MsgNewText", 0x004e25a1, msg_new_text, hook_type_detour);
+  zeal->hooks->Add("chatPrintChat", 0x00524ca2, chatPrintChat, hook_type_replace_call);
 
   // Disable the cycle reply forwards and backwards if ZealInput enabled
   zeal->binds_hook->replace_cmd(

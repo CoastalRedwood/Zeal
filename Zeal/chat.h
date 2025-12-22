@@ -31,16 +31,25 @@ class Chat {
     key_press_callback = callback;
   }
 
+  // These callbacks receive the data going to the chat window right before the final optional
+  // updates of timestamping and abbreviated chat.
   void add_print_chat_callback(std::function<void(const char *data, int color_index)> callback) {
     print_chat_callbacks.push_back(callback);
   }
 
+  // These callbacks receive the "raw" incoming /gsay message data from the server.
   void add_incoming_gsay_callback(std::function<void(const char *data)> callback) {
     gsay_callbacks.push_back(callback);
   }
 
+  // These callbacks receive the "raw" incoming /rsay message data from the server.
   void add_incoming_rsay_callback(std::function<void(const char *data)> callback) {
     rsay_callbacks.push_back(callback);
+  }
+
+  // These callbacks receive the "raw" incoming chat message data from the server.
+  void add_incoming_chat_callback(std::function<bool(const char *data, int color_index)> callback) {
+    chat_callbacks.push_back(callback);
   }
 
   void handle_print_chat(const char *data, int color_index);
@@ -50,6 +59,8 @@ class Chat {
   void handle_incoming_gsay(const char *msg);
 
   void handle_incoming_rsay(const char *msg);
+
+  bool handle_incoming_chat(const char *msg, int color_index);
 
   void DoPercentReplacements(std::string &str_data);
   Chat(class ZealService *pHookWrapper);
@@ -61,5 +72,6 @@ class Chat {
   std::vector<std::function<void(const char *data, int color_index)>> print_chat_callbacks;
   std::vector<std::function<void(const char *data)>> gsay_callbacks;
   std::vector<std::function<void(const char *data)>> rsay_callbacks;
+  std::vector<std::function<bool(const char *data, int color_index)>> chat_callbacks;
   std::function<bool(int key, bool down, int modifier)> key_press_callback;
 };

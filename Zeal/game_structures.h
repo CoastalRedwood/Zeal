@@ -76,7 +76,7 @@
 #define USERCOLOR_MELEE_CRIT 0xFF + 46    //  46 - Melee Crits
 #define USERCOLOR_SPELL_CRIT 0xFF + 47    //  47 - Spell Crits
 #define USERCOLOR_TOO_FAR_AWAY 0xFF + 48  //  48 - Too far away (melee)
-#define USERCOLOR_NPC_RAMAGE 0xFF + 49    //  49 - NPC Rampage
+#define USERCOLOR_NPC_RAMPAGE 0xFF + 49   //  49 - NPC Rampage
 #define USERCOLOR_NPC_FURRY 0xFF + 50     //  50 - NPC Furry
 #define USERCOLOR_NPC_ENRAGE 0xFF + 51    //  51 - NPC Enrage
 #define USERCOLOR_ECHO_SAY 0xFF + 52      //  52 - say echo
