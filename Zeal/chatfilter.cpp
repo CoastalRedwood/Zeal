@@ -376,6 +376,9 @@ static PetSpeech is_pet_speech(int string_id, short color_index, const char *dat
   const auto *pet = Zeal::Game::get_pet();
   if (!pet) return PetSpeech::OtherPetSay;  // If we don't have a pet, not ours.
 
+  if (string_id == 488)        // /pet health: I have %1 percent of my hit points left.
+    return PetSpeech::NotPet;  // Do not route to keep with buffs on Chat::White.
+
   // Next check the explicit string IDs that only come from "my pet".
   for (const int &i : my_pet_string_ids) {
     if (string_id == i) return PetSpeech::MyPetSay;
@@ -388,9 +391,9 @@ static PetSpeech is_pet_speech(int string_id, short color_index, const char *dat
   // We have a %T2 pet message. Now sort out if the %1 is equal to the client's pet name.
   const char *pet_name = Zeal::Game::strip_name(pet->Name);
   std::string message = std::string(data);
-  size_t first_space = message.find(' ');
-  if (first_space == std::string::npos) return PetSpeech::NotPet;
-  auto name = message.substr(0, first_space);
+  size_t end_of_name_space = message.find(" says");
+  if (end_of_name_space == std::string::npos) return PetSpeech::NotPet;
+  auto name = message.substr(0, end_of_name_space);
   return strcmp(name.c_str(), pet_name) ? PetSpeech::OtherPetSay : PetSpeech::MyPetSay;
 }
 

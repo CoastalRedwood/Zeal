@@ -212,7 +212,11 @@ static std::string GetCrashMessage(EXCEPTION_POINTERS *pep, bool extra_data) {
       reasonStream << "Self: 0x" << std::hex << (uint32_t)(self) << std::dec << std::endl;
     }
     int show_spell_effects = *reinterpret_cast<unsigned int *>(0x007cf290);
-    if (show_spell_effects) reasonStream << "ShowSpellEffects: " << show_spell_effects << std::endl;
+    const BYTE kOpcodeNop = 0x90;
+    const int kDoSpriteEffectAddr = 0x0052cbb1;
+    bool sprites_disabled = (*reinterpret_cast<BYTE *>(kDoSpriteEffectAddr) == kOpcodeNop);
+    if (show_spell_effects)
+      reasonStream << "ShowSpellEffects: " << show_spell_effects << " NoSprites: " << sprites_disabled << std::endl;
     if (ZealService::get_heap_failed_line())
       reasonStream << "BootHeapCheck: " << ZealService::get_heap_failed_line() << std::endl;
     int error_count = ZealService::get_instance()->crash_handler->get_xml_error_count();

@@ -231,6 +231,11 @@ ___
   - **Arguments:** `colors`, `concolors`, `targetcolor`, `charselect`, `hideself`, `x`, `hideraidpets`, `showpetownername`, `targetmarker`, `targethealth`, `inlineguild`
   - **Description:** toggles nameplate modes for adjusting colors (tints) and text
 
+- `/optchat`
+  - **Arguments:** `rs`, `gs`, `rsgs` (sends to raid if in raid else group if in group)
+  - **Description:** optionally broadcasts to raid or group if in one
+  - **Example:** `/optchat rsgs CH on %t`
+
 - `/outputfile`
   - **Aliases:** `/output`, `/out`
   - **Arguments:** `inventory | spellbook | raidlist` `[optional_filename]`, `format [0 | 1]`

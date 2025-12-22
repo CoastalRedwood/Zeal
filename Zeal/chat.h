@@ -62,6 +62,8 @@ class Chat {
 
   bool handle_incoming_chat(const char *msg, int color_index);
 
+  void handle_opt_chat(std::vector<std::string> &args);
+
   void DoPercentReplacements(std::string &str_data);
   Chat(class ZealService *pHookWrapper);
   ~Chat();
