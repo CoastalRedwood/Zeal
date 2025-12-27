@@ -366,6 +366,10 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
       line = std::format("  {}: Increase Absorb Magic Damage by ", display_index);
       append_effect_description(line, spell, caster_level, effect_index);
       break;
+    case 110: // Ranger Hawk Eye and Eagle Eye archery accuracy
+      line = std::format("  {}: Increase Chance to Hit with Archery by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
     case 115:  // Song of Sustenance
       line = std::format("  {}: Food/Water", display_index);
       break;
