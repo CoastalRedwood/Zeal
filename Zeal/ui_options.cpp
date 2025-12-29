@@ -198,7 +198,7 @@ static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_de
     {"OtherSpecial", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 24: White
     {"OtherCritical", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},  // 25: White
     {"OtherDmgShld", D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},   // 26: White
-    {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 27: Unused
+    {"ZealSpam", D3DCOLOR_XRGB(0xd0, 0xd0, 0xd0)},       // 27: Light Grey
     {nullptr, D3DCOLOR_XRGB(0xf0, 0xf0, 0xf0)},          // 28: Unused
     {"Tagged", D3DCOLOR_XRGB(0xff, 0x80, 0xf0)},         // 29: Orange
     {"GuildLFG", D3DCOLOR_XRGB(0xcf, 0xff, 0x00)},       // 30: Yellow

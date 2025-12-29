@@ -326,7 +326,7 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
     case CHANNEL_OTHER_DAMAGE_SHIELD:
       return c->get_color_callback(26);
     case CHANNEL_ZEAL_SPAM:
-      return 0xffd0d0d0;  // Just hard-code to light grey.
+      return c->get_color_callback(27);
     default:
       break;
   }

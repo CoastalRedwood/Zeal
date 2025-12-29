@@ -465,7 +465,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>264</X>
-      <Y>372</Y>
+      <Y>376</Y>
     </Location>
     <Size>
       <CX>320</CX>
@@ -747,7 +747,7 @@
 		<RelativePosition>true</RelativePosition>
 		<Location>
 			<X>272</X>
-			<Y>694</Y>
+			<Y>684</Y>
 		</Location>
 		<Size>
 			<CX>320</CX>
@@ -1025,13 +1025,42 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  <Button item="Zeal_Color27">
+    <ScreenID>Zeal_Color27</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>916</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>28 - Zeal spam (tags)</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
   
   <Label item="Section_FloatingCombat">
     <ScreenID>Section_FloatingCombat</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>272</X>
-      <Y>938</Y>
+      <Y>972</Y>
     </Location>
     <Size>
       <CX>320</CX>
@@ -1052,7 +1081,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>0</X>
-      <Y>964</Y>
+      <Y>1008</Y>
     </Location>
     <Size>
       <CX>760</CX>
@@ -1081,7 +1110,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>984</Y>
+      <Y>1028</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1110,7 +1139,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>400</X>
-      <Y>984</Y>
+      <Y>1028</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1139,7 +1168,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>1028</Y>
+      <Y>1072</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1168,7 +1197,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>400</X>
-      <Y>1028</Y>
+      <Y>1072</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1197,7 +1226,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>1072</Y>
+      <Y>1116</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1226,7 +1255,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>400</X>
-      <Y>1072</Y>
+      <Y>1116</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1255,7 +1284,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>1116</Y>
+      <Y>1160</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1284,7 +1313,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>400</X>
-      <Y>1116</Y>
+      <Y>1160</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1313,7 +1342,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>1160</Y>
+      <Y>1204</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -1391,6 +1420,7 @@
     <Pieces>Zeal_Color24</Pieces>
     <Pieces>Zeal_Color25</Pieces>
     <Pieces>Zeal_Color26</Pieces>
+    <Pieces>Zeal_Color27</Pieces>
     <Pieces>Section_FloatingCombat</Pieces>
     <Pieces>Zeal_BtnDividerFloating</Pieces>
     <Pieces>Zeal_Color30</Pieces>
