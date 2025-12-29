@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 
 #include "callbacks.h"
 #include "chat.h"
@@ -34,6 +35,8 @@ static constexpr int kTagChannelJoinPending = -2;
 enum TagArrowColor : DWORD {
   Off = 0,  // Alpha == 0 for these special cases.
   Nameplate = 1,
+  Paw = D3DCOLOR_XRGB(0x20, 0xc0, 0x20),       // Ensure this is unique.
+  StopSign = D3DCOLOR_XRGB(0xf0, 0x00, 0x00),  // Ensure this is unique.
   Red = D3DCOLOR_XRGB(0xff, 0, 0),
   Orange = D3DCOLOR_XRGB(0xff, 0x80, 0),
   Yellow = D3DCOLOR_XRGB(0xff, 0xff, 0),
@@ -319,6 +322,16 @@ static int get_stamina_percent(const Zeal::GameStructures::Entity *entity) {
   return -1;  // TODO: Support entities besides self.
 }
 
+// Returns bearing to target from self from -pi to +pi in the world coordinate system.
+static float get_bearing(const Zeal::GameStructures::Entity *self, const Zeal::GameStructures::Entity *target) {
+  if (!self || !target) return 0;
+  float delta_y = target->Position.x - self->Position.x;
+  float delta_x = target->Position.y - self->Position.y;
+  delta_x = (delta_x >= 0) ? (max(delta_x, 1e-6)) : (min(delta_x, -1e-6));
+  float bearing = std::atan2(delta_y, delta_x);  // From -pi to +pi.
+  return bearing;
+}
+
 void NamePlate::render_ui() {
   if (!setting_zeal_fonts.get() || (!Zeal::Game::is_in_game() && !Zeal::Game::is_in_char_select())) return;
 
@@ -383,8 +396,12 @@ void NamePlate::render_ui() {
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
     if (!is_corpse && info.tag_color != TagArrowColor::Off) {
       auto tag_color = (info.tag_color == TagArrowColor::Nameplate) ? nameplate_color : info.tag_color;
+      TagArrows::Shape shape = (tag_color == TagArrowColor::Paw)        ? TagArrows::Shape::Paw
+                               : (tag_color == TagArrowColor::StopSign) ? TagArrows::Shape::Octagon
+                                                                        : TagArrows::Shape::Arrow;
       position.z += sprite_font->get_text_height(full_text) + 1.5f;
-      tag_arrows->QueueArrow(position, tag_color);
+      float bearing = (shape == TagArrows::Shape::Arrow) ? 0.0f : get_bearing(self, entity);
+      tag_arrows->QueueTagShape(position, tag_color, shape, bearing);
     }
   }
   tag_arrows->FlushQueueToScreen();
@@ -896,6 +913,10 @@ static D3DCOLOR GetTagArrowColor(char color_key) {
       return TagArrowColor::Blue;
     case 'w':
       return TagArrowColor::White;
+    case 'p':
+      return TagArrowColor::Paw;
+    case 's':
+      return TagArrowColor::StopSign;
     default:
       break;
   }
@@ -1179,6 +1200,10 @@ static const char *get_tag_color_description(DWORD color) {
       return "Blue Arrow";
     case TagArrowColor::White:
       return "White Arrow";
+    case TagArrowColor::Paw:
+      return "Paw";
+    case TagArrowColor::StopSign:
+      return "Stop";
     default:
       break;
   }
@@ -1195,7 +1220,13 @@ void NamePlate::handle_targetwnd_postdraw(Zeal::GameUI::SidlWnd *wnd) const {
   const auto it = nameplate_info_map.find(target);
   if (it == nameplate_info_map.end()) return;
   const auto &tag_text = it->second.tag_text;
-  const char *text = tag_text.empty() ? get_tag_color_description(it->second.tag_color) : tag_text.c_str();
+  const char *color_text = get_tag_color_description(it->second.tag_color);
+  const char *text = tag_text.empty() ? color_text : tag_text.c_str();
+  std::string combined_text;
+  if (!tag_text.empty() && color_text && color_text[0]) {
+    combined_text = std::string(color_text) + kDelimiter + tag_text;
+    text = combined_text.c_str();
+  }
   if (!text || !text[0]) return;
 
   // Just bail out if existing tooltip data. This isn't expected so keep it simple.

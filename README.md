@@ -518,7 +518,10 @@ ___
   - The <tag_text> message supports special prefixes:
     - `+` to append tag text (must be first character)
     - `-` to erase only existing text (must be first character)
-    - `^R^`: to set explicit arrow where R = colors (R, O, Y, G, B, W) or `-` to remove arrow
+    - `^?^`: to set explicit shapes over the nametag where `?` can be one of (case-insensitive):
+      - Colored arrow: (`R` = red, `O` = orange, `Y` = yellow, `G` = green, `B` = blue, `W` = white)
+      - Green pet paw symbol: `P`
+      - Red stop sign (octagon): `S`
 - Chat channel support / usage
   - Note: Zeal does not autojoin the channel at boot. Use `/tag channel`, `/tag join`, or autojoin.
   - `/tag channel <name>` broadcasts a special message to rsay (if in raid) else gsay (if in group) 
