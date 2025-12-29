@@ -657,8 +657,11 @@ struct TradeWnd : public SidlWnd {
   /* 0x0168 */ SidlWnd *HisNameLabel;
   /* 0x016C */ SidlWnd *MyNameLabel;
   /* 0x0170 */ InvSlotWnd *TradeSlots[0x10];
-  /* 0x01B0 */ DWORD Unknown01b0[0x4];                                // Probably My or Their Money slots.
-  /* 0x01C0 */ DWORD Unknown01c0[0x4];                                // Probably My or Their money slots.
+  /* 0x01B0 */ DWORD Unknown01b0[0x4];  // Probably Their Money slots.
+  /* 0x01C0 */ int MyPlatinum;
+  /* 0x01C4 */ int MyGold;
+  /* 0x01C8 */ int MySilver;
+  /* 0x01CC */ int MyCopper;
   /* 0x01D0 */ Zeal::GameStructures::_GAMEITEMINFO *GiveItems[8];     // My item giving array.
   /* 0x01F0 */ Zeal::GameStructures::_GAMEITEMINFO *ReceiveItems[8];  // Probably their item array.
   /* 0x0210 */ BYTE Unknown0210;     // Set to 0 in constructor. Possibly accept status.
