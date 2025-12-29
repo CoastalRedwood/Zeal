@@ -327,6 +327,9 @@ void ui_options::InitGeneral() {
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape_raid_lock.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_DialogPosition",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_dialog_position.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_LogAddToTrade", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->give->setting_log_add_to_trade.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_ShowHelm", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->helm->ShowHelmEnabled.set(wnd->Checked);
   });
@@ -948,6 +951,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_Escape", setting_escape.get());
   ui->SetChecked("Zeal_RaidEscapeLock", setting_escape_raid_lock.get());
   ui->SetChecked("Zeal_DialogPosition", setting_dialog_position.get());
+  ui->SetChecked("Zeal_LogAddToTrade", ZealService::get_instance()->give->setting_log_add_to_trade.get());
   ui->SetChecked("Zeal_ShowHelm", ZealService::get_instance()->helm->ShowHelmEnabled.get());
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
   ui->SetChecked("Zeal_SpellbookAutoStand", ZealService::get_instance()->movement->SpellBookAutoStand.get());

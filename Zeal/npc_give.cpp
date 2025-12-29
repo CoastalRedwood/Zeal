@@ -34,12 +34,53 @@ static void __fastcall CInvSlotMgrMoveItem(void *mgr, int unused_edx, int from_s
   // msg_disarm and the DropItemIntoTrade calls all set print_error == 0, so we filter for that.
   // Also, we confirm that the from_slot is not the cursor and the to_slot is the cusor.
   // HandleItemPickup() does additional filtering.
-  ZealService::get_instance()->give->ClearItem();
-  if (from_slot != 0 && to_slot == 0 && print_error == 1 && unknown == 1)
-    ZealService::get_instance()->give->HandleItemPickup(from_slot);
+
+  auto give = ZealService::get_instance()->give.get();  // Short-term temporary pointer.
+
+  // Add option to log items moved to trade / give window.
+  const int TRADE_BEGIN = 3000;
+  const int TRADE_SIZE = 8;
+  if (from_slot == 0 && (to_slot >= TRADE_BEGIN && to_slot < (TRADE_BEGIN + TRADE_SIZE)) &&
+      give->setting_log_add_to_trade.get()) {
+    auto char_info = Zeal::Game::get_char_info();
+    auto item = char_info ? char_info->CursorItem : nullptr;
+    if (item && item->Name) Zeal::Game::print_chat("Adding %s to trade window", item->Name);
+  }
+
+  give->ClearItem();
+  if (from_slot != 0 && to_slot == 0 && print_error == 1 && unknown == 1) give->HandleItemPickup(from_slot);
 
   ZealService::get_instance()->hooks->hook_map["CInvSlotMgrMoveItem"]->original(CInvSlotMgrMoveItem)(
       mgr, unused_edx, from_slot, to_slot, print_error, unknown);
+}
+
+// Intercepts money transfers trade window to support logging.
+static int __fastcall CEverquestMoveMoney(void *game, int unused_edx, int src, int dest, int src_type, int dst_type,
+                                          int amount, char do_check) {
+  int result = ZealService::get_instance()->hooks->hook_map["CEverquestMoveMoney"]->original(CEverquestMoveMoney)(
+      game, unused_edx, src, dest, src_type, dst_type, amount, do_check);
+
+  const int kCursor = 0;
+  const int kTradeWnd = 3;
+  if (result && src == kCursor && dest == kTradeWnd && amount != 0 &&
+      ZealService::get_instance()->give->setting_log_add_to_trade.get()) {
+    if (src_type == 0)
+      Zeal::Game::print_chat("Adding %d pp to trade window", amount);
+    else if (src_type == 1)
+      Zeal::Game::print_chat("Adding %d gp to trade window", amount);
+    else if (src_type == 2)
+      Zeal::Game::print_chat("Adding %d sp to trade window", amount);
+    else if (src_type == 3)
+      Zeal::Game::print_chat("Adding %d cp to trade window", amount);
+
+    auto trade_wnd = Zeal::Game::Windows->Trade;
+    if (trade_wnd) {
+      Zeal::Game::print_chat("Your total added money is: %d PP, %d GP, %d SP, %d CP", trade_wnd->MyPlatinum,
+                             trade_wnd->MyGold, trade_wnd->MySilver, trade_wnd->MyCopper);
+    }
+  }
+
+  return result;
 }
 
 static bool is_give_or_trade_window_active() {
@@ -209,6 +250,7 @@ NPCGive::NPCGive(ZealService *zeal) {
       },
       callback_type::CharacterSelect);
   zeal->hooks->Add("QtyPickupItem", 0x42F65A, QtyPickupItem, hook_type_detour);
+  zeal->hooks->Add("CEverquestMoveMoney", 0x00530fd3, CEverquestMoveMoney, hook_type_detour);
   zeal->hooks->Add("CInvSlotMgrMoveItem", 0x00422b1c, CInvSlotMgrMoveItem, hook_type_detour);
   zeal->commands_hook->Add(
       "/singleclick", {},

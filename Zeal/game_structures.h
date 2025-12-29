@@ -1186,7 +1186,9 @@ struct Display {
   /* 0x0008 */ float *ActiveCamera;  // Pointer to camera position (source used to update CameraLocation).
   /* 0x000C */ BYTE Unknown000C[0x10];
   /* 0x001C */ float CameraLocation[7];  // Updated in RenderWorld with t3dGetCameraLocation.
-  /* 0x0038 */ BYTE Unknown0038[0x90];
+  /* 0x0038 */ BYTE Unknown0038[0x41 - 0x38];
+  /* 0x0041 */ BYTE CursorMoneyType;  // 0 = None, 1 = plat, 2 = gold, 3 = silver, 4 = copper.
+  /* 0x0042 */ BYTE Unknown0042[0xc8 - 0x42];
   /* 0x00C8 */ DWORD GameTimeMs;  // Millisecond timestamp updated at start of RealRender_World.
   /* 0x00CC */ BYTE Unknown00CC[0x2bd8];
   /* 0x2CA4 */ DWORD WorldDisplayStarted;  // Set in CDisplay::StartWorldDisplay().

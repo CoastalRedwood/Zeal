@@ -696,6 +696,37 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_LogAddToTrade">
+    <ScreenID>Zeal_LogAddToTrade</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>10</X>
+      <Y>486</Y>
+    </Location>
+    <Size>
+      <CX>150</CX>
+      <CY>20</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Logs when items are moved from cursor to trade window</TooltipReference>
+    <Text>Log add to trade</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <!-- Second column -->
   <Label item="Zeal_HoverTimeout_Label">
     <ScreenID>Zeal_HoverTimeout_Label</ScreenID>
@@ -1718,6 +1749,7 @@
     <Pieces>Zeal_AddGroupColors</Pieces>
     <Pieces>Zeal_AutoConsent</Pieces>
     <Pieces>Zeal_DialogPosition</Pieces>
+    <Pieces>Zeal_LogAddToTrade</Pieces>
     <!-- Second column. -->
     <Pieces>Zeal_HoverTimeout_Label</Pieces>
     <Pieces>Zeal_HoverTimeout_Slider</Pieces>
