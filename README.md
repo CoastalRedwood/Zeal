@@ -536,6 +536,10 @@ ___
     - Enabling prettyprint will disable the badword filter (non-persistently)
 - The tag text of the current target can be added as a tooltip to the target window by 
   setting `/tag tooltip on` (there is also an alignment option in Nameplate tab)
+- Tag text can be used for targeting with `/tag target <text>` where
+  - Matches `<text>` against each tag text field after splitting by delimiter (' | ')
+  - Requires the NPC to be tab targettable to succeed
+  - Targets closest NPC if multiple matches
 - International keyboard support:
   - Nameplate Tab Alternate Symbols options allows `*` in place of `^`.
 

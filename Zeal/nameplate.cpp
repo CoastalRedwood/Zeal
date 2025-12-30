@@ -946,6 +946,7 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
 
   Zeal::Game::print_chat("Usage: /tag <on | off | clear>");
   Zeal::Game::print_chat("Usage: /tag <tooltip | filter | suppress | prettyprint> <on | off>");
+  Zeal::Game::print_chat("Usage: /tag target <text_to_match>");
   Zeal::Game::print_chat("Usage: /tag <gsay | rsay | chat> local> <message | clear | channel>");
   Zeal::Game::print_chat("Usage: <message> prefixes: '+' to append, '^R^' or '*R:' for color arrow (R, O, Y, G, B, W)");
   Zeal::Game::print_chat("Example: /tag rsay Assist me");
