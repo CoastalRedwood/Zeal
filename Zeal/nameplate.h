@@ -136,6 +136,7 @@ class NamePlate {
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
   bool handle_shownames_command(const std::vector<std::string> &args);
   void handle_tag_command(const std::vector<std::string> &args);
+  bool handle_tag_target(const std::string &target_text);
   bool handle_zeal_spam_filter(short &channel, std::string &msg);
   void enable_tags(bool enable);
   void clear_tags();
