@@ -779,9 +779,66 @@ static bool is_taggable_target(const Zeal::GameStructures::Entity *target) {
   return true;
 }
 
+// Perform a quick horizontal distance comparison for the target sorting.
+static bool distance_comparison(const Zeal::GameStructures::Entity *a, const Zeal::GameStructures::Entity *b) {
+  auto self = Zeal::Game::get_self();
+  if (!self || !a || !b) return true;  // Default to no change in order.
+
+  float distance_a = (a->Position.x - self->Position.x) * (a->Position.x - self->Position.x) +
+                     (a->Position.y - self->Position.y) * (a->Position.y - self->Position.y);
+  float distance_b = (b->Position.x - self->Position.x) * (b->Position.x - self->Position.x) +
+                     (b->Position.y - self->Position.y) * (b->Position.y - self->Position.y);
+  return distance_a <= distance_b;  // No reason to do the sqrt().
+}
+
+bool NamePlate::handle_tag_target(const std::string &target_text) {
+  // Scan all nameplates for tag_text that contains the target text.
+  std::vector<Zeal::GameStructures::Entity *> matches;
+  for (const auto &entry : nameplate_info_map) {
+    const auto &tag_text = entry.second.tag_text;
+    if (!entry.first || entry.first->Type != Zeal::GameEnums::NPC || tag_text.empty() ||
+        tag_text.find(target_text) == std::string::npos)
+      continue;
+
+    // There's a substring match but do a secondary exact check also.
+    auto split = Zeal::String::split_text(tag_text, kDelimiter);
+    if (!split.empty() && !split.back().empty() && split.back().back() == '\n')
+      split.back().erase(split.back().length() - 1);
+    for (const auto &field : split) {
+      if (field == target_text) {
+        matches.push_back(entry.first);
+        break;
+      }
+    }
+  }
+
+  if (matches.empty()) return false;
+
+  // Prevent exploitation by limiting this to entities that can be tab targeted.
+  const float kMaxDist = 250;  // Same distance as tab cycle targeting.
+  auto visible_entities = Zeal::Game::get_world_visible_actor_list(kMaxDist, true);
+  std::vector<Zeal::GameStructures::Entity *> candidates;
+  for (const auto &match : matches) {
+    if (std::find(visible_entities.begin(), visible_entities.end(), match) != visible_entities.end())
+      candidates.push_back(match);
+  }
+
+  if (candidates.empty()) return false;
+  if (candidates.size() > 1) std::sort(candidates.begin(), candidates.end(), distance_comparison);
+  Zeal::Game::set_target(candidates[0]);  // Return closest after sorting by distance.
+  return true;
+}
+
 void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   if (args.size() == 2 && (args[1] == "on" || args[1] == "off")) {
     enable_tags(args[1] == "on");
+    return;
+  }
+
+  if (args.size() >= 3 && args[1] == "target") {
+    std::string target_text = args[2];
+    for (int i = 3; i < args.size(); ++i) target_text += " " + args[i];
+    if (!handle_tag_target(target_text)) Zeal::Game::print_chat("No valid tag target match found");
     return;
   }
 
@@ -992,9 +1049,19 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
   // We also only allow text tag content on NPCs's.
   if (tag_text.empty() || entity->Type != Zeal::GameEnums::NPC) return true;
 
+  // Check if the tag_text should be appended to existing text. Preserve atomic fields.
   if (append && !it->second.tag_text.empty()) {
-    tag_text = it->second.tag_text.substr(0, it->second.tag_text.size() - 1) + kDelimiter + tag_text;
+    std::string orig_tag_text = tag_text;
+    auto tag_split = Zeal::String::split_text(it->second.tag_text, kDelimiter);
+    if (!tag_split.empty() && !tag_split.back().empty() && tag_split.back().back() == '\n')
+      tag_split.back().erase(tag_split.back().length() - 1);  // Strip trailing \n
+    for (auto it = tag_split.rbegin(); it != tag_split.rend(); ++it) {
+      if (*it == orig_tag_text) continue;  // Skip duplication.
+      if (tag_text.length() + it->length() + strlen(kDelimiter) > kMaxTagTextLength) break;
+      tag_text = *it + kDelimiter + tag_text;  // Only prepend if full split will fit.
+    }
   }
+
   if (tag_text.size() > kMaxTagTextLength) tag_text = tag_text.substr(tag_text.size() - kMaxTagTextLength);
   tag_text += "\n";
 
@@ -1125,7 +1192,12 @@ static std::string prettyprint_tag_message(const std::string &msg) {
   }
 
   if (text.size() > 2 && text[0] == '^') {
-    prefix += std::string("Arrow:") + text[1];
+    if (text[1] == 's' || text[1] == 'S')
+      prefix += "Stop";
+    else if (text[1] == 'p' || text[1] == 'P')
+      prefix += "Paw";
+    else
+      prefix += std::string("Arrow:") + text[1];
     text = text.substr(2);
   }
 
