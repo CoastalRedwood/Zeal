@@ -267,20 +267,23 @@ std::string add_class_colors(std::string message, short channel) {
   return result;
 }
 
-std::string generateTimestampedString(const std::string &message, bool longform = true) {
+std::string generateTimestampedString(const std::string &message, int timestamp_style) {
   time_t rawtime;
   struct tm timeinfo;
   time(&rawtime);
   localtime_s(&timeinfo, &rawtime);
 
   std::ostringstream oss;
-  if (longform) {
+  if (timestamp_style == 1) {
     oss << "[" << std::setw(2) << std::setfill('0') << ((timeinfo.tm_hour % 12 == 0) ? 12 : timeinfo.tm_hour % 12)
         << ":" << std::setw(2) << std::setfill('0') << timeinfo.tm_min << ":" << std::setw(2) << std::setfill('0')
         << timeinfo.tm_sec << " " << ((timeinfo.tm_hour >= 12) ? "PM" : "AM") << "] " << message;
-  } else {
+  } else if (timestamp_style == 2) {
     oss << "[" << std::setw(2) << std::setfill('0') << timeinfo.tm_hour << ":" << std::setw(2) << std::setfill('0')
         << timeinfo.tm_min << "] " << message;
+  } else {
+    oss << "[" << std::setw(2) << std::setfill('0') << timeinfo.tm_hour << ":" << std::setw(2) << std::setfill('0')
+        << timeinfo.tm_min << ":" << std::setw(2) << std::setfill('0') << timeinfo.tm_sec << "] " << message;
   }
   return oss.str();
 }
@@ -357,7 +360,7 @@ static void __fastcall PrintChat(int t, int unused, char *data, short color_inde
   const auto &timestamp_style = ZealService::get_instance()->chat_hook->TimeStampsStyle;
   bool log_is_different = timestamp_style.get() || (chat_buffer != log_buffer);
   if (timestamp_style.get()) {
-    std::string timestamp_buffer = generateTimestampedString(chat_buffer, timestamp_style.get() == 1);
+    std::string timestamp_buffer = generateTimestampedString(chat_buffer, timestamp_style.get());
     strncpy_s(buffer, timestamp_buffer.c_str(), sizeof(buffer));
   } else {
     strncpy_s(buffer, chat_buffer, sizeof(buffer));
@@ -449,7 +452,7 @@ static std::string get_tab_completion_target(const std::string &text, const std:
 static std::vector<std::string> get_tell_list_matches(const std::string &start_of_name) {
   std::vector<std::string> result;
   const int tell_list_size = 31;  // Stores most recent 31 tell names.
-  const char(*tell_list)[64] = reinterpret_cast<const char(*)[64]>(0x007CE45C);
+  const char (*tell_list)[64] = reinterpret_cast<const char (*)[64]>(0x007CE45C);
   for (int i = 0; i < tell_list_size; ++i) {
     if (tell_list[i][0] == 0)  // Rest of list is empty.
       break;
@@ -919,10 +922,15 @@ Chat::Chat(ZealService *zeal) {
       });
   zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles timestamps on chat windows.",
                            [this](std::vector<std::string> &args) {
-                             if (args.size() > 1 && args[1] == "2") {
-                               TimeStampsStyle.set(2);
-                             } else {
-                               TimeStampsStyle.set(TimeStampsStyle.get() > 0 ? 0 : 1);
+                             TimeStampsStyle.set(0);
+                             if (args.size() > 1) {
+                               if (args[1] == "1") {
+                                 TimeStampsStyle.set(1);
+                               } else if (args[1] == "2") {
+                                 TimeStampsStyle.set(2);
+                               } else if (args[1] == "3") {
+                                 TimeStampsStyle.set(3);
+                               }
                              }
                              return true;  // return true to stop the game from processing any further on this command,
                                            // false if you want to just add features to an existing cmd
