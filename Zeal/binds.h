@@ -21,22 +21,37 @@ ENUM_BITMASK_OPERATORS(key_category)
 
 class Binds {
  public:
+  static constexpr int kNumBinds = 256;  // Limited by OptionsWnd::KeyMaps size.
+  static constexpr int kNameBufferSize = 64;
+
   Binds(class ZealService *zeal);
   ~Binds();
 
-  static constexpr int kNumBinds = 256;
-  static constexpr int kNameBufferSize = 64;
+  // Adds a new mappable bind in the command index slot. Blocks replacing default client indices.
+  void add_bind(int index, const char *name, const char *short_name, key_category category,
+                std::function<void(int state)> callback);
+
+  // Adds a callback that happens prior to the primary bind (including client binds) and
+  // can return true to block execution of the primary bind.
+  void replace_cmd(int cmd, std::function<bool(int state)> callback);
+
+  // Toggles whether to use the default global ini section or per character section name.
+  void set_per_character_mode(bool enable);
+
+  void print_keybinds() const;
+
+  void handle_init_keyboard_assignments(void *options_window);  // Internal callback.
+
+ private:
+  bool execute_cmd(unsigned int opcode, int state);
+  void update_ini_section_name();
+  void read_ini();
+
   char *KeyMapNames[kNumBinds] = {0};
   char KeyMapNamesBuffer[kNumBinds][kNameBufferSize] = {0};
   int KeyMapCategories[kNumBinds] = {0};
   std::unordered_map<int, std::function<void(int state)>> KeyMapFunctions;
   std::unordered_map<int, std::vector<std::function<bool(int state)>>> ReplacementFunctions;
-
-  void read_ini();
-  void initialize_options_with_keybinds(void *options_window);
-  void add_bind(int index, const char *name, const char *short_name, key_category category,
-                std::function<void(int state)> callback);
-  void replace_cmd(int cmd, std::function<bool(int state)> callback);
-  bool execute_cmd(unsigned int opcode, int state);
-  void print_keybinds() const;
+  bool per_character_mode = false;
+  char ini_section_name[8 + 30 + 2];  // Space for "Keymaps_" + self->name + null.
 };

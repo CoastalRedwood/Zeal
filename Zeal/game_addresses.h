@@ -31,7 +31,6 @@ static GameStructures::GAMEZONEINFO *ZoneInfo = (GameStructures::GAMEZONEINFO *)
 
 // static DWORD* ptr_LocalPC = (DWORD*)0x7F94E8;
 static GameUI::ContainerMgr **ptr_ContainerMgr = reinterpret_cast<GameUI::ContainerMgr **>(0x0063d6b8);
-static int *ptr_COptionsWnd = (int *)0x63d634;
 static int *ptr_PrimaryKeyMap = (int *)0x7CD84C;
 static int *ptr_AlternateKeyMap = (int *)0x7CDC4C;
 static BYTE *strafe_direction = (BYTE *)0x7985EB;

@@ -3,6 +3,7 @@
 #include <array>
 
 #include "assist.h"
+#include "binds.h"
 #include "callbacks.h"
 #include "camera_mods.h"
 #include "chat.h"
@@ -327,6 +328,8 @@ void ui_options::InitGeneral() {
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_escape_raid_lock.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_DialogPosition",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_dialog_position.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_PerCharKeybinds",
+                          [this](Zeal::GameUI::BasicWnd *wnd) { setting_per_char_keybinds.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_LogAddToTrade", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->give->setting_log_add_to_trade.set(wnd->Checked);
   });
@@ -951,6 +954,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_Escape", setting_escape.get());
   ui->SetChecked("Zeal_RaidEscapeLock", setting_escape_raid_lock.get());
   ui->SetChecked("Zeal_DialogPosition", setting_dialog_position.get());
+  ui->SetChecked("Zeal_PerCharKeybinds", setting_per_char_keybinds.get());
   ui->SetChecked("Zeal_LogAddToTrade", ZealService::get_instance()->give->setting_log_add_to_trade.get());
   ui->SetChecked("Zeal_ShowHelm", ZealService::get_instance()->helm->ShowHelmEnabled.get());
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
@@ -1336,6 +1340,12 @@ static int __fastcall SidlScreenWndHandleRButtonDown(Zeal::GameUI::SidlWnd *wnd,
 
   return ZealService::get_instance()->hooks->hook_map["SidlScreenWndHandleRButtonDown"]->original(
       SidlScreenWndHandleRButtonDown)(wnd, unused_edx, mouse_x, mouse_y, unknown3);
+}
+
+// Applies the per character keybind setting to the low level binds module and also handles triggering
+// the immediate full reload if this is triggered in game.
+void ui_options::SyncKeybinds() {
+  ZealService::get_instance()->binds_hook->set_per_character_mode(setting_per_char_keybinds.get());
 }
 
 // Disables centering of the confirmation dialog window if enabled.

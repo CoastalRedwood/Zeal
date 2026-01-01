@@ -491,33 +491,35 @@ chatfilter::chatfilter(ZealService *zeal) {
 
   zeal->callbacks->AddGeneric([this]() { isDamage = false; }, callback_type::ReportSuccessfulHitPost);
 
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "Random", 0x10000, [this](short &color, const std::string &data) { return color == USERCOLOR_RANDOM; }));
   Extended_ChannelMaps.push_back(
-      CustomFilter("Random", 0x10000, [this](short &color, std::string &data) { return color == USERCOLOR_RANDOM; }));
-  Extended_ChannelMaps.push_back(
-      CustomFilter("Loot", 0x10001, [this](short &color, std::string &data) { return color == USERCOLOR_LOOT; }));
-  Extended_ChannelMaps.push_back(CustomFilter("Money", 0x10002, [this](short &color, std::string &data) {
+      CustomFilter("Loot", 0x10001, [this](short &color, const std::string &data) { return color == USERCOLOR_LOOT; }));
+  Extended_ChannelMaps.push_back(CustomFilter("Money", 0x10002, [this](short &color, const std::string &data) {
     return color == USERCOLOR_MONEY_SPLIT || color == USERCOLOR_ECHO_AUTOSPLIT;
   }));
-  Extended_ChannelMaps.push_back(CustomFilter(
-      "My Pet Say", 0x10003, [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYPETSAY; }));
-  Extended_ChannelMaps.push_back(CustomFilter("My Pet Damage", 0x10004, [this, zeal](short &color, std::string &data) {
-    if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
-        damageData.source->PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId) {
-      color = CHANNEL_MYPETDMG;
-      return true;
-    }
-    if (isDamage && damageData.target && damageData.target->PetOwnerSpawnId &&
-        damageData.target->PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId) {
-      color = CHANNEL_MYPETDMG;
-      return true;
-    }
-    return false;
-  }));
-  Extended_ChannelMaps.push_back(CustomFilter("Other Pet Say", 0x10005, [this, zeal](short &color, std::string &data) {
-    return color == CHANNEL_OTHERPETSAY;
-  }));
   Extended_ChannelMaps.push_back(
-      CustomFilter("Other Pet Damage", 0x10006, [this, zeal](short &color, std::string &data) {
+      CustomFilter("My Pet Say", 0x10003,
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_MYPETSAY; }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("My Pet Damage", 0x10004, [this, zeal](short &color, const std::string &data) {
+        if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
+            damageData.source->PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId) {
+          color = CHANNEL_MYPETDMG;
+          return true;
+        }
+        if (isDamage && damageData.target && damageData.target->PetOwnerSpawnId &&
+            damageData.target->PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId) {
+          color = CHANNEL_MYPETDMG;
+          return true;
+        }
+        return false;
+      }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("Other Pet Say", 0x10005,
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_OTHERPETSAY; }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("Other Pet Damage", 0x10006, [this, zeal](short &color, const std::string &data) {
         if (isDamage && damageData.target == Zeal::Game::get_self()) return false;  // Don't re-route damage to self.
         if (isDamage && damageData.source && damageData.source->PetOwnerSpawnId &&
             damageData.source->PetOwnerSpawnId != Zeal::Game::get_self()->SpawnId) {
@@ -531,24 +533,25 @@ chatfilter::chatfilter(ZealService *zeal) {
         }
         return false;
       }));
-  Extended_ChannelMaps.push_back(
-      CustomFilter("/who", 0x10007, [this, zeal](short &color, std::string &data) { return color == USERCOLOR_WHO; }));
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "/who", 0x10007, [this, zeal](short &color, const std::string &data) { return color == USERCOLOR_WHO; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("My Melee Special", 0x10008,
-                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYMELEESPECIAL; }));
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_MYMELEESPECIAL; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Melee Special", 0x10009,
-                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_OTHERMELEESPECIAL; }));
   Extended_ChannelMaps.push_back(CustomFilter(
-      "/mystats", 0x1000A, [this, zeal](short &color, std::string &data) { return color == CHANNEL_MYSTATS; }));
-  Extended_ChannelMaps.push_back(CustomFilter(
-      "Item Speech", 0x1000B, [this, zeal](short &color, std::string &data) { return color == CHANNEL_ITEMSPEECH; }));
+      "/mystats", 0x1000A, [this, zeal](short &color, const std::string &data) { return color == CHANNEL_MYSTATS; }));
+  Extended_ChannelMaps.push_back(
+      CustomFilter("Item Speech", 0x1000B,
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_ITEMSPEECH; }));
   Extended_ChannelMaps.push_back(
       CustomFilter("Other Melee Critical", 0x1000C,
-                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHER_MELEE_CRIT; }));
-  Extended_ChannelMaps.push_back(
-      CustomFilter("Other Damage Shield", 0x1000D,
-                   [this, zeal](short &color, std::string &data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
+                   [this, zeal](short &color, const std::string &data) { return color == CHANNEL_OTHER_MELEE_CRIT; }));
+  Extended_ChannelMaps.push_back(CustomFilter(
+      "Other Damage Shield", 0x1000D,
+      [this, zeal](short &color, const std::string &data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
   Extended_ChannelMaps.push_back(CustomFilter(
       "Zeal Spam", 0x1000E, [this](short &color, std::string &data) { return HandleZealSpamCallbacks(color, data); }));
 

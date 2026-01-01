@@ -1092,6 +1092,92 @@ class CContextMenuManager {
   /*0x1128*/ DWORD MenuCount;
 };
 
+class OptionsWnd : public SidlWnd {
+ public:
+  static constexpr SidlScreenWndVTable *default_vtable = reinterpret_cast<SidlScreenWndVTable *>(0x005e60f0);
+
+  struct KeyMapPair {
+    CXSTR name;    // Descriptive name show in UI.
+    int category;  // Bitfield with key category (can be multiple).
+  };
+
+  // Maps the KeyMapPairs to keyboard page lists of rows and columns per category.
+  void UpdateKeyboardAssignmentList() { reinterpret_cast<void(__thiscall *)(const OptionsWnd *)>(0x0042b07b)(this); }
+
+  /*0x134*/ void *Subwindows;
+  /*0x138*/ void *GeneralPage;
+  /*0x13C*/ void *FastItemDestroyCheckbox;
+  /*0x140*/ void *GuildInvitesCheckbox;
+  /*0x144*/ void *LootAutoSplitCheckbox;
+  /*0x148*/ void *AnonymousCheckbox;
+  /*0x14C*/ void *RolePlayingCheckbox;
+  /*0x150*/ void *PlayerTradeCombobox;
+  /*0x154*/ void *ItemDroppingCombobox;
+  /*0x158*/ void *SoundRealismSlider;
+  /*0x15C*/ void *SoundRealismValueLabel;
+  /*0x160*/ void *MusicVolumeSlider;
+  /*0x164*/ void *MusicVolumeValueLabel;
+  /*0x168*/ void *SoundVolumeSlider;
+  /*0x16C*/ void *SoundVolumeValueLabel;
+  /*0x170*/ void *LoadSkinButton;
+  /*0x174*/ void *DisplayPage;
+  /*0x178*/ void *PCNamesCheckbox;
+  /*0x17C*/ void *NPCNamesCheckbox;
+  /*0x180*/ void *LevelOfDetailCheckbox;
+  /*0x184*/ void *GammaSlider;
+  /*0x188*/ void *GammaValueLabel;
+  /*0x18C*/ void *ClipPlaneSlider;
+  /*0x190*/ void *ClipPlaneValueLabel;
+  /*0x194*/ void *VideoModesButton;
+  /*0x198*/ void *ParticleDensityCombobox;
+  /*0x19C*/ void *SkyCombobox;
+  /*0x1A0*/ void *FadeDelaySlider;
+  /*0x1A4*/ void *FadeDelayValueLabel;
+  /*0x1A8*/ void *FadeDurationSlider;
+  /*0x1AC*/ void *FadeDurationValueLabel;
+  /*0x1B0*/ void *WindowAlphaSlider;
+  /*0x1B4*/ void *WindowAlphaValueLabel;
+  /*0x1B8*/ void *FadeToAlphaSlider;
+  /*0x1BC*/ void *FadeToAlphaValueLabel;
+  /*0x1C0*/ void *SpellParticleDensityCombobox;
+  /*0x1C4*/ void *SpellParticleNearClipCombobox;
+  /*0x1C8*/ void *SpellParticleOpacitySlider;
+  /*0x1CC*/ void *SpellParticleOpacityValueLabel;
+  /*0x1D0*/ int GlobalAlpha;
+  /*0x1D4*/ int GlobalFadeToAlpha;
+  /*0x1D8*/ int GlobalFadeDelay;
+  /*0x1DC*/ int GlobalFadeDuration;
+  /*0x1E0*/ int Unknown_0x1e0;  // Set to 0 in constructor.
+  /*0x1E4*/ void *MousePage;
+  /*0x1E8*/ void *InvertYAxisCheckbox;
+  /*0x1EC*/ void *LookSpringCheckbox;
+  /*0x1F0*/ void *MouseLookCheckbox;
+  /*0x1F4*/ void *MouseSensitivitySlider;
+  /*0x1F8*/ void *MouseSensitivityValueLabel;
+  /*0x1FC*/ void *KeyboardPage;
+  /*0x200*/ void *KeyboardFilterCombobox;
+  /*0x204*/ void *KeyboardAssignmentList;
+  /*0x208*/ void *DefaultKeysButton;
+  /*0x20C*/ KeyMapPair KeyMaps[256];  // Allocates 256 pairs (through 0xa0c).
+  /*0xA0C*/ int KeyAssignmentRow;     // Set to -1 in constructor. List row.
+  /*0xA10*/ int KeyAssignmentColumn;  // Set to -1 in constructor. List col: 1 = primary, 2 = alt key.
+  /*0xA14*/ void *ChatPage;
+  /*0xA18*/ void *ChatArray[10];  // Chat0 to Chat9.
+  /*0xA40*/ void *DamageShields;
+  /*0xA44*/ void *NPCSpells;
+  /*0xA48*/ void *PCSpellsComboBo;
+  /*0xA4C*/ void *BardSongsComboBox;
+  /*0xA50*/ void *CriticalSpellsComboBox;
+  /*0xA54*/ void *CriticalMeleeComboBox;
+  /*0xA58*/ void *ColorPage;
+  /*0xA5C*/ int Unknown0xA5c;
+  /*0xA60*/ void *UserColorDefault;
+  /*0xA64*/ void *UserColorArray[0x48];  // UserColor0 to UserColor71.
+  /*0xB84*/ int Unknown0xb84;            // Possibly activated?
+  /*0xB88*/ int Timestamp;               // Set to diplay tick time in constructor.
+  /*0xB8C*/                              // Size of new allocation.
+};
+
 class SpellBookWnd : public SidlWnd {
  public:
   static constexpr SidlScreenWndVTable *default_vtable = reinterpret_cast<SidlScreenWndVTable *>(0x005e6e48);
@@ -1310,7 +1396,7 @@ struct pInstWindows {
   HotButton *HotButton;                     // 0x63D628
   ColorPickerWnd *ColorPicker;              // 0x63D62C
   SidlWnd *Player;                          // 0x63D630
-  SidlWnd *Options;                         // 0x63D634
+  OptionsWnd *Options;                      // 0x63D634
   SidlWnd *BuffWindowNORMAL;                // 0x63D638
   SidlWnd *CharacterCreation;               // 0x63D63C
   SidlWnd *CursorAttachment;                // 0x63D640

@@ -1174,6 +1174,8 @@ struct Display {
         this, start_x, start_y, start_z, end_x, end_y, end_z, result_x, result_y, result_z, collision_type);
   }
 
+  void KeyMapUpdated() { reinterpret_cast<void(__thiscall *)(Display *)>(0x004a7ca5)(this); }
+
   struct ReferenceList {
     int unknown;
     int count;           // Number of valid entries in list.

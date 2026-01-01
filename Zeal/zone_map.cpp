@@ -1771,17 +1771,17 @@ const ZoneMapData *ZoneMap::get_zone_map(int zone_id) {
 
   // Optional data from additional files (typically poi's).
   bool additional_file_found = false;
-  int additional_file_index = 1; // Default to shortname_1.txt
+  int additional_file_index = 1;  // Default to shortname_1.txt
   do {
     std::string filename_alt = "map_files/" + short_name + "_" + std::to_string(additional_file_index) + ".txt";
     additional_file_found = add_map_data_from_file(filename_alt, *new_map);
     additional_file_index++;
-  } while (additional_file_found && additional_file_index <= 10); // Limit max additional files to check for
+  } while (additional_file_found && additional_file_index <= 10);  // Limit max additional files to check for
 
   if (map_data_mode == MapDataMode::kBoth && internal_map) {
     add_map_data_from_internal(*internal_map, *new_map);  // Add all lines, labels and levels
   } else if (map_data_mode == MapDataMode::kNoInternalPOI && internal_map && new_map->labels.size() > 0) {
-    add_map_lines_from_internal(*internal_map, *new_map); // Add internal lines and levels
+    add_map_lines_from_internal(*internal_map, *new_map);  // Add internal lines and levels
     add_map_levels_from_internal(*internal_map, *new_map);
   } else if (new_map->lines.size() == 0) {
     map_data_cache[zone_id] = nullptr;  // Flag it as a failed load.
@@ -1806,8 +1806,8 @@ void ZoneMap::add_map_lines_from_internal(const ZoneMapData &internal_map, Custo
 }
 
 void ZoneMap::add_map_labels_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data) {
-  for (int i = 0; i < internal_map.num_labels; ++i) // Not modifying label pointers.
-      map_data.labels.push_back(internal_map.labels[i]);
+  for (int i = 0; i < internal_map.num_labels; ++i)  // Not modifying label pointers.
+    map_data.labels.push_back(internal_map.labels[i]);
 }
 
 void ZoneMap::add_map_levels_from_internal(const ZoneMapData &internal_map, CustomMapData &map_data) {
@@ -1840,8 +1840,8 @@ bool ZoneMap::add_map_data_from_file(const std::string &filename, CustomMapData 
       map_data.labels.emplace_back(static_cast<int>(x0 + 0.5f), static_cast<int>(y0 + 0.5f),
                                    static_cast<int>(z0 + 0.5f), static_cast<uint8_t>(red), static_cast<uint8_t>(green),
                                    static_cast<uint8_t>(blue), map_data.label_strings.back().c_str());
-    } else {
-      Zeal::Game::print_chat("Line failed in %s: %s", filename, line);
+    } else if (!line.empty()) {
+      Zeal::Game::print_chat("Line failed in %s: %s", filename, line.c_str());
     }
   }
 

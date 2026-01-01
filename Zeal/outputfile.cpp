@@ -242,7 +242,7 @@ void OutputFile::export_raidlist(std::vector<std::string> &args) {
     }
     std::string fname = "RaidTick-" + timestamp;
     write_to_file(oss.str(), "", fname);
-    Zeal::Game::print_chat("Raid tick saved to: %s", fname);
+    Zeal::Game::print_chat("Raid tick saved to: %s", fname.c_str());
   } else {
     Zeal::Game::print_chat("Currently not in a raid.");
   }
