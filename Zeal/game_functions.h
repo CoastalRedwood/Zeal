@@ -51,11 +51,9 @@ static mem::function<void __fastcall(int, int, float)> MouseLook = 0x4db384;
 static mem::function<void __fastcall(DWORD, int unused, DWORD)> proc_mouse = 0x537707;
 static mem::function<void __fastcall(DWORD, int unused, int cmd, int str_id, int category)> InitKeyBind =
     0x42B21D;  // arguments coptionswnd ptr, cmd, string_id, category
-static mem::function<void __fastcall(DWORD, int unused, char *str)> InitKeyBindStr =
-    0x576190;  // arguments coptionswnd ptr, cmd, string_id, category
 static mem::function<int __cdecl(Zeal::GameUI::CXSTR *, const char *format)> CXStr_PrintString = 0x578110;
 static mem::function<int __fastcall(void *this_game, int unused_edx)> LoadOptions = 0x536CE0;  // Game ::loadOptions()
-static mem::function<int __fastcall(int t, int unk, int key, int type)> readKeyMapFromIni = 0x525520;
+static mem::function<int __cdecl(int key, int type)> readKeyMapFromIni = 0x525520;
 static mem::function<void __cdecl(Zeal::GameStructures::GAMECHARINFO *_char, Zeal::GameStructures::_GAMEITEMINFO **Item,
                                   int)>
     auto_inventory = 0x4F0EEB;
@@ -204,7 +202,7 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
 Zeal::GameStructures::ActorLocation get_actor_location(int actor);
 float get_target_blink_fade_factor(float speed_factor, bool auto_attack_only);  // Returns 0 to 1.0f.
 bool is_view_actor_me();
-void print_chat(std::string data);
+void print_chat(const std::string& data);
 void print_chat(const char *format, ...);
 void print_chat(short color, const char *format, ...);
 void print_chat_wnd(Zeal::GameUI::ChatWnd *, short color, const char *format, ...);

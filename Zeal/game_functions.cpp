@@ -1646,7 +1646,7 @@ void do_ooc(std::string data) { GameInternal::do_ooc(get_self(), data.c_str()); 
 
 void send_raid_chat(std::string data) { GameInternal::send_raid_chat(Zeal::Game::RaidInfo, 0, data.c_str()); }
 
-void print_chat(std::string data) {
+void print_chat(const std::string& data) {
   if (!is_in_game()) {
     ZealService::get_instance()->queue_chat_message(data);
     return;

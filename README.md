@@ -435,7 +435,14 @@ ___
      - enhanced tab completion for /tell, /t, and /consent
 
 ___
-### Key Binds (Added to Options->Keyboard)
+### Key Binds
+
+Per character keybinds are supported through an option in the Zeal General Tab. When enabled the
+keybinds are stored in a `"[Keymaps_<name>]"` section of the client.ini file. Each character starts
+with the default keybinds and Zeal does not support copying keybinds from one profile to another.
+Manual editing of the ini file is required to copy from old section to the new section to reuse binds.
+
+#### Additional available binds Added to Options->Keyboard
 - Cycle through nearest NPCs
 - Cycle through nearest PCs
 - Assist
