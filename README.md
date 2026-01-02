@@ -390,8 +390,9 @@ ___
   - **Description:** holds the last hotbutton pressed down for the duration (decisecond like /pause).
 
 - `/timestamp`
+  - **Arguments:** `0`, `1`, `2`, `3`
   - **Aliases:** `/tms`
-  - **Description:** Shows message timestamps.
+  - **Description:** Shows message timestamps in chat windows.  0: Off, 1: Long [hh:mm:ss tt], 2: Short [HH:mm], 3: Short+Secs [HH:mm:ss]
 
 - `/tooltipall`
   - **Description:** Toggle showing all open containers tooltips when holding alt.
