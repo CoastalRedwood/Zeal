@@ -920,7 +920,7 @@ Chat::Chat(ZealService *zeal) {
         return true;  // return true to stop the game from processing any further on this command,
                       // false if you want to just add features to an existing cmd
       });
-  zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles timestamps on chat windows.",
+  zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles/sets timestamps on chat windows: 0:Off, 1:Long, 2:Short, 3:Short+Secs.",
                            [this](std::vector<std::string> &args) {
                              TimeStampsStyle.set(0);
                              if (args.size() > 1) {
