@@ -859,6 +859,7 @@
     <Choices>None</Choices>
     <Choices>Long</Choices>
     <Choices>Short</Choices>
+    <Choices>Short+Secs</Choices>
   </Combobox>
 
   <Label item="Zeal_InviteSound_Label">
