@@ -407,6 +407,10 @@ ___
   - **Aliases:** `/opentrade`, `/ot`
   - **Description:** Opens a trade window with your current target.
 
+- `/triggers`
+  - **Description:** Supports very simplistic countdown timers from chat parsing triggers.
+     See the [Triggers](#Triggers) section for more details.
+
 - `/uierrors`
   - **Arguments:** `on`, `off`
   - **Description:** Sets (on) or clears (off) the enable for showing dialog messages for unknown xml errors.
@@ -509,6 +513,28 @@ Manual editing of the ini file is required to copy from old section to the new s
   RingRight, Ammo
 - Can hold Shift (2nd) / Ctrl (3rd) / Shift+Ctrl (4th) to equip the item to alternate slots
   if it can be equipped in several slots in the list.
+
+## Triggers
+- Supports a very simplistic visible timer countdown display based on char parsed trigger events
+  - This is not a replacement for GINA or eqlogparser and is unlikely to be expanded
+- Supports the following commands:
+  - `/triggers on`, `/triggers off`: Enables or disables trigger monitoring. The on reloads the file.
+  - `/triggers load [filename]`: Loads triggers from a file. If filename is blank, uses default
+     per character trigger file (`<name>-Triggers.txt`). If not blank and the load is successful,
+     the filename becomes the new default for the character.
+  - `/triggers clear`: Clears list of active trigger events.
+  - `/triggers list`: Lists the loaded trigger and active events.
+  - `/triggers font <fontname>`: Sets the font to use for events list (default is `arial_12`)
+  - `/triggers position <x> <y>`: Sets the upper left offset of the events list on screen.
+- Triggers file format: Five columns delimited by four `^` symbol
+  - Column 1: "Arm" or "Clear" actions
+  - Column 2: Label for event in display (also used by Clear to Clear an event)
+  - Column 3: Pattern matching expression (c++ std::regex, don't get fancy, no sanitization)
+  - Column 4: Duration in seconds
+  - Column 5: Color in hex ARGB (0xffffffff = white, 0xffff0000 = red)
+ - Example that sets a 60 sec countdown when a charm lands and clears early if breaks:
+   - `Add^Charm^.*'s eyes glaze over.^60^0xff00ff00`
+   - `Clear^Charm^Your charm spell has worn off.^0^0`
 
 ## Nameplate tagging
 - Controlled through either the `/tag` command or Nameplate tab options

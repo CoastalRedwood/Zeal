@@ -85,6 +85,7 @@
     <ClInclude Include="survey.h" />
     <ClInclude Include="tag_arrows.h" />
     <ClInclude Include="tick.h" />
+    <ClInclude Include="triggers.h" />
     <ClInclude Include="ui_buff.h" />
     <ClInclude Include="ui_group.h" />
     <ClInclude Include="ui_inputdialog.h" />
@@ -165,6 +166,7 @@
     <ClCompile Include="survey.cpp" />
     <ClCompile Include="tag_arrows.cpp" />
     <ClCompile Include="tick.cpp" />
+    <ClCompile Include="triggers.cpp" />
     <ClCompile Include="ui_buff.cpp" />
     <ClCompile Include="ui_group.cpp" />
     <ClCompile Include="ui_inputdialog.cpp" />

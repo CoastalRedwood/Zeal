@@ -53,6 +53,7 @@
 #include "tellwindows.h"
 #include "tick.h"
 #include "tooltip.h"
+#include "triggers.h"
 #include "ui_manager.h"
 #include "ui_skin.h"
 #include "utils.h"
@@ -152,6 +153,7 @@ ZealService::ZealService() {
   equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
+  triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
   nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
   tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
   looting_hook = MakeCheckedUnique(Looting);        // Uses new UI Loot window (and ChatManager).
