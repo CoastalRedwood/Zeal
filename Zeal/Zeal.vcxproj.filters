@@ -291,6 +291,9 @@
     <ClInclude Include="tag_arrows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="triggers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -504,6 +507,9 @@
       <Filter>Source Files\helpers</Filter>
     </ClCompile>
     <ClCompile Include="tag_arrows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="triggers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
