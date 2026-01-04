@@ -20,7 +20,7 @@ To disable Zeal, just delete the zeal.asi file.
 ### Features
 - Camera motion improvements (major improvements to third person view)
 - Additional key binds (tab targeting, corpse cycling, strafe, pet, map,
-  autoinventory, autofire, buy/sell stacks)
+  autoinventory, autofire, buy/sell stacks, per character)
 - Additional commands (melody, autofire, useitem, autoinventory, autobank,
   link all, loot all, raid survey, singleclick, show loot lockouts, etc)
 - Integrated map (see In-game Map section below)
@@ -29,7 +29,7 @@ To disable Zeal, just delete the zeal.asi file.
 - Autostand on move/cast, autosit on camp with export inventory/spellbook option,
   enhanced autorun behavior option
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
-  tab completion, copy and paste)
+  tab completion, copy and paste, per character autojoin channels)
 - Optional enhanced spell info (spells, scrolls, items) on info displays
 - Notification sounds (tells, group invites)
 - Third party tool support (silent log messages, direct ZealPipes)

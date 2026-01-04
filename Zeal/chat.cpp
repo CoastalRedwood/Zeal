@@ -452,7 +452,7 @@ static std::string get_tab_completion_target(const std::string &text, const std:
 static std::vector<std::string> get_tell_list_matches(const std::string &start_of_name) {
   std::vector<std::string> result;
   const int tell_list_size = 31;  // Stores most recent 31 tell names.
-  const char (*tell_list)[64] = reinterpret_cast<const char (*)[64]>(0x007CE45C);
+  const char(*tell_list)[64] = reinterpret_cast<const char(*)[64]>(0x007CE45C);
   for (int i = 0; i < tell_list_size; ++i) {
     if (tell_list[i][0] == 0)  // Rest of list is empty.
       break;
@@ -920,21 +920,21 @@ Chat::Chat(ZealService *zeal) {
         return true;  // return true to stop the game from processing any further on this command,
                       // false if you want to just add features to an existing cmd
       });
-  zeal->commands_hook->Add("/timestamp", {"/tms"}, "Toggles/sets timestamps on chat windows: 0:Off, 1:Long, 2:Short, 3:Short+Secs.",
-                           [this](std::vector<std::string> &args) {
-                             TimeStampsStyle.set(0);
-                             if (args.size() > 1) {
-                               if (args[1] == "1") {
-                                 TimeStampsStyle.set(1);
-                               } else if (args[1] == "2") {
-                                 TimeStampsStyle.set(2);
-                               } else if (args[1] == "3") {
-                                 TimeStampsStyle.set(3);
-                               }
-                             }
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
-                           });
+  zeal->commands_hook->Add(
+      "/timestamp", {"/tms"}, "Toggles/sets timestamps on chat windows: 0:Off, 1:Long, 2:Short, 3:Short+Secs.",
+      [this](std::vector<std::string> &args) {
+        if (args.size() == 2) {
+          int style = 0;
+          if (Zeal::String::tryParse(args[1], &style, true) && style >= 0 && style <= 3) {
+            TimeStampsStyle.set(style);
+            Zeal::Game::print_chat("Timestamps style set to: %d", TimeStampsStyle.get());
+            return true;
+          }
+        }
+        Zeal::Game::print_chat(
+            "Usage: /timestamp <style> where <style> = 0 (Off), 1 (Long), 2 (Short), 3 (Short+Secs)");
+        return true;  // No existing cmd.
+      });
   zeal->commands_hook->Add("/zealinput", {"/zinput"}, "Toggles zeal input which gives you a more modern input feel.",
                            [this](std::vector<std::string> &args) {
                              UseZealInput.toggle();
