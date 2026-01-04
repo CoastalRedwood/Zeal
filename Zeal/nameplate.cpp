@@ -849,7 +849,10 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
 
   if (args.size() >= 2 && args[1] == "join") {
     std::string channel = (args.size() == 2) ? setting_tag_channel.get() : args[2];
-    join_tag_channel(channel);
+
+    if (!join_tag_channel(channel))
+      Zeal::Game::print_chat("Invalid chat channel. It must start with %s (like '%s123')", kZealTagChannelPrefix,
+                             kZealTagChannelPrefix);
     return;
   }
 

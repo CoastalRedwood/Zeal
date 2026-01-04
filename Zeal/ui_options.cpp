@@ -330,6 +330,8 @@ void ui_options::InitGeneral() {
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_dialog_position.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_PerCharKeybinds",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_per_char_keybinds.set(wnd->Checked); });
+  ui->AddCheckboxCallback(wnd, "Zeal_PerCharAutojoin",
+                          [this](Zeal::GameUI::BasicWnd *wnd) { setting_per_char_autojoin.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_LogAddToTrade", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->give->setting_log_add_to_trade.set(wnd->Checked);
   });
@@ -958,6 +960,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_RaidEscapeLock", setting_escape_raid_lock.get());
   ui->SetChecked("Zeal_DialogPosition", setting_dialog_position.get());
   ui->SetChecked("Zeal_PerCharKeybinds", setting_per_char_keybinds.get());
+  ui->SetChecked("Zeal_PerCharAutojoin", setting_per_char_autojoin.get());
   ui->SetChecked("Zeal_LogAddToTrade", ZealService::get_instance()->give->setting_log_add_to_trade.get());
   ui->SetChecked("Zeal_ShowHelm", ZealService::get_instance()->helm->ShowHelmEnabled.get());
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
@@ -1353,6 +1356,18 @@ void ui_options::SyncKeybinds() {
   ZealService::get_instance()->binds_hook->set_per_character_mode(setting_per_char_keybinds.get());
 }
 
+// Updates the ini section name of the autojoin channels to optionally be per character. This call
+// happens in the GAMESTATE_ENTERWORLD state when the settings are re-applied while the client performs
+// the autojoin in the chat server processing at the start of the mainloop in GAMESTATE_INGAME.
+void ui_options::SyncIniAutojoin() {
+  strcpy_s(ini_autojoin_name, sizeof(ini_autojoin_name), "ChannelAutoJoin");  // Start with default ini name.
+  auto self = Zeal::Game::get_self();  // Charinfo is not yet populated with a name so use self.
+  if (self && self->Name[0] && setting_per_char_autojoin.get()) {
+    std::string name = std::string("ChannelAutoJoin_") + self->Name;
+    if (name.length() < sizeof(ini_autojoin_name)) strcpy_s(ini_autojoin_name, sizeof(ini_autojoin_name), name.c_str());
+  }
+}
+
 // Disables centering of the confirmation dialog window if enabled.
 static void __fastcall CConfirmationDialog_Center(Zeal::GameUI::CConfirmationDialog *dialog, int unused_edx) {
   auto zeal = ZealService::get_instance();
@@ -1483,6 +1498,10 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
       return handle_animation_packet(reinterpret_cast<Zeal::Packets::Animation_Struct *>(buffer));
     return false;  // continue processing
   });
+
+  SyncIniAutojoin();                                // Initialize ini_autojoin_name to a valid field name.
+  mem::write(0x0050009e, (int)&ini_autojoin_name);  // Point to our copy of the autojoin field name in the write ini.
+  mem::write(0x00524919, (int)&ini_autojoin_name);  // Point to our copy of the autojoin field name in the read ini.
 }
 
 ui_options::~ui_options() {}
