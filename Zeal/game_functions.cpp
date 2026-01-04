@@ -744,6 +744,9 @@ bool is_raid_pet(const Zeal::GameStructures::Entity &entity) {
   const auto raid_info = Zeal::Game::RaidInfo;
   if (!raid_info->is_in_raid()) return false;
 
+  auto owner = Zeal::Game::get_entity_by_id(pet_owner_id);
+  if (!owner || owner->Type != Zeal::GameEnums::Player) return false;
+
   for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
     const Zeal::GameStructures::RaidMember &member = raid_info->MemberList[i];
     if (member.Name[0] == 0)  // Empty string check.
@@ -1646,7 +1649,7 @@ void do_ooc(std::string data) { GameInternal::do_ooc(get_self(), data.c_str()); 
 
 void send_raid_chat(std::string data) { GameInternal::send_raid_chat(Zeal::Game::RaidInfo, 0, data.c_str()); }
 
-void print_chat(const std::string& data) {
+void print_chat(const std::string &data) {
   if (!is_in_game()) {
     ZealService::get_instance()->queue_chat_message(data);
     return;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <XML ID="EQInterfaceDefinitionLanguage">
   <Schema xmlns="EverQuestData" xmlns:dt="EverQuestDataTypes" />
-
+  
   <Button item="Zeal_NameplateColors">
     <ScreenID>Zeal_NameplateColors</ScreenID>
     <RelativePosition>true</RelativePosition>
@@ -32,7 +32,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-    <Button item="Zeal_NameplateConColors">
+  <Button item="Zeal_NameplateConColors">
     <ScreenID>Zeal_NameplateConColors</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -62,7 +62,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateHideSelf">
+  <Button item="Zeal_NameplateHideSelf">
     <ScreenID>Zeal_NameplateHideSelf</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -92,7 +92,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateX">
+  <Button item="Zeal_NameplateX">
     <ScreenID>Zeal_NameplateX</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -122,7 +122,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateHideRaidPets">
+  <Button item="Zeal_NameplateHideRaidPets">
     <ScreenID>Zeal_NameplateHideRaidPets</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -152,7 +152,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateShowPetOwnerName">
+  <Button item="Zeal_NameplateShowPetOwnerName">
     <ScreenID>Zeal_NameplateShowPetOwnerName</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -212,7 +212,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateCharSelect">
+  <Button item="Zeal_NameplateCharSelect">
     <ScreenID>Zeal_NameplateCharSelect</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -316,7 +316,7 @@
     <Style_Border>true</Style_Border>
     <Choices>Off</Choices>
   </Combobox>
-
+  
   <Label item="Zeal_NameplateLocalAATitle_Label">
     <ScreenID>Zeal_NameplateLocalAATitle_Label</ScreenID>
     <RelativePosition>true</RelativePosition>
@@ -392,7 +392,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-    <Button item="Zeal_NameplateTargetMarker">
+  <Button item="Zeal_NameplateTargetMarker">
     <ScreenID>Zeal_NameplateTargetMarker</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -422,7 +422,7 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
-<Button item="Zeal_NameplateTargetHealth">
+  <Button item="Zeal_NameplateTargetHealth">
     <ScreenID>Zeal_NameplateTargetHealth</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
@@ -609,8 +609,38 @@
     <Style_HScroll>false</Style_HScroll>
     <Style_Transparent>false</Style_Transparent>
     <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Enable health bars (zeal fonts only)</TooltipReference>
+    <TooltipReference>Enable health bars for self, pet, group, target (zeal fonts only)</TooltipReference>
     <Text>Show health bars</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_NameplateRaidHealthBars">
+    <ScreenID>Zeal_NameplateRaidHealthBars</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>452</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Also show raid member healthbars (requires healthbars enabled and server to send updates)</TooltipReference>
+    <Text>Also show raid</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -629,7 +659,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>370</X>
-      <Y>452</Y>
+      <Y>496</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -659,7 +689,7 @@
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>370</X>
-      <Y>496</Y>
+      <Y>540</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -974,6 +1004,7 @@
     <Pieces>Zeal_NameplateZealFonts</Pieces>
     <Pieces>Zeal_NameplateDropShadow</Pieces>
     <Pieces>Zeal_NameplateHealthBars</Pieces>
+    <Pieces>Zeal_NameplateRaidHealthBars</Pieces>
     <Pieces>Zeal_NameplateManaBars</Pieces>
     <Pieces>Zeal_NameplateStaminaBars</Pieces>
     <Pieces>Zeal_NameplateFont_Combobox</Pieces>
