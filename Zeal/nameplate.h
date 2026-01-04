@@ -93,6 +93,7 @@ class NamePlate {
 
   // Advanced fonts
   ZealSetting<bool> setting_health_bars = {false, "Zeal", "NameplateHealthBars", false};
+  ZealSetting<bool> setting_raid_health_bars = {false, "Zeal", "NameplateRaidHealthBars", false};
   ZealSetting<bool> setting_mana_bars = {false, "Zeal", "NameplateManaBars", false};
   ZealSetting<bool> setting_stamina_bars = {false, "Zeal", "NameplateStaminaBars", false};
   ZealSetting<bool> setting_zeal_fonts = {false, "Zeal", "NamePlateZealFonts", false, [this](bool val) { clean_ui(); }};
@@ -134,6 +135,7 @@ class NamePlate {
   bool is_nameplate_hidden_by_race(const Zeal::GameStructures::Entity &entity) const;
   bool is_group_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
+  bool is_hp_updated(const Zeal::GameStructures::Entity *entity) const;
   bool handle_shownames_command(const std::vector<std::string> &args);
   void handle_tag_command(const std::vector<std::string> &args);
   bool handle_tag_target(const std::string &target_text);

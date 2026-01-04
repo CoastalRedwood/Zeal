@@ -815,6 +815,9 @@ void ui_options::InitNameplate() {
   ui->AddCheckboxCallback(wnd, "Zeal_NameplateHealthBars", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->nameplate->setting_health_bars.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_NameplateRaidHealthBars", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_raid_health_bars.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_NameplateManaBars", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->nameplate->setting_mana_bars.set(wnd->Checked);
   });
@@ -1093,6 +1096,8 @@ void ui_options::UpdateOptionsNameplate() {
   ui->SetChecked("Zeal_NameplateZealFonts", ZealService::get_instance()->nameplate->setting_zeal_fonts.get());
   ui->SetChecked("Zeal_NameplateDropShadow", ZealService::get_instance()->nameplate->setting_drop_shadow.get());
   ui->SetChecked("Zeal_NameplateHealthBars", ZealService::get_instance()->nameplate->setting_health_bars.get());
+  ui->SetChecked("Zeal_NameplateRaidHealthBars",
+                 ZealService::get_instance()->nameplate->setting_raid_health_bars.get());
   ui->SetChecked("Zeal_NameplateManaBars", ZealService::get_instance()->nameplate->setting_mana_bars.get());
   ui->SetChecked("Zeal_NameplateStaminaBars", ZealService::get_instance()->nameplate->setting_stamina_bars.get());
   ui->SetChecked("Zeal_TagEnable", ZealService::get_instance()->nameplate->setting_tag_enable.get());

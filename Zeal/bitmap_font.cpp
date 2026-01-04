@@ -866,6 +866,7 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
 }
 
 float SpriteFont::get_text_height(const std::string &text) const {
+  if (text.empty()) return 0;
   auto text_lines = Zeal::String::split_text(text);
   float y_height = 0;
   float y_advance = 0;

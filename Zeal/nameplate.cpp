@@ -281,8 +281,9 @@ void NamePlate::clean_ui() {
 static float get_nameplate_z_offset(const Zeal::GameStructures::Entity &entity) { return z_position_offset; }
 
 // The server currently only sends reliable HP updates for target, self, self pet,
-// and group members.  See Mob::SendHPUpdate().
-static bool is_hp_updated(const Zeal::GameStructures::Entity *entity) {
+// and group members unless a quarm specific server rule is set to also send raid members.
+// See Mob::SendHPUpdate().
+bool NamePlate::is_hp_updated(const Zeal::GameStructures::Entity *entity) const {
   if (!entity) return false;
   if (entity->Type != Zeal::GameEnums::EntityTypes::NPC && entity->Type != Zeal::GameEnums::EntityTypes::Player)
     return false;  // No hp bars on corpses.
@@ -296,6 +297,10 @@ static bool is_hp_updated(const Zeal::GameStructures::Entity *entity) {
       if (entity == member) return true;
       if (member && (entity->PetOwnerSpawnId == member->SpawnId)) return true;
     }
+  if (entity->Type == Zeal::GameEnums::EntityTypes::Player && setting_raid_health_bars.get() &&
+      Zeal::Game::RaidInfo->is_in_raid() && is_raid_member(*entity))
+    return true;
+
   return false;
 }
 
@@ -391,7 +396,7 @@ void NamePlate::render_ui() {
     }
 
     auto nameplate_color = info.color | 0xff000000;
-    sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
+    if (!full_text.empty()) sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
 
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
     if (!is_corpse && info.tag_color != TagArrowColor::Off) {
@@ -475,6 +480,9 @@ NamePlate::ColorIndex NamePlate::get_pet_color_index(const Zeal::GameStructures:
   if (entity.PetOwnerSpawnId == Zeal::Game::get_self()->SpawnId)  // Self Pet
     return ColorIndex::Group;                                     // Always a group member.
 
+  auto owner = Zeal::Game::get_entity_by_id(entity.PetOwnerSpawnId);
+  if (!owner || owner->Type != Zeal::GameEnums::Player) return ColorIndex::UseClient;
+
   if (Zeal::Game::GroupInfo->is_in_group()) {
     for (int i = 0; i < GAME_NUM_GROUP_MEMBERS; i++) {
       Zeal::GameStructures::Entity *groupmember = Zeal::Game::GroupInfo->EntityList[i];
@@ -534,7 +542,8 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
   bool is_target = (entity == Zeal::Game::get_target());
   bool is_corpse = (entity->Type >= Zeal::GameEnums::NPCCorpse);
   auto it = zeal_fonts ? nameplate_info_map.find(entity) : nameplate_info_map.end();
-  if (!is_target && !is_corpse && it != nameplate_info_map.end() && !it->second.tag_text.empty())
+  if (!is_target && !is_corpse && it != nameplate_info_map.end() && !it->second.tag_text.empty() &&
+      (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate))
     color_index = ColorIndex::Tagged;
 
   auto color = D3DCOLOR_XRGB(128, 255, 255);  // Approximately the default nameplate color.
@@ -728,23 +737,19 @@ bool NamePlate::handle_SetNameSpriteState(void *this_display, Zeal::GameStructur
   if (setting_zeal_fonts.get() &&
       (Zeal::Game::is_in_game() || (setting_char_select.get() && Zeal::Game::is_in_char_select()))) {
     auto it = nameplate_info_map.find(entity);
-    if (!text.empty()) {
-      auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
-      if (it == nameplate_info_map.end()) {
-        nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = TagArrowColor::Off};
-      } else {  // Already exists, so leave tag_text and tag_color untouched.
-        it->second.text = text;
-        it->second.color = color;
-      }
-    } else {
-      if (it != nameplate_info_map.end()) nameplate_info_map.erase(it);
+    auto color = Zeal::Game::is_in_char_select() ? D3DCOLOR_XRGB(0xf0, 0xf0, 0x00) : D3DCOLOR_XRGB(0xff, 0xff, 0xff);
+    if (it == nameplate_info_map.end()) {
+      nameplate_info_map[entity] = {.text = text, .tag_text = "", .color = color, .tag_color = TagArrowColor::Off};
+    } else {  // Already exists, so leave tag_text and tag_color untouched.
+      it->second.text = text;
+      it->second.color = color;
     }
     string_sprite_text = nullptr;  // This disables the client's sprite in call below.
   }
 
   ChangeDagStringSprite(entity->ActorInfo->DagHeadPoint, font_texture, string_sprite_text);
 
-  if (!text.empty()) SetNameSpriteTint(this_display, nullptr, entity);
+  SetNameSpriteTint(this_display, nullptr, entity);
   return true;
 }
 
