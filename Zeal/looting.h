@@ -24,6 +24,7 @@ class Looting {
   ZealSetting<bool> setting_alt_delimiter = {false, "Zeal", "LinkAllAltDelimiter", false};
   ZealSetting<bool> setting_ctrl_rightclick_loot = {false, "Zeal", "CtrlRightClickLoot", true};
   ZealSetting<bool> setting_hide_looted = {false, "Zeal", "HideLooted", false};
+  ZealSetting<bool> setting_compact_linkall = {true, "Zeal", "CompactLinkAll", false};
 
   // /protect functionality.  Command line-only for now.
   bool is_cursor_protected(const Zeal::GameStructures::GAMECHARINFO *char_info) const;
