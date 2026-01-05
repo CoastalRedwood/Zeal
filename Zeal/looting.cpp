@@ -29,17 +29,32 @@ void Looting::link_all(const char *channel) const {
     return;
   }
 
-  std::vector<std::pair<int, std::string>> items;
+  struct Info {
+    int id;
+    int count;
+    std::string name;
+  };
+
+  std::vector<Info> items;
   for (int i = 0; i < kMaxItemCount; i++) {
     const auto item = Zeal::Game::Windows->Loot->Item[i];
-    if (item) items.push_back({item->ID, item->Name});
+    if (item) items.push_back({item->ID, 1, item->Name});
   }
 
   if (items.empty()) return;
 
-  std::sort(items.begin(), items.end(), [](const std::pair<int, std::string> &a, const std::pair<int, std::string> &b) {
-    return a.second < b.second;
-  });
+  std::sort(items.begin(), items.end(), [](const Info &a, const Info &b) { return a.name < b.name; });
+
+  if (setting_compact_linkall.get()) {
+    std::vector<Info> unpacked = items;  // Copy before trying to compress.
+    items.resize(1);                     // Abandon all except the first element.
+    for (int i = 1; i < unpacked.size(); ++i) {
+      if (unpacked[i].id == items.back().id)
+        items.back().count++;  // Increment and don't add duplicates.
+      else
+        items.push_back(unpacked[i]);  // Add new items which start with a count of 1.
+    }
+  }
 
   const char *delimiter = setting_alt_delimiter.get() ? " | " : ", ";
 
@@ -52,7 +67,8 @@ void Looting::link_all(const char *channel) const {
       link_count++;
       // The AddItemTag performs an sprintf("%c%d%06d%s%c", 0x12, 0, item_id, item_name, 0x12).
       const char kMarker = 0x12;
-      link_text += std::format("{0:c}0{1:06d}{2}{3:c}", kMarker, items[i].first, items[i].second, kMarker);
+      link_text += std::format("{0:c}0{1:06d}{2}{3:c}", kMarker, items[i].id, items[i].name, kMarker);
+      if (items[i].count > 1) link_text += std::format(" ({})", items[i].count);
       if (link_count == kMaxLinkCount || i == items.size() - 1) {
         std::string select = channel;
         if (select.starts_with("rs"))
@@ -85,9 +101,10 @@ void Looting::link_all(const char *channel) const {
   for (int i = 0; i < items.size(); ++i) {
     if (i > 0) input_wnd->ReplaceSelection(delimiter, false);
     if (input_wnd->item_link_count < kMaxLinkCount)
-      input_wnd->AddItemTag(items[i].first, items[i].second.c_str());
+      input_wnd->AddItemTag(items[i].id, items[i].name.c_str());
     else  // Append the name as text (not a link). Skipped the ID so log parsing is the same.
-      input_wnd->ReplaceSelection(items[i].second.c_str(), false);
+      input_wnd->ReplaceSelection(items[i].name.c_str(), false);
+    if (items[i].count > 1) input_wnd->ReplaceSelection(std::format(" ({})", items[i].count).c_str(), false);
   }
   input_wnd->SetFocus();
 }
@@ -609,8 +626,14 @@ Looting::Looting(ZealService *zeal) {
     }
     return true;
   });
-  zeal->commands_hook->Add("/linkall", {}, "Link all items (opt param: say, gs, rs, gu, ooc, auc)",
+  zeal->commands_hook->Add("/linkall", {}, "Link all items (opt param: say, gs, rs, gu, ooc, auc or compact)",
                            [this](std::vector<std::string> &args) {
+                             if (args.size() == 2 && args[1] == "compact") {
+                               setting_compact_linkall.toggle();
+                               Zeal::Game::print_chat("Linkall compact mode set to %s",
+                                                      setting_compact_linkall.get() ? "on" : "off");
+                               return true;
+                             }
                              const char *channel = (args.size() == 2) ? args[1].c_str() : nullptr;
                              link_all(channel);
                              return true;

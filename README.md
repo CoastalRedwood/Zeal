@@ -185,8 +185,9 @@ ___
   - **Description:** Enables (on) the generation of a consider message when left clicking (like right).
 
 - `/linkall`
-  - **Arguments:** none (pastes into active chat) or `rs` (rsay), `gs` (gsay), `gu` (guildsay), `ooc`, `auc`, `say`
+  - **Arguments:** none (pastes into active chat), `compact`, or `rs` (rsay), `gs` (gsay), `gu` (guildsay), `ooc`, `auc`, `say`
   - **Description:** prints item links if looting window is open. The argument options route directly to channel for macros.
+    The `compact` argument will toggle a setting that collapses duplicate items and appends a `(count)` value to them.
 
 - `/loc noprint`
   - **Description:** adds noprint argument to /loc, this just sends loc directly to your log.
