@@ -110,6 +110,7 @@ class NamePlate {
   bool handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity);
   bool handle_SetNameSpriteState(void *this_display, Zeal::GameStructures::Entity *entity, int show);
   void handle_targetwnd_postdraw(Zeal::GameUI::SidlWnd *wnd) const;
+  void handle_entity_destructor(Zeal::GameStructures::Entity *entity);
 
  private:
   struct NamePlateInfo {

@@ -69,6 +69,16 @@ static int __fastcall SetNameSpriteState(void *this_display, void *unused_edx, Z
       this_display, unused_edx, entity, show);
 }
 
+// Handles the nameplate update call in the entity destructor.
+static int __fastcall SetNameSpriteState_Destructor(void *this_display, void *unused_edx,
+                                                    Zeal::GameStructures::Entity *entity, int show) {
+  ZealService::get_instance()->nameplate->handle_entity_destructor(entity);
+
+  // Bypass the unnecessary call to our own setnamesprite handler and reroute directly to the client's.
+  return ZealService::get_instance()->hooks->hook_map["SetNameSpriteState"]->original(SetNameSpriteState)(
+      this_display, unused_edx, entity, show);
+}
+
 // Promotes a SetNameSpriteTint call to a SetNameSpriteState call (for faster target updates) if visible.
 static int __fastcall SetNameSpriteTint_UpdateState(void *this_display, void *not_used,
                                                     Zeal::GameStructures::Entity *entity) {
@@ -79,6 +89,12 @@ static int __fastcall SetNameSpriteTint_UpdateState(void *this_display, void *no
     return 1;                                                  // SetNameSpriteTint returns 1 if a tint was applied.
   }
   return SetNameSpriteTint(this_display, not_used, entity);
+}
+
+// Flushes any deleted entities in the info_map cache.
+void NamePlate::handle_entity_destructor(Zeal::GameStructures::Entity *entity) {
+  auto it = nameplate_info_map.find(entity);
+  if (it != nameplate_info_map.end()) nameplate_info_map.erase(it);
 }
 
 bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
@@ -124,6 +140,9 @@ NamePlate::NamePlate(ZealService *zeal) {
   zeal->hooks->Add("SetNameSpriteTint", 0x4B114D, SetNameSpriteTint, hook_type_detour);
   zeal->hooks->Add("TargetWnd_PostDraw", 0x005e6f78, TargetWnd_PostDraw, hook_type_vtable);
 
+  // Intercept the call within the entity destructor to properly flush the nameplate_info_map cache.
+  zeal->hooks->Add("SetNameSpriteState_Destructor", 0x0050724c, SetNameSpriteState_Destructor, hook_type_replace_call);
+
   // Replace the tint only updates in RealRender_World with one that also updates the text
   // when there is a change in target. This processing happens shortly after the DoPassageOfTime()
   // processing where it normally happens, but that processing is gated by an update rate.
@@ -168,14 +187,6 @@ NamePlate::NamePlate(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXCleanDevice);
   zeal->callbacks->AddGeneric([this]() { render_ui(); }, callback_type::RenderUI);
-
-  // Ensure our local entity cache is flushed when an entity despawns.
-  zeal->callbacks->AddEntity(
-      [this](struct Zeal::GameStructures::Entity *entity) {
-        auto it = nameplate_info_map.find(entity);
-        if (it != nameplate_info_map.end()) nameplate_info_map.erase(it);
-      },
-      callback_type::EntityDespawn);
 }
 
 NamePlate::~NamePlate() {}
@@ -242,7 +253,13 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
 }
 
 void NamePlate::dump() const {
-  Zeal::Game::print_chat("Info_map: %d entries", nameplate_info_map.size());
+  int valid_count = 0;
+  for (const auto &[entity, info] : nameplate_info_map) {
+    Zeal::GameStructures::Entity *current_ent = Zeal::Game::get_entity_list();
+    while (current_ent && current_ent != entity) current_ent = current_ent->Next;
+    if (current_ent) valid_count++;
+  }
+  Zeal::Game::print_chat("Info_map: %d entries (%d valid)", nameplate_info_map.size(), valid_count);
   Zeal::Game::print_chat("Tag channel: %s, number: %d", setting_tag_channel.get().c_str(), tag_channel_number);
 }
 
@@ -801,9 +818,13 @@ bool NamePlate::handle_tag_target(const std::string &target_text) {
   std::vector<Zeal::GameStructures::Entity *> matches;
   for (const auto &entry : nameplate_info_map) {
     const auto &tag_text = entry.second.tag_text;
-    if (!entry.first || entry.first->Type != Zeal::GameEnums::NPC || tag_text.empty() ||
-        tag_text.find(target_text) == std::string::npos)
-      continue;
+    if (!entry.first || tag_text.empty() || tag_text.find(target_text) == std::string::npos) continue;
+
+    // This sanity check that the entity is valid should not be necessary with the switch to the
+    // SetNameSpriteState_destructor call but adding it out of paranoia against a stale cache.
+    Zeal::GameStructures::Entity *current_ent = Zeal::Game::get_entity_list();
+    while (current_ent && current_ent != entry.first) current_ent = current_ent->Next;
+    if (!current_ent || entry.first->Type != Zeal::GameEnums::NPC) continue;
 
     // There's a substring match but do a secondary exact check also.
     auto split = Zeal::String::split_text(tag_text, kDelimiter);
@@ -843,7 +864,10 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   if (args.size() >= 3 && args[1] == "target") {
     std::string target_text = args[2];
     for (int i = 3; i < args.size(); ++i) target_text += " " + args[i];
-    if (!handle_tag_target(target_text)) Zeal::Game::print_chat("No valid tag target match found");
+    if (!handle_tag_target(target_text)) {
+      Zeal::Game::print_chat("No valid (visible) tag target exact match found.");
+      Zeal::Game::set_target(nullptr);  // Null existing target to make it obvious it failed.
+    }
     return;
   }
 
