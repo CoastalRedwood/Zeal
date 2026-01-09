@@ -11,7 +11,8 @@ from the repo source, providing full transparency on the release contents.
 ### Installation
 - Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest) zip
   (not the repo source code zip)
-- Unzip contents to root game directory (not the uifiles/ subfolder).
+- Unzip into a folder and then copy the folder contents to root game directory
+  - The `zeal.asi` file should end up in the root game folder, not a uifiles/ subfolder
 - Test Zeal installation in game by typing "/zeal version" and "/help zeal".
 - Configure Zeal by assigning new key binds and using the new Zeal options window.
 
