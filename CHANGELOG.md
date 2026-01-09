@@ -2,6 +2,87 @@
 
 Summarizes notable changes to Zeal
 
+## [1.3.5] - 2026/01/09
+
+### New features
+
+* Enhanced /tag with the following updates:
+  - Added new /tag command options to support routing broadcasts over a chat channel
+    - `/tag chat <tag_text>`: broadcasts the tag_text to a set chat channel (like local, rsay, gsay)
+    - `/tag channel <Zt123>`: Broadcast to rsay or gsay (if not in raid) an auto-join channel message
+    - `/tag join <channel>`: Saves and joins channel if channel else joins previously saved channel
+  - Added new filtering and display options in Nameplates Tab and additional commands below:
+    - `/tag filter`: Enables routing of tag messages to the "Zeal Spam" chat filter channel
+      - The "Zeal Spam" chat filter is also color option "28" in Zeal colors
+    - `/tag suppress`: Enables full suppression of tag messages (requires filter on for rsay and gsay)
+    - `/tag prettyprint`: Translates the message into a human friendlier format (requires filter on)
+    - `/tag tooltip`: Shows tag as a target window tooltip with an alignment option
+    - Added option to disable adding the default arrow (adds text only w/out requiring ^-^)
+    - Added option to use '*' instead of '^' for international keyboards
+  - Added two new /tag shapes with single fixed colors:
+    - `^s^`: Red stop sign (octagon)
+    - `^p^`: Green pet paw
+  - Now allows tagging players with shapes using `^R^` commands (text is ignored)
+  - Now supports showing tag and tag shape even if the nameplate text is hidden
+    - Still does not work on mobs w/out nameplates
+  - Modified the text coloring behavior to only override with the Tagged color if no explicit shape set
+  - Added a new `/tag target <text>` that allows targeting NPCs tagged with an
+    exact match for the delimited tag text (case sensitive)
+    - Matches after splitting by delimiter (' | ')
+    - Requires the NPC to be tab targettable to succeed
+    - Targets closest NPC if multiple matches
+  - Updated appending tag text to avoid duplication of exact fields and truncating at field
+    boundaries. A duplicated field will show up at the end.
+
+* Added a new /linkall option that is toggleable with '/linkall compact' (defaults to on) that will collapse identical
+  items into a single link followed by a " (count)" value
+
+* Added a new nameplate options tab checkbox to allow showing healthbars for raid members
+  - Requires the Quarm server to set the new rule to share raid health updates
+  - Healthbar display is now unlinked from the nameplate text visibility
+
+* Added additional '/timestamp 3' option with a 24-hour format HH:MM::SS option.
+
+* Added new zeal general options checkbox to enable per character storing of the chat channels
+   to autojoin (stored as `"ChannelAutoJoin_<name>"` in the client ini)
+
+*  Added per character keybind support
+    - Added new zeal general options tab option to enable per character
+      keybinds. When enabled, these are stored in a new eqclient.ini
+      section called `"Keymaps_<name>"`.
+    - There is no in-game support for duplicating keybinds.  In order to re-use,
+       the contents of one Keymaps ini section can be copy and pasted manually to another.
+
+* Added new /optchat command to optionally broadcast to raid or group without error messages
+  - `/optchat <rs | gs | rsgs> <message>`
+
+* Added a new /triggers command that supports loading a list of  triggers from a specially formatted
+  text file that will match to events in the chat output stream and generate on screen
+  labels with timer countdowns (see repo readme)
+  - This is primitive and not a GINA / eqlogparser replacement
+
+* Updated item display to add case 110 for ranger archery accuracy spell effects
+
+* Added new zeal option 'Log Add to Trade' that will print a chat
+  message when items or coin are added to the trade window to either
+  npcs or players
+  - Note: This does not apply to the world crafting stations
+
+### Infrastructure updates and bug fixes
+* Pet chat fixes:
+  - Moved /pet health summary line routing from My pet channel to  default routing so it gets
+    clustered with the buff report lines
+  - Fixed an issue where a pet name with a space (NPC) was going to other instead of my pet
+
+*  Did some std::string cleanup to make more parameters const refs instead of refs or copies and
+   fixed two cases of debug printfs not properly using .c_str().
+
+* Suppressed the map external data mode complaint about blank lines in map files.
+
+* Added crash logging of nosprites state if showspelleffects is on
+
+* Fixed the nameplate map info cache to properly flush on a despawn
+
 
 ## [1.3.4] - 2025/12/11
 
