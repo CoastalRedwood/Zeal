@@ -186,7 +186,8 @@ ZealService::~ZealService() { ZealService::ptr_service = nullptr; }
 
 // Consents all class types in the raid.
 static bool handle_consent_class(Zeal::GameEnums::ClassTypes target_class) {
-  const char *class_name = (target_class == Zeal::GameEnums::ClassTypes::Rogue) ? "rogues" : "monks";
+  const char *class_name = (target_class == Zeal::GameEnums::ClassTypes::Rogue) ? "rogues" : 
+                            (target_class == Zeal::GameEnums::ClassTypes::Monk) ? "monks" : "clerics";
   Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
   if (!raid_info->is_in_raid()) {
     Zeal::Game::print_chat("/consent%s only works when in a raid", class_name);
@@ -612,6 +613,9 @@ void ZealService::AddCommands() {
   });
   commands_hook->Add("/consentmonks", {}, "Consents all monks in the raid.", [](std::vector<std::string> &args) {
     return handle_consent_class(Zeal::GameEnums::ClassTypes::Monk);
+  });
+  commands_hook->Add("/consentclerics", {}, "Consents all clerics in the raid.", [](std::vector<std::string> &args) {
+    return handle_consent_class(Zeal::GameEnums::ClassTypes::Cleric);
   });
   commands_hook->Add("/tellconsent", {"/tc"}, "Sends a tell with 'Consent me' to the owner of the targeted corpse.",
                      [](std::vector<std::string> &args) { return handle_tell_consent(); });
