@@ -40,6 +40,8 @@ class Experience {
   float get_aa_exp_per_hour_pct() const { return aa_calc.get_exp_per_hour_pct(); }
 
   ZealSetting<bool> setting_aa_ding = {true, "Zeal", "AADing", false};
+  ZealSetting<float> setting_auto_aa_switch_low = {0.f, "Zeal", "AutoAASwitchLow", true};
+  ZealSetting<float> setting_auto_aa_switch_high = {0.f, "Zeal", "AutoAASwitchHigh", true};
 
  private:
   void reset();                     // Resets both exp and aa calcs.
@@ -48,6 +50,7 @@ class Experience {
   int get_exp_level() const;        // Returns the current level (if level and exp valid).
   int get_aa_total_points() const;  // Returns the total number of AA points.
   void callback_main();             // Periodic update and recalculation of exp rates.
+  void check_autoswitch();          // Handles checking the autoswitch exp threshold.
 
   ExperienceCalc exp_calc;  // Normal experience.
   ExperienceCalc aa_calc;   // Alternate advancement experience.

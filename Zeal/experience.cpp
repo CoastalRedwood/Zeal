@@ -8,6 +8,7 @@
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
+#include "string_util.h"
 #include "zeal.h"
 
 ExperienceCalc::ExperienceCalc() {}
@@ -77,6 +78,46 @@ Experience::Experience(ZealService *zeal) {
     }
     return true;
   });
+
+  zeal->commands_hook->Add(
+      "/autoaaswitch", {}, "Sets thresholds to auto-switch aa exp share to 0 or 100%",
+      [this](std::vector<std::string> &args) {
+        float low_threshold = 0.f;
+        float high_threshold = 0.f;
+        if (args.size() == 3 && Zeal::String::tryParse(args[1], &low_threshold, true) &&
+            Zeal::String::tryParse(args[2], &high_threshold, true)) {
+          const float min_delta = 0.25f;  // Require at least a 25% delta.
+          const float max_threshold =
+              static_cast<float>(66 * ExperienceCalc::kExpPerLevel - 1) / ExperienceCalc::kExpPerLevel;
+          if (low_threshold < 51.f || high_threshold < 51.f) {
+            Zeal::Game::print_chat("A threshold below 51 disables /autoaaswitch.");
+            low_threshold = 0.f;
+            high_threshold = 0.f;
+          } else if (high_threshold > max_threshold) {
+            high_threshold = max_threshold;
+            low_threshold = min(low_threshold, high_threshold - min_delta);
+          } else if (high_threshold < low_threshold + min_delta) {
+            Zeal::Game::print_chat("Enforcing a minimum threshold delta of %.2f to avoid rez toggling.", min_delta);
+            low_threshold = high_threshold - min_delta;
+          }
+          setting_auto_aa_switch_low.set(low_threshold);
+          setting_auto_aa_switch_high.set(high_threshold);
+        } else if (args.size() == 2 && args[1] == "off") {
+          setting_auto_aa_switch_low.set(0);
+          setting_auto_aa_switch_high.set(0);
+        } else {
+          Zeal::Game::print_chat("Usage: /autoaaswitch <low> <high> where low switches to 0%% aa and high to 100%% aa");
+          Zeal::Game::print_chat("Use /autoaaswitch off to disable");
+        }
+
+        if (setting_auto_aa_switch_low.get() && setting_auto_aa_switch_high.get())
+          Zeal::Game::print_chat("/autoaaswitch thresholds: 0%% at %.2f, 100%% at %.2f",
+                                 setting_auto_aa_switch_low.get(), setting_auto_aa_switch_high.get());
+        else
+          Zeal::Game::print_chat("/autoaaswitch is disabled");
+
+        return true;
+      });
 }
 
 void Experience::reset() {
@@ -133,6 +174,8 @@ void Experience::callback_main() {
 
   exp_calc.update(get_exp_level(), self->CharInfo->Experience);
 
+  check_autoswitch();
+
   // Detect change in aa_points and play a level Ding if it increases. Note that just to
   // avoid any initialization timing dependency around when the AA window data gets
   // refreshed, we don't play a sound unless the last_aa_points was > 0 (skips first ding).
@@ -140,4 +183,36 @@ void Experience::callback_main() {
   if (aa_points > last_aa_points && last_aa_points > 0 && setting_aa_ding.get()) Zeal::Game::WavePlay(139);  // Ding!
   last_aa_points = aa_points;
   aa_calc.update(aa_points, self->CharInfo->AlternateAdvancementExperience);
+}
+
+// Handle auto-switching between 100% level exp and 100% AA exp.
+void Experience::check_autoswitch() {
+  float low_threshold = setting_auto_aa_switch_low.get();
+  float high_threshold = setting_auto_aa_switch_high.get();
+  if (!low_threshold || !high_threshold) return;  // Bail out if disabled.
+
+  int level = get_exp_level();
+  if (level < 1) return;  // Bail out if invalid level.
+
+  const auto *aa_wnd = Zeal::Game::Windows->AA;
+  if (!aa_wnd) return;  // Must be new UI with it initialized.
+
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  int total_exp = level * ExperienceCalc::kExpPerLevel + self->CharInfo->Experience;
+  int target = 0;
+  if (total_exp <= low_threshold * ExperienceCalc::kExpPerLevel)
+    target = 0;
+  else if (total_exp >= high_threshold * ExperienceCalc::kExpPerLevel)
+    target = 100;
+  else
+    return;  // In middle hysteretic dead zone, do nothing.
+
+  if (self->CharInfo->AlternateAdvancementShareOfExpPercent == target) return;
+
+  // An auto-switch change has been triggered, so update and send it to the server.
+  self->CharInfo->AlternateAdvancementShareOfExpPercent = target;
+  auto SendAaExpRatioToServer =
+      reinterpret_cast<void(__fastcall *)(const Zeal::GameUI::SidlWnd *, int unused_edx)>(0x004020d2);
+  SendAaExpRatioToServer(aa_wnd, 0);
+  Zeal::Game::print_chat("/autoaaswitch: Setting AA exp share to %d%%", target);
 }
