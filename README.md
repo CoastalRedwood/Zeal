@@ -88,6 +88,11 @@ ___
 - `/autoconsent`
   - **Description:** Toggles the enable of auto-consenting from a /tc sent by a group or raid member.
 
+- `/autoaaswitch`
+  - **Arguments:** `off`, `<threshold_low> <threshold_high>` (low switches to 0% aa and high to 100% aa)
+  - **Description:** Sets exp level threshold to auto-switch to 0% or 100% AA.
+  - **Example:** `/autoaaswitch 60.5 60.99`: Sets to 0% AA below 60.5 and to 100% AA above 60.99.
+
 - `/autofire`
   - **Aliases:** `/af`
   - **Arguments:** none (toggles), `on`, `off`
