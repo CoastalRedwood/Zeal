@@ -270,8 +270,8 @@ void Triggers::CallbackRender() {
     int hours = seconds / 3600;
     seconds = seconds - hours * 3600;
     int minutes = seconds / 60;
-    seconds = seconds - minutes / 60;
-    std::string label = std::format("{:02d}:{:02d}:{:02d}: {}", hours, minutes, seconds, event.label);
+    seconds = seconds - minutes * 60;
+    std::string label = std::format("{:02d}:{:02d}:{:02d} {}", hours, minutes, seconds, event.label);
     bitmap_font->queue_string(label.c_str(), Vec3(x, y, 0), false, event.color, true);
     y += bitmap_font->get_line_spacing();
   }
