@@ -132,8 +132,8 @@ ___
 - `/cls`
   - **Description:** Adds cls alias for clearchat.
 
-- `/consentmonks` or `/consentrogues`
-  - **Description:** Executes a /consent on all monks or rogues in the raid.
+- `/consentmonks`, `/consentrogues`, or `/consentclerics`
+  - **Description:** Executes a /consent on all monks, rogues, or clerics in the raid.
 
 - `/corpsedrag`
   - **Aliases:** `/drag`
