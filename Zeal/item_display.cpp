@@ -180,7 +180,6 @@ static std::string GetSpellClassLevels(const Zeal::GameStructures::_GAMEITEMINFO
     if ((item.Common.Classes & class_bit) == 0) continue;
     int class_level = spell->ClassLevel[i];
     auto class_name = Zeal::Game::class_name_short(i);
-    std::transform(class_name.begin(), class_name.end(), class_name.begin(), ::toupper);
     result += std::format(" {} ({})", class_name, class_level);
   }
 
@@ -366,7 +365,7 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
       line = std::format("  {}: Increase Absorb Magic Damage by ", display_index);
       append_effect_description(line, spell, caster_level, effect_index);
       break;
-    case 110: // Ranger Hawk Eye and Eagle Eye archery accuracy
+    case 110:  // Ranger Hawk Eye and Eagle Eye archery accuracy
       line = std::format("  {}: Increase Chance to Hit with Archery by ", display_index);
       append_effect_description(line, spell, caster_level, effect_index);
       break;

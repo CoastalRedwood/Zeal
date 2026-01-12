@@ -202,7 +202,7 @@ std::vector<Zeal::GameStructures::Entity *> get_world_visible_actor_list(float m
 Zeal::GameStructures::ActorLocation get_actor_location(int actor);
 float get_target_blink_fade_factor(float speed_factor, bool auto_attack_only);  // Returns 0 to 1.0f.
 bool is_view_actor_me();
-void print_chat(const std::string& data);
+void print_chat(const std::string &data);
 void print_chat(const char *format, ...);
 void print_chat(short color, const char *format, ...);
 void print_chat_wnd(Zeal::GameUI::ChatWnd *, short color, const char *format, ...);
@@ -315,5 +315,18 @@ Zeal::GameEnums::SkillType get_weapon_skill(const Zeal::GameStructures::GAMEITEM
 int get_hand_to_hand_delay();
 void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr,
                               short color = USERCOLOR_DEFAULT);
+
+inline int get_screen_resolution_x() { return *reinterpret_cast<int *>(0x00798564); }
+
+inline int get_screen_resolution_y() { return *reinterpret_cast<int *>(0x00798568); }
+
+inline int get_viewport_left() { return *reinterpret_cast<short *>(0x00798548); }
+
+inline int get_viewport_top() { return *reinterpret_cast<short *>(0x0079854a); }
+
+inline int get_viewport_right() { return *reinterpret_cast<short *>(0x0079854c); }
+
+inline int get_viewport_bottom() { return *reinterpret_cast<short *>(0x0079854e); }
+
 }  // namespace Game
 }  // namespace Zeal

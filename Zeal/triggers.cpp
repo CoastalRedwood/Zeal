@@ -244,7 +244,8 @@ void Triggers::LoadBitmapFont() {
     return;
   }
 
-  bitmap_font->set_drop_shadow(true);  // TODO
+  bitmap_font->set_drop_shadow(true);
+  bitmap_font->set_full_screen_viewport(true);  // Allow rendering list outside reduced viewport.
 }
 
 void Triggers::CallbackRender() {
@@ -262,10 +263,12 @@ void Triggers::CallbackRender() {
                 [current_time_ms](const TriggerEvent &trigger) { return trigger.end_timestamp_ms <= current_time_ms; });
   if (trigger_events.empty()) return;
 
-  Vec2 screen_size = ZealService::get_instance()->dx->GetScreenRect();
+  // The position coordinates are full screen (not viewport reduced).
   float x = static_cast<float>(position_x.get());
   float y = static_cast<float>(position_y.get());
+  const float y_max = static_cast<float>(Zeal::Game::get_screen_resolution_y());
   for (const auto &event : trigger_events) {
+    if (y > y_max) break;
     int seconds = (event.end_timestamp_ms - current_time_ms) / 1000;
     int hours = seconds / 3600;
     seconds = seconds - hours * 3600;
