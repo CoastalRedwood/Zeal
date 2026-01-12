@@ -51,6 +51,8 @@ class BitmapFontBase {
 
   float get_line_spacing() const { return line_spacing; }
 
+  float get_text_height(const std::string &text) const;
+
   // Drop shadow and alignment configuration.
   void set_shadow_offset_factor(float factor) { shadow_offset_factor = factor; }
 
@@ -59,6 +61,8 @@ class BitmapFontBase {
   void set_outlined(bool enable) { outlined = enable; }
 
   void set_align_bottom(bool enable) { align_bottom = enable; }
+
+  void set_full_screen_viewport(bool enable) { full_screen_viewport = enable; }
 
   // Set these stats bar values before calling queue_string() which contains their glyphs.
   void set_hp_percent(int value) { hp_percent = value; }
@@ -103,6 +107,7 @@ class BitmapFontBase {
     const Glyph *glyph;
     const Vec2 position;
     const D3DCOLOR color;
+    char hp_percent;
   };
 
   static constexpr int kNumGlyphs = 128;  // Support ASCII 0 - 127.
@@ -127,7 +132,8 @@ class BitmapFontBase {
   float shadow_offset_factor = kDefaultShadowOffsetFactor;
   bool drop_shadow = false;
   bool outlined = false;
-  bool align_bottom = false;  // Applies only when text is queued with center flag.
+  bool align_bottom = false;          // Applies only when text is queued with center flag.
+  bool full_screen_viewport = false;  // If true, overrides viewport to full screen resolution.
   char hp_percent = 0;
   char mana_percent = 0;
   char stamina_percent = 0;

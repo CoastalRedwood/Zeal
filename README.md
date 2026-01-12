@@ -287,6 +287,15 @@ ___
           enable, value, and protected list are stored per character with the list stored in the
           `./<character_name>_protected.ini` file.
 
+- `/raidbars`
+  - **Arguments:** `on`, `off`, `font <filename>`, `position <x> <y>`, `showall <on | off>`,
+                   `priority <classes list>`, `always <classes list>`
+  - **Example:** `/raidbars position 10 100` Sets upper left edge of raid bars list at (10, 100) on the screen
+  - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
+  - **Example:** `/raidbars always WAR PAL SHD ENC` These classes are always shown (even w/out showall on)
+  - **Example:** `/raidbars priority WAR WIZ ENC PAL SHD` Shows those classes first then remaining classes
+  - **Description:** Supports enabling a class-prioritized list of raid members with health bars.
+
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
 
@@ -547,22 +556,23 @@ Manual editing of the ini file is required to copy from old section to the new s
 - Controlled through either the `/tag` command or Nameplate tab options
 - Requires enabling both Nameplates Zeal fonts and tags (`/tag on`)
 - Tagged NPC nameplates use either the dedicated `Tagged` color or if targeted the `Target` color
-- Tagged nameplates have a matching colored arrow added if `Default tag arrow` is set
-- Tags can be cleared with:
-  - `/tag clear`: Clears tag from current target if there is one else all tags
-  - `/tag local -`: Clears text only from current target locally (can also gsay, rsay)
-  - `/tag local ^-^`: Clears arrow only from current target locally (can also gsay, rsay)
+- Tagged nameplates have a matching implicit colored arrow added if `Default tag arrow` is set
 - Tags can be set with locally or broadcast through rsay, gsay, or a joined chat channel
-  - `/tag <rsay | gsay | local> <tag_text>`
+  - `/tag <rsay | gsay | chat | local> <tag_text>`
   - Note: % replacement commands (%t, %n) aren't supported in `<tag_text>`
   - A <tag_text> == `clear` will clear the tags of everyone receiving it
   - The <tag_text> message supports special prefixes:
-    - `+` to append tag text (must be first character)
-    - `-` to erase only existing text (must be first character)
-    - `^?^`: to set explicit shapes over the nametag where `?` can be one of (case-insensitive):
+    - `+` to append tag text (must be first character, does not impact explicit shape)
+    - `-` to erase only existing text (must be first character, does not impact explicit shape)
+    - `^?^`: to set an explicit shape over the nametag where `?` can be one of (case-insensitive):
       - Colored arrow: (`R` = red, `O` = orange, `Y` = yellow, `G` = green, `B` = blue, `W` = white)
       - Green pet paw symbol: `P`
       - Red stop sign (octagon): `S`
+      - Clear any existing shape: `-`
+- Tags can be cleared with:
+  - `/tag clear`: Clears tag from current target if there is a target else all tags
+  - `/tag local -`: Clears text only from current target locally (can also gsay, rsay, chat)
+  - `/tag local ^-^`: Clears shape only from current target locally (can also gsay, rsay, chat)
 - Chat channel support / usage
   - Note: Zeal does not autojoin the channel at boot. Use `/tag channel`, `/tag join`, or autojoin.
   - `/tag channel <name>` broadcasts a special message to rsay (if in raid) else gsay (if in group) 
@@ -586,9 +596,11 @@ Manual editing of the ini file is required to copy from old section to the new s
 
 ### Tagging Examples
   - `/tag rsay Assist me` broadcasts a raid-wide tag that sets 'Assist Me'
-  - `/tag rsay +^Y^OFFTANK` appends ' | OFFTANK' to the tag text and sets the arrow to yellow
-  - `/tag rsay -` clears text but leaves arrow if explicitly colored
-  - `/tag rsay ^-^` leaves text but clears the arrow
+  - `/tag rsay +TASH` appends ' | TASH' to the tag text (does not affect explicit shape)
+  - `/tag rsay ^p^` adds an explicit paw shape above the target for all raid members
+  - `/tag rsay -` clears text but leaves shape if explicitly set
+  - `/tag rsay ^-^` leaves text but clears the shape
+  - `/tag rsay +^Y^OFFTANK` appends ' | OFFTANK' to the tag text and adds explicit yellow arrow shape
   - `/tag gsay clear` broadcasts a special message to clear all group members' tags
   - `/tag clear` clears target tag if target else all tags on local client
 

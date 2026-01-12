@@ -378,7 +378,7 @@ void BitmapFontBase::queue_lines(const std::vector<Lines> &lines, D3DCOLOR color
            glyph->character == kManaBarValue || glyph->character == kStaminaBarValue) &&
           color == kDropShadowColor)
         return;  // Skip drop shadow for the health bar.
-      glyph_queue.push_back({glyph, upper_left + Vec2(x, y), color});
+      glyph_queue.push_back({glyph, upper_left + Vec2(x, y), color, hp_percent});
     });
   }
 }
@@ -487,6 +487,21 @@ RECT BitmapFontBase::measure_draw_rect(const char *text, const Vec2 &position) c
   return result;
 }
 
+float BitmapFontBase::get_text_height(const std::string &text) const {
+  if (text.empty()) return 0;
+  auto text_lines = Zeal::String::split_text(text);
+  float y_height = 0;
+  float y_advance = 0;
+  for (const auto &line : text_lines) {
+    y_height += y_advance;
+    Vec3 size = measure_string(line.c_str());
+    y_height += size.y;
+    y_advance = std::max(0.f, size.z - size.y);  // Save if needed for next line.
+  }
+
+  return y_height;
+}
+
 // Renders all queued bitmap glyphs to the screen.
 void BitmapFontBase::flush_queue_to_screen() {
   if (!texture) glyph_queue.clear();
@@ -508,8 +523,30 @@ void BitmapFontBase::flush_queue_to_screen() {
     return;
   }
 
+  // Support temporarily overriding the viewport to full screen mode.
+  bool modify_viewport = false;
+  D3DVIEWPORT8 original_viewport;
+  if (full_screen_viewport) {
+    device.GetViewport(&original_viewport);
+    DWORD screen_x = Zeal::Game::get_screen_resolution_x();
+    DWORD screen_y = Zeal::Game::get_screen_resolution_y();
+    modify_viewport = (original_viewport.X || original_viewport.Y || original_viewport.Width != screen_x ||
+                       original_viewport.Height != screen_y);
+    if (modify_viewport) {
+      D3DVIEWPORT8 viewport = {.X = 0,
+                               .Y = 0,
+                               .Width = screen_x,
+                               .Height = screen_y,
+                               .MinZ = original_viewport.MinZ,
+                               .MaxZ = original_viewport.MaxZ};
+      device.SetViewport(&viewport);
+    }
+  }
+
   render_queue();
   glyph_queue.clear();
+
+  if (modify_viewport) device.SetViewport(&original_viewport);
 }
 
 // Submits glyph sprites to the GPU in batches.
@@ -623,8 +660,25 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
   // Note: Transformed vertices require a -0.5 offset to properly align texels with pixels.
   // Vertices in xy 00, 10, 01, 11 order.
   static_assert(kNumGlyphVertices == 4);
+
+  float width = static_cast<float>(entry.glyph->sub_rect.right - entry.glyph->sub_rect.left);
+  float height = static_cast<float>(entry.glyph->sub_rect.bottom - entry.glyph->sub_rect.top);
+  auto color = entry.color;
+  if (entry.glyph->character == kStatsBarBackground) {
+    width = kStatsBarWidth / 2;  // Hack resize for default BitmapFont usage.
+    height = kStatsBarHeight;
+    color = D3DCOLOR_ARGB(128, 128, 128, 128);
+  } else if (entry.glyph->character == kHealthBarValue) {
+    width = entry.hp_percent * ((1.f / 100.f) * (kStatsBarWidth / 2));  // Hack resize for default BitmapFont usage.
+    height = kStatsBarHeight;
+    color = (entry.hp_percent > 75)   ? D3DCOLOR_XRGB(0, 192, 0)    // Green
+            : (entry.hp_percent > 50) ? D3DCOLOR_XRGB(192, 192, 0)  // Yellow
+            : (entry.hp_percent > 25) ? D3DCOLOR_XRGB(192, 96, 40)  // Orange
+                                      : D3DCOLOR_XRGB(192, 0, 0);   // Red
+  }
+
   glyph_vertices[0].x = entry.position.x - 0.5f;
-  glyph_vertices[1].x = entry.position.x - 0.5f + entry.glyph->sub_rect.right - entry.glyph->sub_rect.left;
+  glyph_vertices[1].x = entry.position.x - 0.5f + width;
   glyph_vertices[2].x = glyph_vertices[0].x;
   glyph_vertices[3].x = glyph_vertices[1].x;
 
@@ -635,7 +689,7 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
 
   glyph_vertices[0].y = entry.position.y - 0.5f;
   glyph_vertices[1].y = glyph_vertices[0].y;
-  glyph_vertices[2].y = entry.position.y - 0.5f + entry.glyph->sub_rect.bottom - entry.glyph->sub_rect.top;
+  glyph_vertices[2].y = entry.position.y - 0.5f + height;
   glyph_vertices[3].y = glyph_vertices[2].y;
 
   glyph_vertices[0].v = entry.glyph->sub_rect.top * inverse_texture_size.y;
@@ -646,7 +700,7 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
   for (int i = 0; i < kNumGlyphVertices; ++i) {
     glyph_vertices[i].z = 0.5f;
     glyph_vertices[i].rhw = 1.0f;
-    glyph_vertices[i].color = entry.color;
+    glyph_vertices[i].color = color;
   }
 }
 
@@ -866,16 +920,5 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
 }
 
 float SpriteFont::get_text_height(const std::string &text) const {
-  if (text.empty()) return 0;
-  auto text_lines = Zeal::String::split_text(text);
-  float y_height = 0;
-  float y_advance = 0;
-  for (const auto &line : text_lines) {
-    y_height += y_advance;
-    Vec3 size = measure_string(line.c_str());
-    y_height += size.y;
-    y_advance = std::max(0.f, size.z - size.y);  // Save if needed for next line.
-  }
-
-  return y_height * scale_factor;
+  return BitmapFontBase::get_text_height(text) * scale_factor;
 }

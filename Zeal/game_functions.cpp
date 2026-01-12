@@ -2211,49 +2211,49 @@ std::string class_name_short(int class_id) {
   if (modified_class_id > 16 && modified_class_id < 32) modified_class_id -= 16;
   switch (modified_class_id) {
     case Zeal::GameEnums::ClassTypes::Warrior:
-      class_string = "War";
+      class_string = "WAR";
       break;
     case Zeal::GameEnums::ClassTypes::Cleric:
-      class_string = "Clr";
+      class_string = "CLR";
       break;
     case Zeal::GameEnums::ClassTypes::Paladin:
-      class_string = "Pal";
+      class_string = "PAL";
       break;
     case Zeal::GameEnums::ClassTypes::Ranger:
-      class_string = "Rng";
+      class_string = "RNG";
       break;
     case Zeal::GameEnums::ClassTypes::Shadowknight:
-      class_string = "Shd";
+      class_string = "SHD";
       break;
     case Zeal::GameEnums::ClassTypes::Druid:
-      class_string = "Dru";
+      class_string = "DRU";
       break;
     case Zeal::GameEnums::ClassTypes::Monk:
-      class_string = "Mnk";
+      class_string = "MNK";
       break;
     case Zeal::GameEnums::ClassTypes::Bard:
-      class_string = "Brd";
+      class_string = "BRD";
       break;
     case Zeal::GameEnums::ClassTypes::Rogue:
-      class_string = "Rog";
+      class_string = "ROG";
       break;
     case Zeal::GameEnums::ClassTypes::Shaman:
-      class_string = "Shm";
+      class_string = "SHM";
       break;
     case Zeal::GameEnums::ClassTypes::Necromancer:
-      class_string = "Nec";
+      class_string = "NEC";
       break;
     case Zeal::GameEnums::ClassTypes::Wizard:
-      class_string = "Wiz";
+      class_string = "WIZ";
       break;
     case Zeal::GameEnums::ClassTypes::Magician:
-      class_string = "Mag";
+      class_string = "MAG";
       break;
     case Zeal::GameEnums::ClassTypes::Enchanter:
-      class_string = "Enc";
+      class_string = "ENC";
       break;
     case Zeal::GameEnums::ClassTypes::Beastlord:
-      class_string = "Bst";
+      class_string = "BST";
       break;
     case Zeal::GameEnums::ClassTypes::Banker:
       class_string = "Banker";

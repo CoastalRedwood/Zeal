@@ -159,7 +159,6 @@ void FloatingDamage::callback_render() {
 void FloatingDamage::render_spells() {
   if (!spell_icons.get()) return;
   std::vector<Zeal::GameStructures::Entity *> visible_ents = Zeal::Game::get_world_visible_actor_list(250, false);
-  Vec2 screen_size = ZealService::get_instance()->dx->GetScreenRect();
   for (auto &[target, dmg_vec] : damage_numbers) {
     for (auto &dmg : dmg_vec) {
       if (dmg.spell) {
@@ -187,7 +186,8 @@ void FloatingDamage::render_text() {
     Zeal::GameUI::CTextureFont *fnt = bitmap_font ? nullptr : Zeal::Game::get_wnd_manager()->GetFont(font_size);
     if (bitmap_font || fnt) {
       std::vector<Zeal::GameStructures::Entity *> visible_ents = Zeal::Game::get_world_visible_actor_list(250, false);
-      Vec2 screen_size = ZealService::get_instance()->dx->GetScreenRect();
+      int screen_x = Zeal::Game::get_screen_resolution_x();
+      int screen_y = Zeal::Game::get_screen_resolution_y();
       for (auto &[target, dmg_vec] : damage_numbers) {
         for (auto &dmg : dmg_vec) {
           dmg.tick(get_active_damage_count(target));
@@ -207,7 +207,7 @@ void FloatingDamage::render_text() {
                     dmg.str_dmg.c_str(),
                     Zeal::GameUI::CXRect((int)(screen_pos.y + dmg.x_offset), (int)(screen_pos.x + dmg.y_offset),
                                          (int)(screen_pos.y + 150), (int)(screen_pos.x + 150)),
-                    Zeal::GameUI::CXRect(0, 0, (int)(screen_size.x * 2), (int)(screen_size.y * 2)), color, 1, 0);
+                    Zeal::GameUI::CXRect(0, 0, 2 * screen_x, 2 * screen_y), color, 1, 0);
             }
           }
         }

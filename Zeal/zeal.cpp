@@ -46,6 +46,7 @@
 #include "physics.h"
 #include "player_movement.h"
 #include "raid.h"
+#include "raid_bars.h"
 #include "spellsets.h"
 #include "string_util.h"
 #include "survey.h"
@@ -153,6 +154,7 @@ ZealService::ZealService() {
   equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
+  raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
   triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
   nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
   tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
