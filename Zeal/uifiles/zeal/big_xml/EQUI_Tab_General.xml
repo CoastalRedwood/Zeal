@@ -1766,6 +1766,68 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_AbbreviatedChat">
+    <ScreenID>Zeal_AbbreviatedChat</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>1016</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Shortens non-combat chat messages</TooltipReference>
+    <Text>Abbreviated Chat</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_ClassChatColors">
+    <ScreenID>Zeal_ClassChatColors</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>720</X>
+      <Y>1060</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Adds color to player names in chat</TooltipReference>
+    <Text>Class Chat Colors</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   
     
   <Page item="Tab_General">
@@ -1853,6 +1915,8 @@
     <Pieces>Zeal_SuppressOtherPets</Pieces>
     <Pieces>Zeal_ReportOtherNonMeleeDmg</Pieces>
     <Pieces>Zeal_BuffClickThru</Pieces>
+    <Pieces>Zeal_AbbreviatedChat</Pieces>
+    <Pieces>Zeal_ClassChatColors</Pieces>
     <Location>
       <X>0</X>
       <Y>44</Y>
