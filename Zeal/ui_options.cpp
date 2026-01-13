@@ -310,6 +310,12 @@ void ui_options::InitColors() {
 void ui_options::InitGeneral() {
   if (!wnd) return;
   /*add callbacks when the buttons are pressed in the options window*/
+  ui->AddCheckboxCallback(wnd, "Zeal_AbbreviatedChat", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->chat_hook->UseAbbreviatedChat.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_ClassChatColors", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->chat_hook->UseClassChatColors.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_HideCorpse", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->looting_hook->set_hide_looted(wnd->Checked);
   });
@@ -931,6 +937,8 @@ void ui_options::UpdateOptionsGeneral() {
       fps_limit_selection = 0;
       break;
   }
+  ui->SetChecked("Zeal_AbbreviatedChat", ZealService::get_instance()->ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get());
+  ui->SetChecked("Zeal_ClassChatColors", ZealService::get_instance()->chat_hook->UseClassChatColors.get());
   ui->SetComboValue("Zeal_FPS_Combobox", fps_limit_selection);
   ui->SetComboValue("Zeal_LockToggleBag_Combobox",
                     ZealService::get_instance()->utils->setting_lock_toggle_bag_slot.get());
