@@ -59,14 +59,33 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   }
 
   if (args.size() >= 2 && args[1] == "position") {
-    int x, y;
-    if (args.size() == 4 && Zeal::String::tryParse(args[2], &x) && Zeal::String::tryParse(args[3], &y)) {
-      setting_position_x.set(x);
-      setting_position_y.set(y);
+    int left, top;
+    int right = 0;
+    int bottom = 0;
+    bool valid = false;
+    if (args.size() == 4)
+      valid = Zeal::String::tryParse(args[2], &left, true) && Zeal::String::tryParse(args[3], &top, true);
+    else if (args.size() == 6)
+      valid = Zeal::String::tryParse(args[2], &left, true) && Zeal::String::tryParse(args[3], &top, true) &&
+              Zeal::String::tryParse(args[4], &right, true) && Zeal::String::tryParse(args[5], &bottom, true);
+
+    if (valid && (left < 0 || (right && right < left) || top < 0 || (bottom && bottom < top))) {
+      Zeal::Game::print_chat("Invalid position coordinates");
+      valid = false;
     }
 
-    Zeal::Game::print_chat("Raidbars position set to (%d, %d)", setting_position_x.get(), setting_position_y.get());
-    return;
+    if (valid) {
+      setting_position_left.set(left);
+      setting_position_top.set(top);
+      setting_position_right.set(right);
+      setting_position_bottom.set(bottom);
+    }
+
+    if (valid || args.size() == 2) {
+      Zeal::Game::print_chat("Raidbars position set to (%d, %d, %d, %d)", setting_position_left.get(),
+                             setting_position_top.get(), setting_position_right.get(), setting_position_bottom.get());
+      return;
+    }
   }
 
   if (args.size() >= 2 && args[1] == "showall") {
@@ -91,7 +110,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
 
   Zeal::Game::print_chat("Usage: /raidbars <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars font font_filename");
-  Zeal::Game::print_chat("Usage: /raidbars position <x> <y> where (x,y) is the upper left of list");
+  Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right=0> <bottom=0>]");
   Zeal::Game::print_chat("Usage: /raidbars showall <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars always <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
@@ -119,6 +138,13 @@ void RaidBars::LoadBitmapFont() {
 
   bitmap_font->set_drop_shadow(true);
   bitmap_font->set_full_screen_viewport(true);  // Allow rendering list outside reduced viewport.
+
+  std::string text("Fakenametotest");  // 14 character as maximum name length with average chars.
+  const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
+  std::string full_text = text + healthbar;
+  auto size = bitmap_font->measure_string(text.c_str());  // Doesn't currently support multi-lines.
+  grid_width = size.x + 0.25f;
+  grid_height = bitmap_font->get_text_height(full_text) + 0.25f;
 }
 
 // Load the class priority from settings (based on defaults).
@@ -251,10 +277,14 @@ void RaidBars::CallbackRender() {
   }
 
   // The position coordinates are full screen (not viewport reduced).
-  float x = static_cast<float>(setting_position_x.get());
-  float y = static_cast<float>(setting_position_y.get());
-  const float y_max = static_cast<float>(Zeal::Game::get_screen_resolution_y());
-
+  const float x_min = static_cast<float>(setting_position_left.get());
+  const float y_min = static_cast<float>(setting_position_top.get());
+  const float x_max = static_cast<float>(setting_position_right.get() > x_min ? setting_position_right.get()
+                                                                              : Zeal::Game::get_screen_resolution_x());
+  const float y_max = static_cast<float>(setting_position_bottom.get() > y_min ? setting_position_bottom.get()
+                                                                               : Zeal::Game::get_screen_resolution_y());
+  float x = x_min;
+  float y = y_min;
   // Then go through the classes in prioritized order.
   bool show_all = setting_show_all.get();
   const auto self = Zeal::Game::get_self();
@@ -267,7 +297,12 @@ void RaidBars::CallbackRender() {
     DWORD class_color = Zeal::Game::get_raid_class_color(class_index + kClassIndexOffset);
     const DWORD out_of_zone_color = D3DCOLOR_XRGB(0x80, 0x80, 0x80);  // Grey color.
     for (const auto &member : group) {
-      if (y > y_max) break;  // Bail out if list grows off-screen.
+      if (y + grid_height > y_max) {
+        y = y_min;
+        x += grid_width;
+      }
+      if (x + grid_width > x_max) break;  // Bail out if list grows off-screen.
+
       const auto entity = member.entity;
       if (entity == self) continue;          // Skip self.
       if (!entity && !show_class) continue;  // Skip out of zone if not forced on.
@@ -280,7 +315,7 @@ void RaidBars::CallbackRender() {
       bitmap_font->set_hp_percent(hp_percent);
       DWORD color = entity ? class_color : out_of_zone_color;
       bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
-      y += bitmap_font->get_text_height(full_text) + 0.25f;
+      y += grid_height;
     }
   }
 

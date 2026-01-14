@@ -22,8 +22,10 @@ class RaidBars {
   RaidBars &operator=(RaidBars const &) = delete;
 
   ZealSetting<bool> setting_enabled = {false, "RaidBars", "Enabled", false, [this](bool) { Clean(); }};
-  ZealSetting<int> setting_position_x = {100, "RaidBars", "PositionX", false};
-  ZealSetting<int> setting_position_y = {100, "RaidBars", "PositionY", false};
+  ZealSetting<int> setting_position_left = {5, "RaidBars", "Left", false};
+  ZealSetting<int> setting_position_top = {5, "RaidBars", "Top", false};
+  ZealSetting<int> setting_position_right = {0, "RaidBars", "Right", false};
+  ZealSetting<int> setting_position_bottom = {0, "RaidBars", "Bottom", false};
   ZealSetting<bool> setting_show_all = {false, "RaidBars", "ShowAll", false};
   ZealSetting<std::string> setting_class_priority = {std::string(), "RaidBars", "ClassPriority", false,
                                                      [this](const std::string &) { SyncClassPriority(); }};
@@ -52,6 +54,8 @@ class RaidBars {
 
   DWORD next_update_game_time_ms = 0;
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
+  float grid_height = 0;
+  float grid_width = 0;
 
   std::array<std::vector<RaidMember>, kNumClasses> raid_classes;  // Per class vectors of raid members.
   std::array<int, kNumClasses> class_priority;                    // Prioritization order for class types.

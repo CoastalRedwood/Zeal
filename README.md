@@ -288,9 +288,9 @@ ___
           `./<character_name>_protected.ini` file.
 
 - `/raidbars`
-  - **Arguments:** `on`, `off`, `font <filename>`, `position <x> <y>`, `showall <on | off>`,
+  - **Arguments:** `on`, `off`, `font <filename>`, `position <top> <left> [<right>=0 <bottom>=0]`, `showall <on | off>`,
                    `priority <classes list>`, `always <classes list>`
-  - **Example:** `/raidbars position 10 100` Sets upper left edge of raid bars list at (10, 100) on the screen
+  - **Example:** `/raidbars position 5 10 150 0` Constrains bars to a box from (5,10) to (150, bottom of screen).
   - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
   - **Example:** `/raidbars always WAR PAL SHD ENC` These classes are always shown (even w/out showall on)
   - **Example:** `/raidbars priority WAR WIZ ENC PAL SHD` Shows those classes first then remaining classes
