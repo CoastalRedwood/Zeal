@@ -8,8 +8,17 @@
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_structures.h"
+#include "hook_wrapper.h"
 #include "string_util.h"
 #include "zeal.h"
+
+// Checks if the user clicked on one of the raid bars.
+static void __fastcall LMouseUp(void *game, int unused_edx, short x, short y) {
+  auto zeal = ZealService::get_instance();
+  if (zeal->raid_bars->HandleLMouseUp(x, y)) return;
+
+  zeal->hooks->hook_map["LMouseUp"]->original(LMouseUp)(game, unused_edx, x, y);
+}
 
 RaidBars::RaidBars(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { CallbackRender(); }, callback_type::RenderUI);
@@ -23,6 +32,8 @@ RaidBars::RaidBars(ZealService *zeal) {
                              ParseArgs(args);
                              return true;
                            });
+
+  zeal->hooks->Add("LMouseUp", 0x00531614, LMouseUp, hook_type_detour);
 
   // Ensure our cached entity pointer is flushed when an entity despawns.
   zeal->callbacks->AddEntity(
@@ -41,7 +52,8 @@ RaidBars::~RaidBars() { Clean(); }
 
 void RaidBars::Clean() {
   next_update_game_time_ms = 0;
-  bitmap_font.reset();                                         // Releases all DX and other resources.
+  bitmap_font.reset();  // Releases all DX and other resources.
+  visible_list.clear();
   for (auto &class_group : raid_classes) class_group.clear();  // Drop all entity references.
 }
 
@@ -94,6 +106,12 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
+  if (args.size() >= 2 && args[1] == "clickable") {
+    if (args.size() == 3 && (args[2] == "on" || args[2] == "off")) setting_clickable.set(args[2] == "on");
+    Zeal::Game::print_chat("Raidbars clickable is set to %s", setting_clickable.get() ? "on" : "off");
+    return;
+  }
+
   if (args.size() >= 2 && (args[1] == "priority" || args[1] == "always")) {
     if (args.size() > 2) {
       std::string text = args[2];
@@ -111,7 +129,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /raidbars <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars font font_filename");
   Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right=0> <bottom=0>]");
-  Zeal::Game::print_chat("Usage: /raidbars showall <on | off>");
+  Zeal::Game::print_chat("Usage: /raidbars <showall | clickable> <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars always <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
 }
@@ -255,6 +273,33 @@ void RaidBars::UpdateRaidMembers() {
   }
 }
 
+bool RaidBars::HandleLMouseUp(short x, short y) {
+  if (!setting_clickable.get() || !setting_enabled.get() || visible_list.empty()) return false;
+
+  // Copy some client call behavior to bail out upon certain conditions.
+  if (*reinterpret_cast<int *>(0x007d0254) != 0) return false;   // Waiting for server ack to unfreeze UI.
+  if (*reinterpret_cast<BYTE *>(0x007985ea) != 0) return false;  // RMB held down.
+
+  // Calculate the index into the visible list.
+  const float x_min = static_cast<float>(setting_position_left.get());
+  const float y_min = static_cast<float>(setting_position_top.get());
+  if (x < x_min || y < y_min) return false;  // Off left or top side.
+  int click_row_index = static_cast<int>((y - y_min) / grid_height);
+  if (click_row_index >= grid_height_count_max) return false;  // Off bottom.
+  int click_column_index = static_cast<int>((x - x_min) / grid_width);
+  int click_column_start = click_column_index * grid_height_count_max;
+  int column_row_index_max = static_cast<int>(visible_list.size()) - click_column_start;
+  if (column_row_index_max < 0 || click_row_index >= column_row_index_max) return false;
+  int index = click_column_start + click_row_index;
+
+  if (index < 0 || index >= visible_list.size()) return false;  // Paranoid final check.
+  auto entity = visible_list[index];
+  if (entity == nullptr) return false;
+
+  Zeal::Game::do_target(entity->Name);
+  return true;
+}
+
 void RaidBars::CallbackRender() {
   if (!setting_enabled.get() || !Zeal::Game::is_in_game()) return;
 
@@ -285,7 +330,10 @@ void RaidBars::CallbackRender() {
                                                                                : Zeal::Game::get_screen_resolution_y());
   float x = x_min;
   float y = y_min;
+  grid_height_count_max = static_cast<int>((y_max - y_min) / grid_height);
+
   // Then go through the classes in prioritized order.
+  visible_list.clear();
   bool show_all = setting_show_all.get();
   const auto self = Zeal::Game::get_self();
   for (const int class_index : class_priority) {
@@ -312,6 +360,7 @@ void RaidBars::CallbackRender() {
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       std::string full_text = member.name + healthbar;
 
+      visible_list.push_back(entity);
       bitmap_font->set_hp_percent(hp_percent);
       DWORD color = entity ? class_color : out_of_zone_color;
       bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
