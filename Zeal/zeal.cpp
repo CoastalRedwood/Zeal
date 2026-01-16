@@ -188,8 +188,9 @@ ZealService::~ZealService() { ZealService::ptr_service = nullptr; }
 
 // Consents all class types in the raid.
 static bool handle_consent_class(Zeal::GameEnums::ClassTypes target_class) {
-  const char *class_name = (target_class == Zeal::GameEnums::ClassTypes::Rogue) ? "rogues" : 
-                            (target_class == Zeal::GameEnums::ClassTypes::Monk) ? "monks" : "clerics";
+  const char *class_name = (target_class == Zeal::GameEnums::ClassTypes::Rogue)  ? "rogues"
+                           : (target_class == Zeal::GameEnums::ClassTypes::Monk) ? "monks"
+                                                                                 : "clerics";
   Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
   if (!raid_info->is_in_raid()) {
     Zeal::Game::print_chat("/consent%s only works when in a raid", class_name);
@@ -915,6 +916,15 @@ void ZealService::AddBinds() {
     if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
       auto do_assist_fn = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
       do_assist_fn(Zeal::Game::get_self(), "");
+    }
+  });
+  binds_hook->add_bind(251, "Range Attack", "RangeAttack", key_category::Commands, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      BYTE *can_attack_flag = reinterpret_cast<BYTE *>(0x007cd844);
+      if (*can_attack_flag) {
+        *can_attack_flag = 0;
+        Zeal::Game::do_attack(11, 0);
+      }
     }
   });
 

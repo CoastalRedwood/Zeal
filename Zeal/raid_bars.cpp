@@ -44,6 +44,10 @@ RaidBars::RaidBars(ZealService *zeal) {
         for (auto &class_group : raid_classes)
           for (auto &member : class_group)
             if (member.entity == entity) member.entity = nullptr;
+
+        // Also clean the visible list.  Sweep through all of it to be safe.
+        for (auto &list_entity : visible_list)
+          if (list_entity == entity) list_entity = nullptr;
       },
       callback_type::EntityDespawn);
 }
