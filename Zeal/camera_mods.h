@@ -21,6 +21,7 @@ class CameraMods {
   ZealSetting<float> fov = {45.f, "Zeal", "Fov", false, [this](float val) { synchronize_fov(); }};
   ZealSetting<int> pan_delay = {0, "Zeal", "PanDelay", false};
   ZealSetting<bool> setting_selfclickthru = {false, "Zeal", "SelfClickThru", false};
+  ZealSetting<bool> setting_playerclickthru = {false, "Zeal", "PlayerClickThru", false};
   ZealSetting<bool> setting_leftclickcon = {false, "Zeal", "LeftClickCon", false};
   ZealSetting<bool> setting_toggle_overhead_view = {true, "Camera", "ToggleOverheadView", false};
   ZealSetting<bool> setting_toggle_zeal_view = {true, "Camera", "ToggleZealView", false};

@@ -272,6 +272,10 @@ ___
   - **Arguments:** `None`
   - **Description:** toggles on/off extra output raid and group member info fields
 
+- `/playerclickthru`
+  - **Arguments:** `on`, `off`
+  - **Description:** Disables (on) left click targeting of other players (excludes self).
+
 - `/protect`
   - **Arguments:** `on`, `off`, `value`, `item`, `<item_link>`, `list`, `cursor`, `worn`
   - **Example:** `/protect value 10` Protects against dropping or destroying items >= 10 pp

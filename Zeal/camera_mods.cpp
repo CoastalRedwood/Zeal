@@ -559,29 +559,47 @@ static void __fastcall DoCamAI(int display, int u, Zeal::GameStructures::Entity 
   zeal->camera_mods->handle_do_cam_ai();  // Overrides CameraInfo if enabled.
 }
 
-// Supports temporarily reducing the bounding radius or player and mount during the GetClickedActor call.
+// Helper function that minimizes the bounding radius of a player entity and possible mount. Stashes original values.
+static void MinimizePlayerRadius(Zeal::GameStructures::Entity *entity, std::vector<std::pair<float *, float>> &radii) {
+  if (!entity || !entity->ActorInfo || !entity->ActorInfo->ViewActor_) return;
+
+  float *radius = &entity->ActorInfo->ViewActor_->BoundingRadius;
+  radii.push_back({radius, *radius});
+  *radius = 0.001f;  // Small, hard to click value.
+
+  auto mount = entity->ActorInfo->Mount;
+  if (!mount || !mount->ActorInfo || !mount->ActorInfo->ViewActor_) return;
+
+  radius = &mount->ActorInfo->ViewActor_->BoundingRadius;
+  radii.push_back({radius, *radius});
+  *radius = 0.001f;  // Small, hard to click value.
+}
+
+// Supports temporarily reducing the bounding radii of players and mounts during the GetClickedActor call.
 static int __fastcall GetClickedActor(int this_display, int unused_edx, int mouse_x, int mouse_y, int get_on_actor) {
   auto self = Zeal::Game::get_self();
-  bool clickthru = !get_on_actor && ZealService::get_instance()->camera_mods->setting_selfclickthru.get();
-  float *bounding_radius = (clickthru && self && self->ActorInfo && self->ActorInfo->ViewActor_)
-                               ? &self->ActorInfo->ViewActor_->BoundingRadius
-                               : nullptr;
-  float original_radius = bounding_radius ? *bounding_radius : 0;
-  if (bounding_radius) *bounding_radius = 0.001f;  // Small, hard to click value.
-
-  // Just copy the logic for mounts as well.
-  auto mount = (clickthru && self && self->ActorInfo) ? self->ActorInfo->Mount : nullptr;
-  float *mount_bounding_radius = (clickthru && mount && mount->ActorInfo && mount->ActorInfo->ViewActor_)
-                                     ? &mount->ActorInfo->ViewActor_->BoundingRadius
-                                     : nullptr;
-  float mount_original_radius = mount_bounding_radius ? *mount_bounding_radius : 0;
-  if (mount_bounding_radius) *mount_bounding_radius = 0.001f;  // Small, hard to click value.
+  bool self_clickthru = !get_on_actor && ZealService::get_instance()->camera_mods->setting_selfclickthru.get();
+  bool player_clickthru = !get_on_actor && ZealService::get_instance()->camera_mods->setting_playerclickthru.get();
+  std::vector<std::pair<float *, float>> original_radii;
+  if (self_clickthru && self) {
+    MinimizePlayerRadius(self, original_radii);
+  }
+  if (player_clickthru) {
+    auto *entity = Zeal::Game::get_entity_list();
+    while (entity) {
+      if (entity && entity != self && entity->Type == Zeal::GameEnums::Player)
+        MinimizePlayerRadius(entity, original_radii);
+      entity = entity->Next;
+    }
+  }
 
   ZealService *zeal = ZealService::get_instance();
   int rval = zeal->hooks->hook_map["GetClickedActor"]->original(GetClickedActor)(this_display, unused_edx, mouse_x,
                                                                                  mouse_y, get_on_actor);
-  if (bounding_radius) *bounding_radius = original_radius;
-  if (mount_bounding_radius) *mount_bounding_radius = mount_original_radius;
+
+  // Restore bounding radii (if any were touched).
+  for (auto &radius : original_radii) *radius.first = radius.second;
+
   return rval;
 }
 
@@ -728,6 +746,18 @@ CameraMods::CameraMods(ZealService *zeal) {
                              Zeal::Game::print_chat("Selfclickthru is now %s",
                                                     setting_selfclickthru.get() ? "on" : "off");
                              if (update_options_ui_callback) update_options_ui_callback();
+                             return true;
+                           });
+  zeal->commands_hook->Add("/playerclickthru", {}, "Disable (on) or enable (off) clicking on players (excluding self).",
+                           [this](const std::vector<std::string> &args) {
+                             if (args.size() == 2 && args[1] == "on")
+                               setting_playerclickthru.set(true);
+                             else if (args.size() == 2 && args[1] == "off")
+                               setting_playerclickthru.set(false);
+                             else
+                               Zeal::Game::print_chat("Usage: /playerclickthru on or /playerclickthru off");
+                             Zeal::Game::print_chat("Playerclickthru is now %s",
+                                                    setting_playerclickthru.get() ? "on" : "off");
                              return true;
                            });
   zeal->commands_hook->Add("/leftclickcon", {}, "Disable (on) or enable (off) left-click consider.",
