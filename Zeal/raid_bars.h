@@ -22,6 +22,7 @@ class RaidBars {
   RaidBars &operator=(RaidBars const &) = delete;
 
   ZealSetting<bool> setting_enabled = {false, "RaidBars", "Enabled", false, [this](bool) { Clean(); }};
+  ZealSetting<bool> setting_clickable = {false, "RaidBars", "Clickable", false};
   ZealSetting<int> setting_position_left = {5, "RaidBars", "Left", false};
   ZealSetting<int> setting_position_top = {5, "RaidBars", "Top", false};
   ZealSetting<int> setting_position_right = {0, "RaidBars", "Right", false};
@@ -33,6 +34,9 @@ class RaidBars {
                                                    [this](const std::string &) { SyncClassAlways(); }};
   ZealSetting<std::string> setting_bitmap_font_filename = {std::string(kUseDefaultFont), "RaidBars", "Font", false,
                                                            [this](std::string val) { bitmap_font.reset(); }};
+
+  // Internal callback use only.
+  bool HandleLMouseUp(short x, short y);
 
  private:
   static constexpr int kNumClasses = Zeal::GameEnums::ClassTypes::Beastlord - Zeal::GameEnums::ClassTypes::Warrior + 1;
@@ -56,8 +60,10 @@ class RaidBars {
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
   float grid_height = 0;
   float grid_width = 0;
+  int grid_height_count_max = 0;  // Maximum number of bars that will fit in a column.
 
   std::array<std::vector<RaidMember>, kNumClasses> raid_classes;  // Per class vectors of raid members.
   std::array<int, kNumClasses> class_priority;                    // Prioritization order for class types.
   std::array<bool, kNumClasses> class_always;                     // Boolean flag to show always for class types.
+  std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
 };
