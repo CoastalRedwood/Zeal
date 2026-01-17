@@ -356,11 +356,10 @@ void RaidBars::CallbackRender() {
       if (x + grid_width > x_max) break;  // Bail out if list grows off-screen.
 
       const auto entity = member.entity;
-      if (entity == self) continue;          // Skip self.
-      if (!entity && !show_class) continue;  // Skip out of zone if not forced on.
+      if (entity == self) continue;  // Skip self.
       int hp_percent =
           (entity && entity->HpCurrent > 0 && entity->HpMax > 0) ? (entity->HpCurrent * 100) / entity->HpMax : 0;
-      if (hp_percent >= 99 && !(show_all || class_always[class_index])) continue;  // Skip.
+      if (hp_percent >= 99 && !show_class) continue;  // Skip.
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       std::string full_text = member.name + healthbar;
 
