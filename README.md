@@ -26,7 +26,8 @@ To disable Zeal, just delete the zeal.asi file.
   link all, loot all, raid survey, singleclick, show loot lockouts, etc)
 - Integrated map (see In-game Map section below)
 - Additional ui support (new gauges, bag control & locking, looting, spellsets, targetrings,
-  nameplates, right click to equip, skill window sorting, ctrl for context menus/looting, etc)
+  nameplates, right click to equip, skill window sorting, ctrl for context menus/looting,
+  tagging (text and shapes), raidbars, etc)
 - Autostand on move/cast, autosit on camp with export inventory/spellbook option,
   enhanced autorun behavior option
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
@@ -294,11 +295,13 @@ ___
 - `/raidbars`
   - **Arguments:** `on`, `off`, `font <filename>`, `position <top> <left> [<right>=0 <bottom>=0]`, `showall <on | off>`,
                    `clickable <on | off>`, `priority <classes list>`, `always <classes list>`
+  - **Example:** `/raidbars position 5 10 0 0` Constrains bars to a box from (5,10) to right and bottom screen edge.
   - **Example:** `/raidbars position 5 10 150 0` Constrains bars to a box from (5,10) to (150, bottom of screen).
   - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
   - **Example:** `/raidbars always WAR PAL SHD ENC` These classes are always shown (even w/out showall on)
   - **Example:** `/raidbars priority WAR WIZ ENC PAL SHD` Shows those classes first then remaining classes
-  - **Description:** Supports enabling a class-prioritized list of raid members with health bars.
+  - **Description:** Supports enabling a class-prioritized list of raid members with health bars. The bars are 
+          drawn into a rectangular screen area specified by the position command (viewport compatible).
 
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
