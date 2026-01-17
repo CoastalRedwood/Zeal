@@ -344,6 +344,13 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
       }
       append_effect_description(line, spell, caster_level, effect_index);
       break;
+    case 11:  // Attack Speed (wrong on some spells, particular items with haste spell 998).
+      if (spell->Base[effect_index] < 100 || (spell->Max[effect_index] > 0 && spell->Max[effect_index] < 100))
+        line = std::format("  {}: Decrease Attack Speed by ", display_index);
+      else
+        line = std::format("  {}: Increase Attack Speed by ", display_index);
+      append_effect_description(line, spell, caster_level, effect_index);
+      break;
   }
 }
 
