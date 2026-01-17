@@ -332,13 +332,7 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
   BYTE effect = spell->Attrib[effect_index];
   BYTE display_index = effect_index + 1;
   switch (effect) {
-    case 0:                    // CurrentHP
-      if (spell->ID == 742) {  // Fix - Denon's Desperate Dirge missing accurate base description
-        line = std::format("  {}: Decrease hitpoints by ", display_index);
-        append_effect_description(line, spell, caster_level, effect_index);
-      }
-      break;
-    case 1:  // Armor class (clean up inaccuracies)
+    case 1:  // Armor class (simplify descriptions to clarify calc effect)
       if (spell->Base[effect_index] < 0) {
         line = std::format("  {}: Decrease AC by ", display_index);
       } else {
@@ -348,39 +342,6 @@ static void fix_effect_line(std::string &line, Zeal::GameStructures::SPELL *spel
           line = std::format("  {}: Increase AC by ", display_index);
         }
       }
-      append_effect_description(line, spell, caster_level, effect_index);
-      break;
-    case 11:  // Attack Speed (wrong on some spells)
-      if (spell->Base[effect_index] < 100 || (spell->Max[effect_index] > 0 && spell->Max[effect_index] < 100))
-        line = std::format("  {}: Decrease Attack Speed by ", display_index);
-      else
-        line = std::format("  {}: Increase Attack Speed by ", display_index);
-      append_effect_description(line, spell, caster_level, effect_index);
-      break;
-    case 21:  // Stun
-      // SE_Stun: There is a client / server mismatch where the server uses the max field to set the max level
-      // but the client treats the max field as an upper value limit in the calc, so don't try to calculate.
-      break;
-    case 78:  // Absorb Magic
-      line = std::format("  {}: Increase Absorb Magic Damage by ", display_index);
-      append_effect_description(line, spell, caster_level, effect_index);
-      break;
-    case 110:  // Ranger Hawk Eye and Eagle Eye archery accuracy
-      line = std::format("  {}: Increase Chance to Hit with Archery by ", display_index);
-      append_effect_description(line, spell, caster_level, effect_index);
-      break;
-    case 115:  // Song of Sustenance
-      line = std::format("  {}: Food/Water", display_index);
-      break;
-    case 117:  // MagicWeapon
-      line = std::format("  {}: Make Weapons Magical", display_index);
-      break;
-    case 118:  // Amplification
-      line = std::format("  {}: Increase Singing Modifier by ", display_index);
-      append_effect_description(line, spell, caster_level, effect_index);
-      break;
-    case 119:  // Haste V3
-      line = std::format("  {}: Increase Haste v3 (Overhaste) by ", display_index);
       append_effect_description(line, spell, caster_level, effect_index);
       break;
   }
