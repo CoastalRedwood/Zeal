@@ -11,7 +11,7 @@
 class Looting {
  public:
   void set_hide_looted(bool val);
-  void link_all(const char *channel = nullptr) const;
+  void link_all(const char *channel = nullptr, const char *optionalText = nullptr) const;
   void init_ui();
   bool loot_all = false;
   ULONGLONG loot_next_item_time = 0;

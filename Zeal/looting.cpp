@@ -23,7 +23,7 @@
 static constexpr int kMaxLinkCount = 10;
 static constexpr int kMaxItemCount = 30;
 
-void Looting::link_all(const char *channel) const {
+void Looting::link_all(const char *channel, const char* optionalText) const {
   if (!Zeal::Game::Windows->Loot || !Zeal::Game::Windows->Loot->IsVisible) {
     Zeal::Game::print_chat("Looting window not visible");
     return;
@@ -60,6 +60,7 @@ void Looting::link_all(const char *channel) const {
 
   if (channel)  // Support outputting multiple lines if there's an explicit channel.
   {
+    const int maxLinks = optionalText ? kMaxLinkCount - 1 : kMaxLinkCount; // Make space for the optionalText
     int link_count = 0;
     std::string link_text;
     for (int i = 0; i < items.size(); ++i) {
@@ -69,7 +70,11 @@ void Looting::link_all(const char *channel) const {
       const char kMarker = 0x12;
       link_text += std::format("{0:c}0{1:06d}{2}{3:c}", kMarker, items[i].id, items[i].name, kMarker);
       if (items[i].count > 1) link_text += std::format(" ({})", items[i].count);
-      if (link_count == kMaxLinkCount || i == items.size() - 1) {
+      if (link_count == maxLinks || i == items.size() - 1) {
+        if (optionalText) {
+          link_text += " ";
+          link_text += optionalText;
+        }
         std::string select = channel;
         if (select.starts_with("rs"))
           Zeal::Game::send_raid_chat(link_text.c_str());
@@ -626,7 +631,7 @@ Looting::Looting(ZealService *zeal) {
     }
     return true;
   });
-  zeal->commands_hook->Add("/linkall", {}, "Link all items (opt param: say, gs, rs, gu, ooc, auc or compact)",
+  zeal->commands_hook->Add("/linkall", {}, "Link all items (opt param: say, gs, rs, gu, ooc, auc or compact; 2nd argument is optional appended text)",
                            [this](std::vector<std::string> &args) {
                              if (args.size() == 2 && args[1] == "compact") {
                                setting_compact_linkall.toggle();
@@ -634,8 +639,9 @@ Looting::Looting(ZealService *zeal) {
                                                       setting_compact_linkall.get() ? "on" : "off");
                                return true;
                              }
-                             const char *channel = (args.size() == 2) ? args[1].c_str() : nullptr;
-                             link_all(channel);
+                             const char *channel = (args.size() > 1) ? args[1].c_str() : nullptr;
+                             const char *optionalText = (args.size() > 2) ? args[2].c_str() : nullptr;
+                             link_all(channel, optionalText);
                              return true;
                            });
   zeal->commands_hook->Add("/lootlast", {}, "Set an item to loot last when self looting.",
