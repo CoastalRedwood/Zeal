@@ -1053,12 +1053,61 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
   std::string tag_text = split[1];
   for (char &c : tag_text)
     if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
+  
+  // Handle Unique tags
+  if (tag_text.size() && tag_text[0] == '!') {
+
+    std::string tag_text_stripped = tag_text.substr(1); 
+    std::string tag_text_modified = tag_text;
+
+    tag_text_modified[0] = '-'; // Removal tag
+    // Find nameplates where this tag is in use
+    for (const auto &entry : nameplate_info_map) {
+      const auto &tag_text_existing = entry.second.tag_text;
+      if (!entry.first || tag_text_existing.empty() || tag_text_existing.find(tag_text_stripped) == std::string::npos)
+        continue; // Skip namplate if tag wasn't found
+      std::string name_existing = entry.second.text;
+      std::string spawn_id_existing = std::to_string(entry.first->SpawnId);
+      Zeal::Game::print_debug(("Found text: " + tag_text_existing).c_str());
+      // Create removal message for current nameplate
+      std::string remove_message = std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, tag_text_modified, kDelimiter,
+                                                name_existing, kDelimiter, spawn_id_existing);
+      // Call this function again but with removal message
+      handle_tag_message(remove_message.c_str());
+    }
+    // Update tag so it will be added as normal
+    tag_text.erase(0, 1);
+  }
 
   int original_length = tag_text.size();
   bool append = tag_text.size() && tag_text[0] == '+';
   bool erase = !append && tag_text.size() && tag_text[0] == '-';
   if (append || erase) tag_text = tag_text.substr(1);
-  if (erase) it->second.tag_text = "";
+
+  // Remove tag if one was specified
+  if (erase && tag_text.size()) {
+    std::string existing_tag_text = it->second.tag_text;
+    if (existing_tag_text.back() == '\n') existing_tag_text.pop_back();
+
+    size_t pos = existing_tag_text.find(tag_text);
+    if (pos == std::string::npos) return false;  // Exit if tag didn't already exist
+    size_t tag_text_len = tag_text.length();
+
+    // Remove if trailing delimiter found
+    if (existing_tag_text.substr(pos + tag_text_len, strlen(kDelimiter)) == kDelimiter) {
+      existing_tag_text.erase(pos, tag_text_len + strlen(kDelimiter));
+    // Remove if preceeding delimiter found
+    } else if (pos >= strlen(kDelimiter) &&
+               existing_tag_text.substr(pos - strlen(kDelimiter), strlen(kDelimiter)) == kDelimiter) {
+      existing_tag_text.erase(pos - strlen(kDelimiter), tag_text_len + strlen(kDelimiter));
+    // Remove if only tag
+    } else {
+      existing_tag_text.clear();
+    }
+    tag_text = existing_tag_text;
+  }
+  // Erase if tag was not specified, or was last remaining
+  if (erase && !tag_text.size()) it->second.tag_text = "";
 
   // The tag arrow is either enabled explicitly with a specific color (which must be disabled explicitly)
   // or enabled by default on a NPC if there is any tag text (can suppress with ^-^).
