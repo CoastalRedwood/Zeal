@@ -1068,7 +1068,6 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
         continue; // Skip namplate if tag wasn't found
       std::string name_existing = entry.second.text;
       std::string spawn_id_existing = std::to_string(entry.first->SpawnId);
-      Zeal::Game::print_debug(("Found text: " + tag_text_existing).c_str());
       // Create removal message for current nameplate
       std::string remove_message = std::format("{0}{1}{2}{3}{4}{5}{6}", kZealTagHeader, kDelimiter, tag_text_modified, kDelimiter,
                                                 name_existing, kDelimiter, spawn_id_existing);
