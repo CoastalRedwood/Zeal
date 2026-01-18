@@ -1259,23 +1259,32 @@ bool NamePlate::handle_zeal_spam_filter(short &channel, std::string &msg) {
       channel != tag_channel && channel != tag_channel_echo)
     return false;
 
-  // In all of these channels, the contents of the message lie between '' quotes.
-  auto start_index = msg.find('\'');
+  // In all of these channels, the contents of the message lie between '' quotes for normal
+  //    or start with ": " for abbreviated.
+  const bool abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get();
+  const char* start_string = abbreviated_chat ? ": " : "'";
+  auto start_index = msg.find(start_string);
   auto end_index = msg.length() - 1;
-  if (start_index == std::string::npos || end_index < start_index + 10 || msg[end_index] != '\'') return false;
+  if (start_index == std::string::npos || end_index < start_index + 10
+    || (!abbreviated_chat && msg[end_index] != '\'')) return false;
+  start_index += strlen(start_string);  // Skip to message contents.
 
   // And do another very simple and quick initial check to bail out early.
-  if (msg[start_index + 1] != 'Z') return false;
+  if (msg[start_index] != 'Z') return false;
 
   // Then do a full check that it is a valid message.
-  std::string contents = msg.substr(start_index + 1, end_index - 1);
+  std::string contents = msg.substr(start_index, end_index - 1);
   if (!handle_tag_message(contents.c_str(), false)) return false;
 
   // Future option: Clean up the messages (strip/translate prefix, merge target name).
   if (setting_tag_suppress.get())
     msg = "";  // Clear the message to suppress it (dropped downstream).
-  else if (setting_tag_prettyprint.get())
-    msg = msg.substr(0, start_index + 1) + prettyprint_tag_message(contents) + "'";
+  else if (setting_tag_prettyprint.get()) {
+    msg.erase(start_index);
+    msg += prettyprint_tag_message(contents);
+    // Add a final quote at the end for normal (non-abbreviated) messages.
+    if (!abbreviated_chat) msg += "'";
+  }
 
   channel = CHANNEL_ZEAL_SPAM;
   return true;
