@@ -88,6 +88,8 @@ bool Melody::start(const std::vector<int> &new_songs, bool resume) {
   is_active = !songs.empty();
   retry_count = 0;
   casting_melody_spell_id = kInvalidSpellId;
+  retry_spell_id = kInvalidSpellId;
+  deferred_spell_id = kInvalidSpellId;
   use_item_index = -1;
   if (is_active) Zeal::Game::print_chat(USERCOLOR_SPELLS, "You begin playing a melody.");
   return true;
@@ -111,6 +113,8 @@ void Melody::end(bool do_print) {
     is_active = false;
     retry_count = 0;
     casting_melody_spell_id = kInvalidSpellId;
+    retry_spell_id = kInvalidSpellId;
+    deferred_spell_id = kInvalidSpellId;
     use_item_index = -1;
     if (do_print) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Your melody has ended.");
   }
@@ -137,12 +141,8 @@ void Melody::handle_stop_cast_callback(BYTE reason, WORD spell_id) {
   // is not allowed in the zone), so we use a retry_count to limit the spammy loop that is
   // difficult to click off with UI spell gems (/stopsong, /melody still work fine). The modulo
   // check skips the rewind so it advances to the next song but then allows that song to retry.
-  if (casting_melody_spell_id == spell_id && (++retry_count % RETRY_COUNT_REWIND_LIMIT)) {
-    current_index--;
-    if (current_index < 0) {  // Handle wraparound.
-      current_index = songs.size() - 1;
-    }
-  }
+  if (casting_melody_spell_id == spell_id && (++retry_count % RETRY_COUNT_REWIND_LIMIT))
+    retry_spell_id = casting_melody_spell_id;
   casting_melody_spell_id = kInvalidSpellId;
 }
 
@@ -222,7 +222,9 @@ void Melody::tick() {
   }
 
   // Either casting finished normally or the retry logic has already kicked in,
-  // so resetting this field prevents the song from repeating after this point.
+  // so resetting the casting and deferred spell ids prevents the song from repeating
+  // after this point.
+  if (casting_melody_spell_id == deferred_spell_id) deferred_spell_id = kInvalidSpellId;
   casting_melody_spell_id = kInvalidSpellId;
 
   // A call to CastSpell() sets both ActorInfo->CastingSpellId and ->CastingSpellGemNumber
@@ -258,11 +260,8 @@ void Melody::tick() {
     }
   }
 
-  // Cast the next song in the melody
-  current_index++;
-  if (current_index >= songs.size() || current_index < 0) current_index = 0;
-
-  int current_gem = songs[current_index];  // songs is 'guaranteed' to have a valid gem index from start().
+  int current_gem = get_next_gem_index();
+  if (current_gem < 0) return;  // Next song wasn't ready (possibly deferred), so skip and try again next tick.
   WORD current_gem_spell_id = char_info->MemorizedSpell[current_gem];
   if (current_gem_spell_id == kInvalidSpellId) return;  // simply skip empty gem slots (unexpected to occur)
 
@@ -288,6 +287,54 @@ void Melody::tick() {
   casting_melody_spell_id = current_gem_spell_id;
   char_info->cast(current_gem, current_gem_spell_id, 0, -1);
   start_of_cast_timestamp = current_timestamp;
+}
+
+// Returns true if the gem's recast timer is not active.
+bool Melody::is_gem_ready(int gem_index) {
+  bool invalid_index = gem_index < 0 || gem_index >= GAME_NUM_SPELL_GEMS;
+  auto self = Zeal::Game::get_self();
+  auto actor_info = self ? self->ActorInfo : nullptr;
+  auto char_info = Zeal::Game::get_char_info();
+  auto display = Zeal::Game::get_display();
+  if (invalid_index || !self || !actor_info || !char_info || !display) return true;  // Default to true.
+
+  int game_time = display->GameTimeMs;
+  int spell_id = char_info->MemorizedSpell[gem_index];
+  if (spell_id != kInvalidSpellId && actor_info->RecastTimeout[gem_index] > game_time) return false;
+
+  return true;
+}
+
+// Returns the gem index of the next song to cast (based on retries, deferred, index loop).
+int Melody::get_next_gem_index() {
+  auto char_info = Zeal::Game::get_char_info();
+
+  // First check if there is a valid song to retry.
+  // songs is 'guaranteed' to have a valid gem index from start().
+  if (char_info && retry_spell_id != kInvalidSpellId) {
+    int spell_id = retry_spell_id;
+    retry_spell_id = kInvalidSpellId;  // Reset so it only retries once.
+    for (auto gem_index : songs)
+      if (char_info->MemorizedSpell[gem_index] == spell_id) return gem_index;
+  }
+
+  // Then check if there is already a deferred song.
+  if (char_info && deferred_spell_id) {
+    for (auto gem_index : songs)
+      if (char_info->MemorizedSpell[gem_index] == deferred_spell_id && is_gem_ready(gem_index)) return gem_index;
+  }
+
+  // Finally if neither of those, advance to the next song.
+  current_index++;
+  if (current_index >= songs.size() || current_index < 0) current_index = 0;
+  int current_gem = songs[current_index];
+  if (is_gem_ready(current_gem)) return current_gem;
+
+  // The song wasn't ready so try to defer. Our defer queue supports only one song.
+  if (deferred_spell_id == kInvalidSpellId)
+    deferred_spell_id = char_info ? char_info->MemorizedSpell[current_gem] : kInvalidSpellId;
+
+  return -1;  // Signal the loop to try again next tick.
 }
 
 // The player state gets wiped on zoning, so pause melody during the transition time and
