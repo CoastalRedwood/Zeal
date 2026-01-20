@@ -451,9 +451,12 @@ static void append_item_focus_info(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::Game
 
   auto lines = Zeal::String::split_text(description, "^");
   for (auto &line : lines) {
-    if (!line.starts_with("  ")) continue;  // Hack way to skip everything but effects.
-    line = "&nbsp;&nbsp;" + line + stml_line_break;
-    wnd->DisplayText.Append(line.c_str());
+    // Hack way to filter for effects based on their lines having a starting space or two.
+    const char *prefix = line.starts_with("  ") ? "&nbsp;&nbsp;" : line.starts_with(" 1") ? "&nbsp;" : nullptr;
+    if (prefix) {
+      line = std::string(prefix) + line + stml_line_break;
+      wnd->DisplayText.Append(line.c_str());
+    }
   }
   return;
 }
@@ -515,6 +518,8 @@ static void append_item_effect_info(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::Gam
     add_value_at_level(line, spell, level);
     if (line.starts_with("  "))
       line = "&nbsp;&nbsp;" + line + stml_line_break;  // Indent effects for items.
+    else if (line.starts_with(" 1"))
+      line = "&nbsp;" + line + stml_line_break;  // Indent effects 10+ for items.
     else
       line += stml_line_break;
     wnd->DisplayText.Append(line.c_str());
