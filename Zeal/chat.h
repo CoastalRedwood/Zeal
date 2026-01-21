@@ -23,7 +23,7 @@ class Chat {
 
   void set_classes();
 
-  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel);
+  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel);
 
   void add_get_color_callback(std::function<unsigned int(int index)> callback) { get_color_callback = callback; };
 
@@ -65,6 +65,11 @@ class Chat {
   void handle_opt_chat(std::vector<std::string> &args);
 
   void DoPercentReplacements(std::string &str_data);
+
+  bool SendWhoQueryForConsentCheck(const std::string &name);
+
+  bool IsConsentWhoPending();
+
   Chat(class ZealService *pHookWrapper);
   ~Chat();
 
@@ -76,4 +81,6 @@ class Chat {
   std::vector<std::function<void(const char *data)>> rsay_callbacks;
   std::vector<std::function<bool(const char *data, int color_index)>> chat_callbacks;
   std::function<bool(int key, bool down, int modifier)> key_press_callback;
+  DWORD pending_consent_timeout_ms = 0;
+  std::string pending_consent_name;
 };

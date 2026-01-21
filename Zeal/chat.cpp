@@ -778,6 +778,7 @@ void Chat::DoPercentReplacements(std::string &str_data) {
   for (auto &fn : percent_replacements) fn(str_data);
 }
 
+// Returns a player name if the tell matches the expected /tc format.
 std::string GetConsentMeTellName(const std::string &data) {
   static const char consent_ending[] = " tells you, 'Consent me'";
   if (!data.ends_with(consent_ending)) return "";
@@ -786,27 +787,122 @@ std::string GetConsentMeTellName(const std::string &data) {
   std::string truncated = data.substr(0, data.length() - strlen(consent_ending));
   size_t last_space = truncated.find_last_of(" ");
   std::string name = (last_space == std::string::npos) ? truncated : truncated.substr(last_space + 1);
+  return name;
+}
 
-  // And then check if the name is a raid or group member to authorize the auto consent.
+// Checks if the character name is eligible to grant immediate consent permission.
+static bool CheckForImmediateConsentPermission(const std::string &name) {
+  // Most likely a raid so scan that first for a name match.
   Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
   if (raid_info->is_in_raid()) {
     for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
       const auto &member = raid_info->MemberList[i];
-      if (member.Name == name) return name;
+      if (member.Name == name) return true;
     }
   }
 
+  // Next might be a group member.
   const auto *group_info = Zeal::Game::GroupInfo;
   for (int i = 0; i < GAME_NUM_GROUP_MEMBERS; ++i) {
-    if (group_info->IsValidList[i] && group_info->Names[i] == name) return name;
+    if (group_info->IsValidList[i] && group_info->Names[i] == name) return true;
   }
-  return "";
+
+  // Check if players is in a guild to see if that is a possible permissions match.
+  const auto self = Zeal::Game::get_self();
+  if (!self || self->GuildId == -1) return false;  // Not in a guild so done.
+
+  // Do the quick local zone guild member check here in this immediate call.
+  if (ZealService::get_instance()->entity_manager) {
+    const auto entity = ZealService::get_instance()->entity_manager->Get(std::string(name));
+    if (self && entity) return (entity->GuildId && entity->GuildId == self->GuildId);
+  }
+
+  return false;
 }
 
-void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short channel) {
+// Send a who all query to check if the consent target is in the same guild.
+bool Chat::SendWhoQueryForConsentCheck(const std::string &name) {
+  // First confirm in a guild so worth performing the query.
+  const auto self = Zeal::Game::get_self();
+  if (!self || self->GuildId == -1) return false;  // Not in a guild so done.
+
+  if (ZealService::get_instance()->entity_manager) {
+    const auto entity = ZealService::get_instance()->entity_manager->Get(std::string(name));
+    if (entity) return false;  // The player is in zone and already failed, skip check.
+  }
+
+  pending_consent_name = "";
+  pending_consent_timeout_ms = 0;
+
+  auto display = Zeal::Game::get_display();
+  if (display) {
+    pending_consent_timeout_ms = display->GameTimeMs + 1000;  // Allow up to a 1 sec response.
+    pending_consent_name = name;
+
+    std::string query = std::string("all ") + name;
+    Zeal::Game::do_who(query.c_str());
+  }
+  return true;
+}
+
+// Returns true if there is an active pending who check request.
+bool Chat::IsConsentWhoPending() {
+  if (pending_consent_name.empty() || pending_consent_timeout_ms == 0) return false;
+
+  auto display = Zeal::Game::get_display();
+  if (display && display->GameTimeMs < pending_consent_timeout_ms) return true;
+
+  pending_consent_name = "";  // Timer expired so reset the pending status.
+  pending_consent_timeout_ms = 0;
+  return false;
+}
+
+// Scans who response (line by line) looking for a match of name and guild. If
+// requestor is not in the guild the request will just time out and not grant.
+static bool CheckForConsentWhoMatch(const std::string name, std::string &who, short &channel) {
+  // Check for unexpected errors / missing information and bail out if so.
+  auto self = Zeal::Game::get_self();
+  if (!self || self->GuildId == -1 || who.empty() || name.empty()) return false;
+  const std::string self_guild = Zeal::Game::get_player_guild_name(self->GuildId);
+  if (self_guild.empty()) return false;  // Need a self guild name to compare against.
+
+  // [60 Bard] Sherra (Wood Elf) <A Guild> ZONE: crushbone
+  // Regex matches [level_class] name (race) <guild> for name and guild.
+  static const std::regex pattern(R"(\[.*?\]\s+(.*?)\s+\(.*?\)\s+(?:<|&LT;)(.*?)(?:>|&GT;))");
+  std::smatch matches;
+  if (!std::regex_search(who, matches, pattern) || matches[1] != name) {
+    who = "";  // Snuff the message.
+    return false;
+  }
+
+  // It's a name match so return success if in the same guild and snuff the message or
+  // modify the output text to inform them it failed.
+  bool guild_match = (matches[2] == self_guild);
+  channel = CHATCOLOR_DEFAULT;
+  who = guild_match ? "" : "Guild permissions check failed. Use manual /rc if desired.";
+  return guild_match;
+}
+
+void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel) {
   if (channel == USERCOLOR_TELL && EnableAutoConsent.get()) {
     std::string name = GetConsentMeTellName(msg);
-    if (!name.empty()) Zeal::Game::do_consent(name.c_str());
+    if (!name.empty()) {
+      if (CheckForImmediateConsentPermission(name)) {
+        Zeal::Game::do_consent(name.c_str());
+        channel = CHATCOLOR_DEFAULT;
+        msg = name + " sent a tell that triggered Zeal auto-consent.";
+      } else if (SendWhoQueryForConsentCheck(name)) {
+        channel = CHATCOLOR_DEFAULT;
+        msg = name + " sent a tell that triggered an out of zone Zeal auto-consent permissions check.";
+      }
+    }
+  }
+
+  if (channel == USERCOLOR_WHO && EnableAutoConsent.get() && IsConsentWhoPending()) {
+    // Note: The call will modify the msg (suppress or update) and channel based on matching.
+    if (CheckForConsentWhoMatch(pending_consent_name, msg, channel)) {
+      Zeal::Game::do_consent(pending_consent_name.c_str());
+    }
   }
 
   if (UseClassChatColors.get() && !msg.empty()) {
@@ -938,8 +1034,8 @@ Chat::Chat(ZealService *zeal) {
   zeal->commands_hook->Add("/zealinput", {"/zinput"}, "Toggles zeal input which gives you a more modern input feel.",
                            [this](std::vector<std::string> &args) {
                              UseZealInput.toggle();
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
+                             return true;  // return true to stop the game from processing any further on this
+                                           // command, false if you want to just add features to an existing cmd
                            });
   zeal->commands_hook->Add("/classchatcolors", {"/clc"},
                            "Toggles class-colorization of names in chat. Uses colors set in raid window options.",
@@ -983,8 +1079,8 @@ Chat::Chat(ZealService *zeal) {
                                Zeal::Game::log(result);
                                return true;
                              }
-                             return false;  // return true to stop the game from processing any further on this command,
-                                            // false if you want to just add features to an existing cmd
+                             return false;  // return true to stop the game from processing any further on this
+                                            // command, false if you want to just add features to an existing cmd
                            });
   zeal->commands_hook->Add("/log", {}, "Toggles log on/off or adds something directly to your log",
                            [this, zeal](std::vector<std::string> &args) {

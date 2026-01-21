@@ -27,6 +27,8 @@
 #define GAMESTATE_LOGGINGIN 253
 #define GAMESTATE_UNLOADING 255  // Set to this state to exit ProcessGame() loop.
 
+#define CHATCOLOR_DEFAULT 0  // Defined in namespace Chat of common/eq_constants.h.
+#define CHATCOLOR_WHITE 0
 #define USERCOLOR_SAY 0xFF + 1                 //  1  - Say
 #define USERCOLOR_TELL 0xFF + 2                //  2  - Tell
 #define USERCOLOR_GROUP 0xFF + 3               //  3  - Group

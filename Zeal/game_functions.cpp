@@ -500,6 +500,15 @@ bool do_attack(uint8_t type, uint8_t p2) {
                                                                                                get_target());
 }
 
+void do_who(const char *query) {
+  if (get_self() && query) {
+    char buffer[512];  // Probably unnecessary but protect the input buffer from possible modification by the call.
+    strcpy_s(buffer, sizeof(buffer), query);
+    reinterpret_cast<void(__cdecl *)(Zeal::GameStructures::Entity * player, char *arguments)>(0x004f491e)(get_self(),
+                                                                                                          buffer);
+  }
+}
+
 void do_raidaccept() {
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3be5)(
