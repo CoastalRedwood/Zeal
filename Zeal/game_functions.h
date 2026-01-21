@@ -165,6 +165,7 @@ int get_game_main();
 void do_autoattack(bool enabled);
 bool CanIHitTarget(float dist);
 bool do_attack(uint8_t type, uint8_t p2);
+void do_who(const char *query);
 void do_raidaccept();
 void do_raiddecline();
 void do_inspect(Zeal::GameStructures::Entity *player);

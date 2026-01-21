@@ -87,7 +87,7 @@ ___
   - **Description:** Drops whatever is on your cursor into your bank. [requires you to be at a banker] (not fully functional atm)
 
 - `/autoconsent`
-  - **Description:** Toggles the enable of auto-consenting from a /tc sent by a group or raid member.
+  - **Description:** Toggles the enable of auto-consenting from a /tc sent by a guild, group, or raid member.
 
 - `/autoaaswitch`
   - **Arguments:** `off`, `<threshold_low> <threshold_high>` (low switches to 0% aa and high to 100% aa)
