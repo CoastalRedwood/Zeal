@@ -68,9 +68,35 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
-  if (args.size() == 3 && args[1] == "font") {
-    setting_bitmap_font_filename.set(args[2]);
+  if (args.size() > 1 && args[1] == "font") {
+    if (args.size() == 3) {
+      setting_bitmap_font_filename.set(args[2]);
+    } else {
+      Zeal::Game::print_chat("Usage: /raidbars font <fontname> where fontname is one of:");
+      const auto fonts = BitmapFontBase::get_available_fonts();
+      for (const auto &font : fonts) Zeal::Game::print_chat(font.c_str());
+    }
     Zeal::Game::print_chat("Font filename set to %s", setting_bitmap_font_filename.get().c_str());
+    return;
+  }
+
+  if (args.size() > 1 && args[1] == "barwidth") {
+    int width = 0;
+    if (args.size() == 3 && Zeal::String::tryParse(args[2], &width))
+      setting_bar_width.set(width);
+    else
+      Zeal::Game::print_chat("Usage: '/raidbars barwidth value' where 0 = use auto-scale");
+    Zeal::Game::print_chat("Bar width set to %d", setting_bar_width.get());
+    return;
+  }
+
+  if (args.size() > 1 && args[1] == "barheight") {
+    int height = 0;
+    if (args.size() == 3 && Zeal::String::tryParse(args[2], &height))
+      setting_bar_height.set(height);
+    else
+      Zeal::Game::print_chat("Usage: '/raidbars barheight value' where 0 = use auto-scale");
+    Zeal::Game::print_chat("Bar height set to %d", setting_bar_height.get());
     return;
   }
 
@@ -133,6 +159,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /raidbars <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars font font_filename");
   Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right=0> <bottom=0>]");
+  Zeal::Game::print_chat("Usage: /raidbars [barheight | barwidth] <value> (0 = autoscale to font)");
   Zeal::Game::print_chat("Usage: /raidbars <showall | clickable> <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars always <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
@@ -162,11 +189,22 @@ void RaidBars::LoadBitmapFont() {
   bitmap_font->set_full_screen_viewport(true);  // Allow rendering list outside reduced viewport.
 
   std::string text("Fakenametotest");  // 14 character as maximum name length with average chars.
+  auto text_only_size = bitmap_font->measure_string(text.c_str());  // Doesn't currently support multi-lines.
+
+  float bar_width = static_cast<float>(setting_bar_width.get());
+  if (bar_width == 0) bar_width = std::roundf(text_only_size.x * 0.9);
+  bar_width = max(10.f, min(150.f, bar_width));
+  bitmap_font->set_stats_bar_width(bar_width);
+
+  float bar_height = static_cast<float>(setting_bar_height.get());
+  if (bar_height == 0) bar_height = std::roundf(text_only_size.y * 0.7);
+  bar_height = max(4.f, min(50.f, bar_height));
+  bitmap_font->set_stats_bar_height(bar_height);
+
   const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
   std::string full_text = text + healthbar;
-  auto size = bitmap_font->measure_string(text.c_str());  // Doesn't currently support multi-lines.
-  grid_width = size.x + 0.25f;
-  grid_height = bitmap_font->get_text_height(full_text) + 0.25f;
+  grid_width = max(text_only_size.x + 0.25f, bar_width + 5.f);
+  grid_height = max(bitmap_font->get_text_height(full_text) + 0.25f, bar_height + 2.f);
 }
 
 // Load the class priority from settings (based on defaults).

@@ -27,6 +27,8 @@ class RaidBars {
   ZealSetting<int> setting_position_top = {5, "RaidBars", "Top", false};
   ZealSetting<int> setting_position_right = {0, "RaidBars", "Right", false};
   ZealSetting<int> setting_position_bottom = {0, "RaidBars", "Bottom", false};
+  ZealSetting<int> setting_bar_width = {0, "RaidBars", "BarWidth", false, [this](int) { Clean(); }};
+  ZealSetting<int> setting_bar_height = {0, "RaidBars", "BarHeight", false, [this](int) { Clean(); }};
   ZealSetting<bool> setting_show_all = {false, "RaidBars", "ShowAll", false};
   ZealSetting<std::string> setting_class_priority = {std::string(), "RaidBars", "ClassPriority", false,
                                                      [this](const std::string &) { SyncClassPriority(); }};

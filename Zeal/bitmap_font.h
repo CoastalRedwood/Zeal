@@ -64,6 +64,10 @@ class BitmapFontBase {
 
   void set_full_screen_viewport(bool enable) { full_screen_viewport = enable; }
 
+  void set_stats_bar_height(float height) { stats_bar_height = height; }
+
+  void set_stats_bar_width(float width) { stats_bar_width = width; }
+
   // Set these stats bar values before calling queue_string() which contains their glyphs.
   void set_hp_percent(int value) { hp_percent = value; }
 
@@ -134,6 +138,8 @@ class BitmapFontBase {
   bool outlined = false;
   bool align_bottom = false;          // Applies only when text is queued with center flag.
   bool full_screen_viewport = false;  // If true, overrides viewport to full screen resolution.
+  float stats_bar_width = kStatsBarWidth;
+  float stats_bar_height = kStatsBarHeight;
   char hp_percent = 0;
   char mana_percent = 0;
   char stamina_percent = 0;
