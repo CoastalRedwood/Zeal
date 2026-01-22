@@ -667,7 +667,7 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
   if (entry.glyph->character == kStatsBarBackground) {
     width = stats_bar_width;
     height = stats_bar_height;
-    color = D3DCOLOR_ARGB(128, 128, 128, 128);
+    color = D3DCOLOR_XRGB(144, 144, 144);
   } else if (entry.glyph->character == kHealthBarValue) {
     width = entry.hp_percent * ((1.f / 100.f) * stats_bar_width);  // Hack resize for default BitmapFont usage.
     height = stats_bar_height;
