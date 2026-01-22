@@ -143,7 +143,7 @@ class NamePlate {
   bool handle_zeal_spam_filter(short &channel, std::string &msg);
   void enable_tags(bool enable);
   void clear_tags();
-  bool handle_tag_message(const char *message, bool apply = true);
+  bool handle_tag_message(const char *message, bool apply = true, bool allow_missing_spawn = false);
   void handle_tag_set_channel_message(const std::string &message);
   void broadcast_tag_set_channel(const std::string &channel);
   bool join_tag_channel(const std::string &channel, bool apply = true);
