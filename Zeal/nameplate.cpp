@@ -1015,7 +1015,7 @@ static D3DCOLOR GetTagArrowColor(char color_key) {
 
 // Parses "raw" (w/out any channel prefix like "Bob tells the raid, '") tag message to
 // confirm it is in a valid format and if apply is true updates the nameplate info map.
-bool NamePlate::handle_tag_message(const char *message, bool apply) {
+bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_missing_spawn) {
   if (!setting_tag_enable.get() || !setting_zeal_fonts.get()) return true;  // Quickly bail out.
 
   static const int header_length = strlen(kZealTagHeader);
@@ -1043,9 +1043,9 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
   int spawn_id = 0;
   if (!Zeal::String::tryParse(split[3], &spawn_id, true)) return false;
   auto entity = Zeal::Game::get_entity_by_id(spawn_id);
-  if (!entity) return false;
+  if (!entity) return allow_missing_spawn;  // Used for out of zone zeal spam filtering.
   auto it = nameplate_info_map.find(entity);
-  if (it == nameplate_info_map.end()) return false;
+  if (it == nameplate_info_map.end()) return allow_missing_spawn;
 
   if (!apply) return true;
 
@@ -1108,7 +1108,7 @@ bool NamePlate::handle_tag_message(const char *message, bool apply) {
 }
 
 // The chat channel callback requires an additional layer of filtering beyond the single-channel only
-// /rsay and /gsay channels that ccan directly call handle_tag_message(). This callback also supports
+// /rsay and /gsay channels that can directly call handle_tag_message(). This callback also supports
 // immediate suppression of the message.
 bool NamePlate::check_for_tag_channel_message(const char *message, int color_index) {
   if (!message || !message[0] || !setting_tag_enable.get()) return false;
@@ -1262,19 +1262,19 @@ bool NamePlate::handle_zeal_spam_filter(short &channel, std::string &msg) {
   // In all of these channels, the contents of the message lie between '' quotes for normal
   //    or start with ": " for abbreviated.
   const bool abbreviated_chat = ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get();
-  const char* start_string = abbreviated_chat ? ": " : "'";
+  const char *start_string = abbreviated_chat ? ": " : "'";
   auto start_index = msg.find(start_string);
   auto end_index = msg.length() - 1;
-  if (start_index == std::string::npos || end_index < start_index + 10
-    || (!abbreviated_chat && msg[end_index] != '\'')) return false;
+  if (start_index == std::string::npos || end_index < start_index + 10 || (!abbreviated_chat && msg[end_index] != '\''))
+    return false;
   start_index += strlen(start_string);  // Skip to message contents.
 
   // And do another very simple and quick initial check to bail out early.
   if (msg[start_index] != 'Z') return false;
 
-  // Then do a full check that it is a valid message.
+  // Then do a full check that it is a valid message (but allow missing spawn for out of zone).
   std::string contents = msg.substr(start_index, end_index - 1);
-  if (!handle_tag_message(contents.c_str(), false)) return false;
+  if (!handle_tag_message(contents.c_str(), false, true)) return false;
 
   // Future option: Clean up the messages (strip/translate prefix, merge target name).
   if (setting_tag_suppress.get())
