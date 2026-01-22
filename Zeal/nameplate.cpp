@@ -1013,6 +1013,30 @@ static D3DCOLOR GetTagArrowColor(char color_key) {
   return TagArrowColor::Off;
 };
 
+static void RemoveTagTextField(const std::string &field_text, std::string &tag_text, DWORD &tag_color) {
+  // Do an initial quick check if the text is even in the original tag_text.
+  if (field_text.empty() || tag_text.empty() || tag_text.find(field_text) == std::string::npos) return;
+
+  // It exists, so now check if a unique matching field and then remove it.
+  auto split = Zeal::String::split_text(tag_text, kDelimiter);
+  if (!split.empty() && !split.back().empty() && split.back().back() == '\n')
+    split.back().erase(split.back().length() - 1);
+  auto original_size = split.size();
+  std::erase_if(split, [&](const std::string &a) { return a == field_text; });
+  if (split.size() == original_size) return;  // No exact match so quick exit.
+
+  // Handle the case where it went blank (all tag_text removed).
+  if (split.size() == 0) {
+    tag_text = "";
+    if (tag_color == TagArrowColor::Nameplate) tag_color = TagArrowColor::Off;
+    return;
+  }
+
+  tag_text = split[0];
+  for (auto i = 1; i < split.size(); ++i) tag_text += kDelimiter + split[i];
+  tag_text += "\n";
+}
+
 // Parses "raw" (w/out any channel prefix like "Bob tells the raid, '") tag message to
 // confirm it is in a valid format and if apply is true updates the nameplate info map.
 bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_missing_spawn) {
@@ -1055,9 +1079,20 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
     if (!std::isprint(static_cast<unsigned char>(c))) c = '?';
 
   int original_length = tag_text.size();
-  bool append = tag_text.size() && tag_text[0] == '+';
-  bool erase = !append && tag_text.size() && tag_text[0] == '-';
+  if (!original_length) return true;  // Shouldn't happen but just in case bail out.
+
+  bool flush_others_append = tag_text[0] == '@';
+  bool flush_others_no_append = tag_text[0] == '!';
+  bool append = tag_text[0] == '+' || flush_others_append;
+  bool erase = tag_text[0] == '-' || flush_others_no_append;
   if (append || erase) tag_text = tag_text.substr(1);
+
+  // Erase is a little funky. An erase prefix with additional text but no ^ does a targeted
+  // erase of just that string otherwise it wipes all text.
+  if (erase && !flush_others_no_append && tag_text.size() && tag_text.rfind('^') == std::string::npos) {
+    RemoveTagTextField(tag_text, it->second.tag_text, it->second.tag_color);
+    return true;
+  }
   if (erase) it->second.tag_text = "";
 
   // The tag arrow is either enabled explicitly with a specific color (which must be disabled explicitly)
@@ -1073,14 +1108,17 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
 
   // Support skipping any unrecognized future prefix.
   if (tag_text.size() != original_length) {
-    auto prefix_end_index = tag_text.find('^');  // Legacy end of prefix format.
+    auto prefix_end_index = tag_text.rfind('^');  // Legacy end of prefix format.
     if (prefix_end_index != std::string::npos)
       tag_text = (prefix_end_index == tag_text.length()) ? "" : tag_text.substr(prefix_end_index + 1);
   }
 
-  // If empty now it was a prefix only command which were handled above (append is a no-op).
+  // If empty now it was a prefix only command which were handled above (append  / flush are no-ops).
   // We also only allow text tag content on NPCs's.
   if (tag_text.empty() || entity->Type != Zeal::GameEnums::NPC) return true;
+
+  if (flush_others_append || flush_others_no_append)
+    for (auto &entry : nameplate_info_map) RemoveTagTextField(tag_text, entry.second.tag_text, entry.second.tag_color);
 
   // Check if the tag_text should be appended to existing text. Preserve atomic fields.
   if (append && !it->second.tag_text.empty()) {
