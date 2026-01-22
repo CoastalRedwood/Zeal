@@ -227,11 +227,11 @@ BitmapFontBase::BitmapFontBase(IDirect3DDevice8 &device, std::span<const uint8_t
                                       .y_offset = 1,
                                       .x_advance = static_cast<float>(sub_rect.left - sub_rect.right)};
   glyph_table[kHealthBarValue] = {
-      .character = kHealthBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = kStatsBarWidth};
+      .character = kHealthBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
   glyph_table[kManaBarValue] = {
-      .character = kManaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = kStatsBarWidth};
+      .character = kManaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
   glyph_table[kStaminaBarValue] = {
-      .character = kStaminaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = kStatsBarWidth};
+      .character = kStaminaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
 }
 
 // Ensure all resources are released in the destructor.
@@ -448,8 +448,8 @@ Vec3 BitmapFontBase::measure_string(const char *text) const {
     if (glyph->character == kHealthBarValue || glyph->character == kManaBarValue ||
         glyph->character == kStaminaBarValue) {
       w = glyph->x_advance;
-      h = kStatsBarHeight;
-      line_height = kStatsBarHeight + 1;
+      h = stats_bar_height;
+      line_height = stats_bar_height + 1;
     }
     result = Vec3(std::max(result.x, x + w), std::max(result.y, y + h), line_height);
   });
@@ -665,12 +665,12 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
   float height = static_cast<float>(entry.glyph->sub_rect.bottom - entry.glyph->sub_rect.top);
   auto color = entry.color;
   if (entry.glyph->character == kStatsBarBackground) {
-    width = kStatsBarWidth / 2;  // Hack resize for default BitmapFont usage.
-    height = kStatsBarHeight;
+    width = stats_bar_width;
+    height = stats_bar_height;
     color = D3DCOLOR_ARGB(128, 128, 128, 128);
   } else if (entry.glyph->character == kHealthBarValue) {
-    width = entry.hp_percent * ((1.f / 100.f) * (kStatsBarWidth / 2));  // Hack resize for default BitmapFont usage.
-    height = kStatsBarHeight;
+    width = entry.hp_percent * ((1.f / 100.f) * stats_bar_width);  // Hack resize for default BitmapFont usage.
+    height = stats_bar_height;
     color = (entry.hp_percent > 75)   ? D3DCOLOR_XRGB(0, 192, 0)    // Green
             : (entry.hp_percent > 50) ? D3DCOLOR_XRGB(192, 192, 0)  // Yellow
             : (entry.hp_percent > 25) ? D3DCOLOR_XRGB(192, 96, 40)  // Orange
@@ -868,13 +868,13 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
   auto color = entry.color;
   if (entry.glyph->character == kStatsBarBackground) {
     z = -0.25f;  // Slightly in front of normal text.
-    width = kStatsBarWidth;
-    height = kStatsBarHeight;
+    width = stats_bar_width;
+    height = stats_bar_height;
     color = D3DCOLOR_ARGB(128, 128, 128, 128);
   } else if (entry.glyph->character == kHealthBarValue) {
     z = -0.5f;  // Slightly more in front.
-    width = hp_percent * ((1.f / 100.f) * kStatsBarWidth);
-    height = kStatsBarHeight;
+    width = hp_percent * ((1.f / 100.f) * stats_bar_width);
+    height = stats_bar_height;
     color = (hp_percent > 75) ? D3DCOLOR_XRGB(0, 192, 0) :  // Green
                 (hp_percent > 50) ? D3DCOLOR_XRGB(192, 192, 0)
                                   :  // Yellow
@@ -883,13 +883,13 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
                 D3DCOLOR_XRGB(192, 0, 0);  // Red
   } else if (entry.glyph->character == kManaBarValue) {
     z = -0.5f;  // Slightly more in front.
-    width = mana_percent * ((1.f / 100.f) * kStatsBarWidth);
-    height = kStatsBarHeight;
+    width = mana_percent * ((1.f / 100.f) * stats_bar_width);
+    height = stats_bar_height;
     color = D3DCOLOR_XRGB(0, 0x40, 0xf0);  // Use default CON_BLUE color.
   } else if (entry.glyph->character == kStaminaBarValue) {
     z = -0.5f;  // Slightly more in front.
-    width = stamina_percent * ((1.f / 100.f) * kStatsBarWidth);
-    height = kStatsBarHeight;
+    width = stamina_percent * ((1.f / 100.f) * stats_bar_width);
+    height = stats_bar_height;
     color = D3DCOLOR_XRGB(240, 190, 11);  // Yellow / honey.
   }
 
