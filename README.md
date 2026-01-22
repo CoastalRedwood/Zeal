@@ -571,7 +571,11 @@ Manual editing of the ini file is required to copy from old section to the new s
   - A <tag_text> == `clear` will clear the tags of everyone receiving it
   - The <tag_text> message supports special prefixes:
     - `+` to append tag text (must be first character, does not impact explicit shape)
-    - `-` to erase only existing text (must be first character, does not impact explicit shape)
+    - `-` to erase existing tag text (must be first character, does not impact explicit shape)
+      - Note: Using `-` by itself erases all existing tag text, using `-phrase` removes an existing
+        exact text field match with `phrase`, `-^?^phrase` replaces all existing text with `phrase`
+    - `@` alternative to `+` that also removes the <tag_text> from all other nameplates
+    - `!` replaces existing tag text with <tag_text> and removes it from all other nameplates
     - `^?^`: to set an explicit shape over the nametag where `?` can be one of (case-insensitive):
       - Colored arrow: (`R` = red, `O` = orange, `Y` = yellow, `G` = green, `B` = blue, `W` = white)
       - Green pet paw symbol: `P`
