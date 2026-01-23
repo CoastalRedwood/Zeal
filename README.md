@@ -293,16 +293,18 @@ ___
           `./<character_name>_protected.ini` file.
 
 - `/raidbars`
-  - **Arguments:** `on`, `off`, `font <filename>`, `position <top> <left> [<right>=0 <bottom>=0]`, `showall <on | off>`,
+  - **Arguments:** `on`, `off`, `font <filename>`, `position <left> <top> [<right>=0 <bottom>=0]`, `showall <on | off>`,
                    `clickable <on | off>`, `priority <classes list>`, `always <classes list>`,
                    `barwidth <value> (0 = autoscale)`, `barheight <value> (0 = autoscale)`
-  - **Example:** `/raidbars position 5 10 0 0` Constrains bars to a box from (5,10) to right and bottom screen edge.
-  - **Example:** `/raidbars position 5 10 150 0` Constrains bars to a box from (5,10) to (150, bottom of screen).
+  - **Example:** `/raidbars position 5 10` Constrains bars to a box from (x=5,y=10) to right and bottom screen edge.
+  - **Example:** `/raidbars position 5 10 0 250` Constrains bars to a box from (x=5,y=10) to (right screen edge, y=250).
   - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
   - **Example:** `/raidbars always WAR PAL SHD ENC` These classes are always shown (even w/out showall on)
   - **Example:** `/raidbars priority WAR WIZ ENC PAL SHD` Shows those classes first then remaining classes
   - **Description:** Supports enabling a class-prioritized list of raid members with health bars. The bars are 
-          drawn into a rectangular screen area specified by the position command (viewport compatible).
+          drawn into a rectangular screen area specified by the position command (viewport compatible) where
+          the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom.
+          Setting a coordinate of 0 for right or bottom extends to the corresponding screen edge.
 
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
