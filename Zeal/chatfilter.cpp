@@ -466,7 +466,7 @@ void chatfilter::callback_hit(Zeal::GameStructures::Entity *source, Zeal::GameSt
     if ((source->Position.Dist2D(Zeal::Game::get_self()->Position) < 500 ||
          target->Position.Dist2D(Zeal::Game::get_self()->Position) < 500) &&
         std::abs(source->Position.z - Zeal::Game::get_self()->Position.z) < 20) {
-      short channel = is_ds_damage_to_non_pet_npcs ? CHANNEL_OTHER_DAMAGE_SHIELD : USERCOLOR_NON_MELEE;
+      short channel = is_ds_damage_to_non_pet_npcs ? CHANNEL_OTHER_DAMAGE_SHIELD : USERCOLOR_OTHERS_SPELLS;
       Zeal::Game::print_chat(channel, "%s hit %s for %i points of non-melee damage.",
                              Zeal::Game::strip_name(source->Name), Zeal::Game::strip_name(target->Name), damage);
     }
