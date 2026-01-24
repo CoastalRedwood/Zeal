@@ -530,6 +530,16 @@ Manual editing of the ini file is required to copy from old section to the new s
      to populate a new cycle list (tab or shift-tab) which is printed to chat
     - Any key besides tab or shift will clear the search cycle list
 
+## Chat filtering
+- Adds additional chat filtering options under the Zeal submenu that includes things like:
+  - Random, loot, money, Pet chat & damage, Melee specials, Other damage shield, Zeal Spam
+- Supports reporting damage taken by NPCs from damage shields and spell damage from other
+  players if the 'Others non-melee' option is enabled
+  - Spell damage by others is routed to the Spells->Others channel
+  - Damage shield is routed to the Zeal->Other Damage Shield channel
+- Note that self generated spell damage goes to Spells->Non Melee Hits for direct damage
+  and to Spells->Worn Off for damage over time
+
 ## Right click to equip item
 - Enabled in Zeal general options
 - Must be in your bags.
