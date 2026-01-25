@@ -853,6 +853,9 @@ void ui_options::InitNameplate() {
   ui->AddCheckboxCallback(wnd, "Zeal_TagDefaultArrow", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->nameplate->setting_tag_default_arrow.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_TagDisableTaggedColor", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->nameplate->setting_tag_disable_tagged_color.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_TagAlternateSymbols", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->nameplate->setting_tag_alternate_symbols.set(wnd->Checked);
   });
@@ -937,7 +940,8 @@ void ui_options::UpdateOptionsGeneral() {
       fps_limit_selection = 0;
       break;
   }
-  ui->SetChecked("Zeal_AbbreviatedChat", ZealService::get_instance()->ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get());
+  ui->SetChecked("Zeal_AbbreviatedChat",
+                 ZealService::get_instance()->ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get());
   ui->SetChecked("Zeal_ClassChatColors", ZealService::get_instance()->chat_hook->UseClassChatColors.get());
   ui->SetComboValue("Zeal_FPS_Combobox", fps_limit_selection);
   ui->SetComboValue("Zeal_LockToggleBag_Combobox",
@@ -1118,6 +1122,8 @@ void ui_options::UpdateOptionsNameplate() {
   ui->SetChecked("Zeal_TagSuppress", ZealService::get_instance()->nameplate->setting_tag_suppress.get());
   ui->SetChecked("Zeal_TagPrettyPrint", ZealService::get_instance()->nameplate->setting_tag_prettyprint.get());
   ui->SetChecked("Zeal_TagDefaultArrow", ZealService::get_instance()->nameplate->setting_tag_default_arrow.get());
+  ui->SetChecked("Zeal_TagDisableTaggedColor",
+                 ZealService::get_instance()->nameplate->setting_tag_disable_tagged_color.get());
   ui->SetChecked("Zeal_TagAlternateSymbols",
                  ZealService::get_instance()->nameplate->setting_tag_alternate_symbols.get());
 

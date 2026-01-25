@@ -50,6 +50,7 @@ class NamePlate {
 
   // Tag settings.
   ZealSetting<bool> setting_tag_enable = {false, "Zeal", "NameplateTagEnable", false};
+  ZealSetting<bool> setting_tag_disable_tagged_color = {false, "Zeal", "NameplateTagDisableColor", false};
   ZealSetting<bool> setting_tag_tooltip = {false, "Zeal", "NameplateTagToolTip", false};
   ZealSetting<bool> setting_tag_tooltip_align = {false, "Zeal", "NameplateTagToolTipAlign", false};
   ZealSetting<bool> setting_tag_filter = {false, "Zeal", "NameplateTagFilter", false};
