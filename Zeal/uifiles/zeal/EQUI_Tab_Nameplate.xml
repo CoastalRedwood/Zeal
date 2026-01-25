@@ -933,12 +933,43 @@
     </ButtonDrawTemplate>
   </Button>
 
+  <Button item="Zeal_TagDisableTaggedColor">
+    <ScreenID>Zeal_TagDisableTaggedColor</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>360</X>
+      <Y>178</Y>
+    </Location>
+    <Size>
+      <CX>150</CX>
+      <CY>20</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Nameplates and default arrows are not set to Tagged color.</TooltipReference>
+    <Text>Disable Tagged color</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
   <Button item="Zeal_TagAlternateSymbols">
     <ScreenID>Zeal_TagAlternateSymbols</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>360</X>
-      <Y>178</Y>
+      <Y>200</Y>
     </Location>
     <Size>
       <CX>150</CX>
@@ -1017,6 +1048,7 @@
     <Pieces>Zeal_TagSuppress</Pieces>
     <Pieces>Zeal_TagPrettyPrint</Pieces>
     <Pieces>Zeal_TagDefaultArrow</Pieces>
+    <Pieces>Zeal_TagDisableTaggedColor</Pieces>
     <Pieces>Zeal_TagAlternateSymbols</Pieces>
 
     <Location>

@@ -560,7 +560,8 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
   bool is_corpse = (entity->Type >= Zeal::GameEnums::NPCCorpse);
   auto it = zeal_fonts ? nameplate_info_map.find(entity) : nameplate_info_map.end();
   if (!is_target && !is_corpse && it != nameplate_info_map.end() && !it->second.tag_text.empty() &&
-      (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate))
+      (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate) &&
+      !setting_tag_disable_tagged_color.get())
     color_index = ColorIndex::Tagged;
 
   auto color = D3DCOLOR_XRGB(128, 255, 255);  // Approximately the default nameplate color.
@@ -1139,7 +1140,8 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
   it->second.tag_text = tag_text;
 
   // Update nameplate color immediately (otherwise there is typically a lag).
-  if (entity != Zeal::Game::get_target() && ZealService::get_instance()->ui && get_color_callback)
+  if (entity != Zeal::Game::get_target() && !setting_tag_disable_tagged_color.get() &&
+      ZealService::get_instance()->ui && get_color_callback)
     it->second.color = get_color_callback(static_cast<int>(ColorIndex::Tagged));
 
   return true;
