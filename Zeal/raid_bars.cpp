@@ -68,6 +68,24 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
+  if (args.size() == 2 && args[1] == "toggle") {
+    setting_enabled.toggle();
+    Zeal::Game::print_chat("Raidbars are %s", setting_enabled.get() ? "on" : "off");
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "groups") {
+    if (args.size() == 3 && (args[2] == "on" || args[2] == "off"))
+      setting_group_sort.set(args[2] == "on");
+    else if (args.size() == 3 && args[2] == "toggle")
+      setting_group_sort.toggle();
+    else if (args.size() != 2)
+      Zeal::Game::print_chat("Usage: /raidbars groups <on | off | toggle>");
+
+    Zeal::Game::print_chat("Raidbars sort by groups is set to %s", setting_group_sort.get() ? "on" : "off");
+    return;
+  }
+
   if (args.size() > 1 && args[1] == "font") {
     if (args.size() == 3) {
       setting_bitmap_font_filename.set(args[2]);
@@ -131,7 +149,13 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   }
 
   if (args.size() >= 2 && args[1] == "showall") {
-    if (args.size() == 3 && (args[2] == "on" || args[2] == "off")) setting_show_all.set(args[2] == "on");
+    if (args.size() == 3 && (args[2] == "on" || args[2] == "off"))
+      setting_show_all.set(args[2] == "on");
+    else if (args.size() == 3 && args[2] == "toggle")
+      setting_show_all.toggle();
+    else if (args.size() != 2)
+      Zeal::Game::print_chat("Usage: /raidbars showall <on | off | toggle>");
+
     Zeal::Game::print_chat("Raidbars showall is set to %s", setting_show_all.get() ? "on" : "off");
     return;
   }
@@ -142,27 +166,60 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
-  if (args.size() >= 2 && (args[1] == "priority" || args[1] == "always")) {
+  if (args.size() >= 2 && args[1] == "background") {
+    int alpha = 0;
+    if (args.size() == 3 && Zeal::String::tryParse(args[2], &alpha, true) && alpha >= 0 && alpha <= 100) {
+      setting_background_alpha.set(alpha);
+    } else if (args.size() != 2) {
+      Zeal::Game::print_chat("Usage: /raidbars background <alpha> (0 to 100 = invisible to solid black)");
+    }
+    Zeal::Game::print_chat("Raidbars background alpha is set to %d%%", setting_background_alpha.get());
+    return;
+  }
+
+  if (args.size() >= 2 && args[1] == "threshold") {
+    int threshold = 0;
+    if (args.size() == 3 && Zeal::String::tryParse(args[2], &threshold, true) && threshold >= 0 && threshold <= 100) {
+      setting_show_threshold.set(threshold);
+    } else if (args.size() != 2) {
+      Zeal::Game::print_chat("Usage: /raidbars threshold <value> (0 to 100, applies to /raidbars filter <classes>)");
+    }
+    Zeal::Game::print_chat("Raidbars filter threshold is set to show values <= to %d%%", setting_show_threshold.get());
+    return;
+  }
+
+  if (args.size() >= 2 && (args[1] == "priority" || args[1] == "always" || args[1] == "never" || args[1] == "filter")) {
     if (args.size() > 2) {
       std::string text = args[2];
       for (int i = 3; i < args.size(); ++i) text += " " + args[i];
       std::transform(text.begin(), text.end(), text.begin(), ::toupper);
       if (args[1] == "priority")
         setting_class_priority.set(text);
-      else
+      else if (args[1] == "always")
         setting_class_always.set(text);
+      else if (args[1] == "never")
+        setting_class_never.set(text);
+      else if (args[1] == "filter")
+        setting_class_filter.set(text);
     }
     DumpClassSettings();
     return;
   }
 
-  Zeal::Game::print_chat("Usage: /raidbars <on | off>");
-  Zeal::Game::print_chat("Usage: /raidbars font font_filename");
-  Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right=0> <bottom=0>]");
+  Zeal::Game::print_chat("Usage: /raidbars <on | off | toggle>");
+  Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right> <bottom>]");
+  Zeal::Game::print_chat("Note: right and bottom are screen coordinates relative to upper left");
+  Zeal::Game::print_chat("Usage: /raidbars background <alpha> (0 to 100 = invisible to solid black)");
   Zeal::Game::print_chat("Usage: /raidbars [barheight | barwidth] <value> (0 = autoscale to font)");
-  Zeal::Game::print_chat("Usage: /raidbars <showall | clickable> <on | off>");
+  Zeal::Game::print_chat("Usage: /raidbars font font_filename");
+  Zeal::Game::print_chat("Usage: /raidbars clickable <on | off>");
+  Zeal::Game::print_chat("Usage: /raidbars groups <on | off | toggle>");
+  Zeal::Game::print_chat("Usage: /raidbars showall <on | off | toggle>");
   Zeal::Game::print_chat("Usage: /raidbars always <class list> where list is like 'WAR PAL SHD'");
+  Zeal::Game::print_chat("Usage: /raidbars never <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
+  Zeal::Game::print_chat("Usage: /raidbars filter <class list> where list is like 'WAR PAL SHD'");
+  Zeal::Game::print_chat("Usage: /raidbars threshold <value> (filtered class shown with hp % <= value)");
 }
 
 // Loads the bitmap font for real-time text rendering to screen.
@@ -272,6 +329,50 @@ void RaidBars::SyncClassAlways() {
   }
 }
 
+// Load the show class never flags from settings.
+void RaidBars::SyncClassNever() {
+  std::string never_list = setting_class_never.get();
+
+  for (auto &entry : class_never) entry = false;  // Default to none.
+
+  if (never_list.empty()) return;  // Just go with default.
+
+  // Capitalize to simplify comparisons.
+  std::transform(never_list.begin(), never_list.end(), never_list.begin(), ::toupper);
+
+  auto split = Zeal::String::split_text(never_list, " ");
+  for (const auto &entry : split) {
+    for (int i = 0; i < kNumClasses; ++i) {
+      if (entry == Zeal::Game::class_name_short(i + kClassIndexOffset)) {
+        class_never[i] = true;
+        break;
+      }
+    }
+  }
+}
+
+// Load the show class filter flags from settings.
+void RaidBars::SyncClassFilter() {
+  std::string filter_list = setting_class_filter.get();
+
+  for (auto &entry : class_filter) entry = false;  // Default to none.
+
+  if (filter_list.empty()) return;  // Just go with default.
+
+  // Capitalize to simplify comparisons.
+  std::transform(filter_list.begin(), filter_list.end(), filter_list.begin(), ::toupper);
+
+  auto split = Zeal::String::split_text(filter_list, " ");
+  for (const auto &entry : split) {
+    for (int i = 0; i < kNumClasses; ++i) {
+      if (entry == Zeal::Game::class_name_short(i + kClassIndexOffset)) {
+        class_filter[i] = true;
+        break;
+      }
+    }
+  }
+}
+
 void RaidBars::DumpClassSettings() const {
   std::string prio_list;
   for (const auto &value : class_priority) prio_list += " " + Zeal::Game::class_name_short(value + kClassIndexOffset);
@@ -282,6 +383,18 @@ void RaidBars::DumpClassSettings() const {
   for (int i = 0; i < class_always.size(); ++i)
     if (class_always[i]) list += " " + Zeal::Game::class_name_short(i + kClassIndexOffset);
   message = "RaidBars class always:" + list;
+  Zeal::Game::print_chat(message.c_str());
+
+  std::string never_list;
+  for (int i = 0; i < class_never.size(); ++i)
+    if (class_never[i]) never_list += " " + Zeal::Game::class_name_short(i + kClassIndexOffset);
+  message = "RaidBars class never:" + never_list;
+  Zeal::Game::print_chat(message.c_str());
+
+  std::string filter_list;
+  for (int i = 0; i < class_filter.size(); ++i)
+    if (class_filter[i]) filter_list += " " + Zeal::Game::class_name_short(i + kClassIndexOffset);
+  message = "RaidBars class filter:" + filter_list;
   Zeal::Game::print_chat(message.c_str());
 }
 
@@ -300,12 +413,17 @@ void RaidBars::UpdateRaidMembers() {
   for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
     const auto &member = raid_info->MemberList[i];
     if (!member.Name || !member.Name[0]) continue;  // Skip empty slots.
-    size_t class_index = member.ClassValue - 1;
+    size_t class_index = member.ClassValue - kClassIndexOffset;
     if (class_index >= raid_classes.size()) continue;  // Paranoia, shouldn't happen.
     auto &class_group = raid_classes[class_index];
     auto entity = entity_manager->Get(member.Name);  // Could be null if out of zone or a corpse.
     if (entity && entity->Type != Zeal::GameEnums::EntityTypes::Player) entity = nullptr;
-    class_group.emplace_back(RaidMember{.name = member.Name, .entity = entity});
+    DWORD class_color = Zeal::Game::get_raid_class_color(member.ClassValue);
+    class_group.emplace_back(RaidMember{.name = member.Name,
+                                        .entity = entity,
+                                        .color = class_color,
+                                        .group_number = member.GroupNumber,
+                                        .is_group_leader = (member.IsGroupLeader != 0)});
   }
 
   // And then alphabetically sort all class groups.
@@ -364,27 +482,47 @@ void RaidBars::CallbackRender() {
   }
 
   // The position coordinates are full screen (not viewport reduced).
-  const float x_min = static_cast<float>(setting_position_left.get());
-  const float y_min = static_cast<float>(setting_position_top.get());
-  const float x_max = static_cast<float>(setting_position_right.get() > x_min ? setting_position_right.get()
-                                                                              : Zeal::Game::get_screen_resolution_x());
-  const float y_max = static_cast<float>(setting_position_bottom.get() > y_min ? setting_position_bottom.get()
-                                                                               : Zeal::Game::get_screen_resolution_y());
-  float x = x_min;
-  float y = y_min;
+  int left = setting_position_left.get();
+  int top = setting_position_top.get();
+  int right =
+      setting_position_right.get() > left ? setting_position_right.get() : Zeal::Game::get_screen_resolution_x();
+  int bottom =
+      setting_position_bottom.get() > top ? setting_position_bottom.get() : Zeal::Game::get_screen_resolution_y();
+  const float x_min = static_cast<float>(left);
+  const float y_min = static_cast<float>(top);
+  const float x_max = static_cast<float>(right);
+  const float y_max = static_cast<float>(bottom);
   grid_height_count_max = static_cast<int>((y_max - y_min) / grid_height);
 
-  // Then go through the classes in prioritized order.
+  if (setting_background_alpha.get()) {
+    RECT rect = {.left = left, .top = top, .right = right, .bottom = bottom};
+    BYTE alpha = setting_background_alpha.get() * 255 / 100;
+    D3DCOLOR color = D3DCOLOR_ARGB(alpha, 0, 0, 0);
+    bitmap_font->queue_background_rect(rect, color);
+  }
+
   visible_list.clear();
+  if (setting_group_sort.get())
+    QueueByGroup(x_min, y_min, x_max, y_max);
+  else
+    QueueByClass(x_min, y_min, x_max, y_max);
+
+  bitmap_font->flush_queue_to_screen();
+}
+
+void RaidBars::QueueByClass(const float x_min, const float y_min, const float x_max, const float y_max) {
+  float x = x_min;
+  float y = y_min;
+
+  // Go through the classes in prioritized order.
   bool show_all = setting_show_all.get();
   const auto self = Zeal::Game::get_self();
   for (const int class_index : class_priority) {
     const auto &group = raid_classes[class_index];
-    if (group.empty()) continue;
+    if (group.empty() || class_never[class_index]) continue;
     bool show_class = show_all || class_always[class_index];
+    int threshold = class_filter[class_index] ? setting_show_threshold.get() : 99;
 
-    // Get class color.
-    DWORD class_color = Zeal::Game::get_raid_class_color(class_index + kClassIndexOffset);
     const DWORD out_of_zone_color = D3DCOLOR_XRGB(0x80, 0x80, 0x80);  // Grey color.
     for (const auto &member : group) {
       if (y + grid_height > y_max) {
@@ -397,17 +535,94 @@ void RaidBars::CallbackRender() {
       if (entity == self) continue;  // Skip self.
       int hp_percent =
           (entity && entity->HpCurrent > 0 && entity->HpMax > 0) ? (entity->HpCurrent * 100) / entity->HpMax : 0;
-      if (hp_percent >= 99 && !show_class) continue;  // Skip.
+      if (hp_percent >= threshold && !show_class) continue;  // Skip.
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       std::string full_text = member.name + healthbar;
 
       visible_list.push_back(entity);
       bitmap_font->set_hp_percent(hp_percent);
-      DWORD color = entity ? class_color : out_of_zone_color;
+      DWORD color = entity ? member.color : out_of_zone_color;
       bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
       y += grid_height;
     }
   }
+}
 
-  bitmap_font->flush_queue_to_screen();
+void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_max, const float y_max) {
+  float x = x_min;
+  float y = y_min;
+
+  // Go through the groups.
+  bool show_all = setting_show_all.get();
+  const DWORD out_of_zone_color = D3DCOLOR_XRGB(0x80, 0x80, 0x80);  // Grey color.
+  const DWORD empty_color = D3DCOLOR_XRGB(0x60, 0x60, 0x60);        // Darker grey.
+
+  // Scan through all possible raid groups (0 to 11) plus the ungrouped.
+  for (int i = 0; i < 13; ++i) {
+    const bool ungrouped = (i == 12);
+    const int group_index = ungrouped ? Zeal::GameStructures::RaidMember::kRaidUngrouped : i;
+
+    // Do an unoptimized sweep through all raid members looking for members of group_index.
+    // This does keep the same class priority sorting within groups except leader first.
+    int group_count = 0;  // Track number of group members found.
+    std::vector<const RaidMember *> group_members;
+    const int group_max = ungrouped ? 6 : 72;
+    for (const int class_index : class_priority) {
+      for (const auto &member : raid_classes[class_index]) {
+        if (member.group_number != group_index || group_members.size() >= group_max) continue;
+        if (member.is_group_leader)
+          group_members.insert(group_members.begin(), &member);  // Put leader at front.
+        else
+          group_members.push_back(&member);
+      }
+    }
+    if (group_members.empty()) continue;  // Skip this Group.
+
+    // Add a Group #: or Ungrouped: label.
+    if (y + grid_height > y_max) {
+      y = y_min;
+      x += grid_width;
+    }
+    if (x + grid_width > x_max) return;  // Bail out if list grows off-screen.
+
+    const std::string group_label =
+        ungrouped ? "Ungrouped:" : std::string("Group ") + std::to_string(group_index + 1) + ": ";
+    float y_offset = grid_height - bitmap_font->get_line_spacing() - 2;  // Add some padding for the label.
+    visible_list.push_back(nullptr);
+    bitmap_font->queue_string(group_label.c_str(), Vec3(x, y + y_offset, 0), false,
+                              D3DCOLOR_XRGB(0xff, 0xff, 0xff));  // White label
+    y += grid_height;
+
+    for (const auto &member : group_members) {
+      if (y + grid_height > y_max) {
+        y = y_min;
+        x += grid_width;
+      }
+      if (x + grid_width > x_max) return;  // Bail out if list grows off-screen.
+
+      const auto entity = member->entity;
+      int hp_percent =
+          (entity && entity->HpCurrent > 0 && entity->HpMax > 0) ? (entity->HpCurrent * 100) / entity->HpMax : 0;
+      const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
+      std::string full_text = member->name + healthbar;
+      visible_list.push_back(entity);
+      bitmap_font->set_hp_percent(hp_percent);
+      DWORD color = entity ? member->color : out_of_zone_color;
+      bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
+      y += grid_height;
+    }
+
+    // Add empty slots if show_all and not ungrouped else continue the loop.
+    if (!show_all || ungrouped) continue;
+    for (auto i = group_members.size(); i < 6; ++i) {
+      if (y + grid_height > y_max) {
+        y = y_min;
+        x += grid_width;
+      }
+      if (x + grid_width > x_max) return;  // Bail out if list grows off-screen.
+      visible_list.push_back(nullptr);
+      bitmap_font->queue_string("Empty", Vec3(x, y, 0), false, empty_color);
+      y += grid_height;
+    }
+  }
 }

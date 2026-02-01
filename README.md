@@ -293,18 +293,29 @@ ___
           `./<character_name>_protected.ini` file.
 
 - `/raidbars`
-  - **Arguments:** `on`, `off`, `font <filename>`, `position <left> <top> [<right>=0 <bottom>=0]`, `showall <on | off>`,
-                   `clickable <on | off>`, `priority <classes list>`, `always <classes list>`,
-                   `barwidth <value> (0 = autoscale)`, `barheight <value> (0 = autoscale)`
+  - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the raidbars
+                   `position <left> <top> [<right> <bottom>]`: Specifies rectangle to draw into (all screen coordinates)
+                   `background <value>`: Sets the opacity of the position rectangle (0 to 100 = invisible to solid)
+                   `font <filename>`: Selects the font to use for names
+                   `<barheight | bardwidth> <value>`: Sets HP bar height or width (0 = autoscale, clamped to sane values)
+                   `clickable <on | off>`: Enables or disables click targeting with raidbars
+                   `groups <on | off | toggle>`: Switches between listing by class prioritization or by groups
+                   `showall <on | off>`: Class mode: Disables health thresholding, Group mode: Shows empty slots
+                   `never <classes list>`: Never shows classes in the list (class prio mode only)
+                   `always <classes list>`: Like showall but only applies to classes in list (class prio mode only)
+                   `priority <classes list>`: Sets listing order of classes (class prio mode only)
+                   `filter <classes list>`: Shows classes only if HP <= threshold value (class prio mode only)
+                   `threshold <value>`: Sets the filter threshold value (0 to 100%)
   - **Example:** `/raidbars position 5 10` Constrains bars to a box from (x=5,y=10) to right and bottom screen edge.
-  - **Example:** `/raidbars position 5 10 0 250` Constrains bars to a box from (x=5,y=10) to (right screen edge, y=250).
+  - **Example:** `/raidbars position 5 10 300 250` Constrains bars to a box from (x=5,y=10) to (x=300, y=250).
   - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
   - **Example:** `/raidbars always WAR PAL SHD ENC` These classes are always shown (even w/out showall on)
+  - **Example:** `/raidbars never SHM NEC` These classes are never shown (even w/ showall on)
   - **Example:** `/raidbars priority WAR WIZ ENC PAL SHD` Shows those classes first then remaining classes
-  - **Description:** Supports enabling a class-prioritized list of raid members with health bars. The bars are 
-          drawn into a rectangular screen area specified by the position command (viewport compatible) where
+  - **Example:** `/raidbars filter SHM NEC` These classes are hidden if HP > threshold (if showall off)
+  - **Description:** Supports enabling a class-prioritized or a by group list of raid members with health bars. The bars
+          are drawn into a rectangular screen area specified by the position command (viewport compatible) where
           the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom.
-          Setting a coordinate of 0 for right or bottom extends to the corresponding screen edge.
 
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
