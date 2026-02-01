@@ -29,6 +29,9 @@ class BitmapFontBase {
   static constexpr char kManaBarValue = 3;        // ASCII '\x03' draws the mana value
   static constexpr char kStaminaBarValue = 4;     // ASCII '\x04' draws the stamina value.
 
+  // The Background Rectangle should not be passed in queue_strings(). Also 2-D BitmapFont only.
+  static constexpr char kBackgroundRect = 5;  // ASCII '\x05\ draws the background rectangle.
+
   static constexpr float kDefaultShadowOffsetFactor = 0.01f;
 
   // Utility method to report the available fonts.
@@ -74,6 +77,9 @@ class BitmapFontBase {
   void set_mana_percent(int value) { mana_percent = value; }
 
   void set_stamina_percent(int value) { stamina_percent = value; }
+
+  // Inserts a request to render the background rect into the queue. Only one per flush allowed.
+  void queue_background_rect(const RECT &rect, D3DCOLOR color);
 
   // Primary interface for drawing text. The position is in screen pixel coordinates
   // and specifies the center (true) or the upper left (false).
@@ -143,6 +149,7 @@ class BitmapFontBase {
   char hp_percent = 0;
   char mana_percent = 0;
   char stamina_percent = 0;
+  RECT background_rect = {0, 0, 0, 0};  // Cached value (only one per flush allowed).
 
   IDirect3DDevice8 &device;
   Glyph glyph_table[kNumGlyphs] = {};

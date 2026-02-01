@@ -232,6 +232,8 @@ BitmapFontBase::BitmapFontBase(IDirect3DDevice8 &device, std::span<const uint8_t
       .character = kManaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
   glyph_table[kStaminaBarValue] = {
       .character = kStaminaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
+  glyph_table[kBackgroundRect] = {
+      .character = kBackgroundRect, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 0, .x_advance = 0};
 }
 
 // Ensure all resources are released in the destructor.
@@ -381,6 +383,14 @@ void BitmapFontBase::queue_lines(const std::vector<Lines> &lines, D3DCOLOR color
       glyph_queue.push_back({glyph, upper_left + Vec2(x, y), color, hp_percent});
     });
   }
+}
+
+void BitmapFontBase::queue_background_rect(const RECT &rect, D3DCOLOR color) {
+  background_rect = rect;  // THe width and height aren't queued so have to cache them.
+
+  auto glyph = get_glyph(kBackgroundRect);
+  glyph_queue.push_back(
+      {glyph, Vec2(static_cast<float>(background_rect.left), static_cast<float>(background_rect.top)), color, 0});
 }
 
 // Public interface that queues a string for later rendering in the flush call.
@@ -675,6 +685,9 @@ void BitmapFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, GlyphVer
             : (entry.hp_percent > 50) ? D3DCOLOR_XRGB(192, 192, 0)  // Yellow
             : (entry.hp_percent > 25) ? D3DCOLOR_XRGB(192, 96, 40)  // Orange
                                       : D3DCOLOR_XRGB(192, 0, 0);   // Red
+  } else if (entry.glyph->character == kBackgroundRect) {
+    width = static_cast<float>(background_rect.right - background_rect.left);
+    height = static_cast<float>(background_rect.bottom - background_rect.top);
   }
 
   glyph_vertices[0].x = entry.position.x - 0.5f;

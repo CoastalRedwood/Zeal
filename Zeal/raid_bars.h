@@ -30,10 +30,17 @@ class RaidBars {
   ZealSetting<int> setting_bar_width = {0, "RaidBars", "BarWidth", false, [this](int) { Clean(); }};
   ZealSetting<int> setting_bar_height = {0, "RaidBars", "BarHeight", false, [this](int) { Clean(); }};
   ZealSetting<bool> setting_show_all = {false, "RaidBars", "ShowAll", false};
+  ZealSetting<bool> setting_group_sort = {false, "RaidBars", "GroupSort", false};
+  ZealSetting<int> setting_show_threshold = {100, "RaidBars", "ShowThreshold", false};
+  ZealSetting<int> setting_background_alpha = {0, "RaidBars", "BackgroundAlpha", false};
   ZealSetting<std::string> setting_class_priority = {std::string(), "RaidBars", "ClassPriority", false,
                                                      [this](const std::string &) { SyncClassPriority(); }};
   ZealSetting<std::string> setting_class_always = {std::string(), "RaidBars", "ClassAlways", false,
                                                    [this](const std::string &) { SyncClassAlways(); }};
+  ZealSetting<std::string> setting_class_never = {std::string(), "RaidBars", "ClassNever", false,
+                                                  [this](const std::string &) { SyncClassNever(); }};
+  ZealSetting<std::string> setting_class_filter = {std::string(), "RaidBars", "ClassFilter", false,
+                                                   [this](const std::string &) { SyncClassFilter(); }};
   ZealSetting<std::string> setting_bitmap_font_filename = {std::string(kUseDefaultFont), "RaidBars", "Font", false,
                                                            [this](std::string val) { bitmap_font.reset(); }};
 
@@ -47,6 +54,9 @@ class RaidBars {
   struct RaidMember {
     std::string name;                      // Copy to compare against when out of zone.
     Zeal::GameStructures::Entity *entity;  // Set to nullptr when out of zone.
+    D3DCOLOR color;                        // Class color.
+    unsigned long group_number;            // Group number within raid.
+    bool is_group_leader;                  // Lead of the group.
   };
 
   void Clean();  // Resets state and releases all resources.
@@ -55,8 +65,12 @@ class RaidBars {
   void CallbackRender();  // Displays raid bars.
   void SyncClassPriority();
   void SyncClassAlways();
+  void SyncClassNever();
+  void SyncClassFilter();
   void DumpClassSettings() const;
   void UpdateRaidMembers();
+  void QueueByClass(const float x_min, const float y_min, const float x_max, const float y_max);
+  void QueueByGroup(const float x_min, const float y_min, const float x_max, const float y_max);
 
   DWORD next_update_game_time_ms = 0;
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
@@ -67,5 +81,7 @@ class RaidBars {
   std::array<std::vector<RaidMember>, kNumClasses> raid_classes;  // Per class vectors of raid members.
   std::array<int, kNumClasses> class_priority;                    // Prioritization order for class types.
   std::array<bool, kNumClasses> class_always;                     // Boolean flag to show always for class types.
+  std::array<bool, kNumClasses> class_never;                      // Boolean flag to show never for class types.
+  std::array<bool, kNumClasses> class_filter;                     // Boolean flag to filter class types by threshold.
   std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
 };
