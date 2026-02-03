@@ -295,6 +295,7 @@ ___
 - `/raidbars`
   - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the raidbars
                    `position <left> <top> [<right> <bottom>]`: Specifies rectangle to draw into (all screen coordinates)
+                   `grid <num_rows> <num_cols>`: Autocalculates right and bottom based on current font/bar size.
                    `background <value>`: Sets the opacity of the position rectangle (0 to 100 = invisible to solid)
                    `font <filename>`: Selects the font to use for names
                    `<barheight | bardwidth> <value>`: Sets HP bar height or width (0 = autoscale, clamped to sane values)
@@ -315,7 +316,11 @@ ___
   - **Example:** `/raidbars filter SHM NEC` These classes are hidden if HP > threshold (if showall off)
   - **Description:** Supports enabling a class-prioritized or a by group list of raid members with health bars. The bars
           are drawn into a rectangular screen area specified by the position command (viewport compatible) where
-          the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom.
+          the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom. It
+          is recommended to first set the upper left with `/raidbars position <left> <top>` and then use
+          `/raidbars grid <num_rows> <num_cols>` to calculate the right and bottom values. Re-run the grid
+          command if the font or barheights or widths are changeed.Setting `/raidbars background` to something
+          like 70 will make the draw rectangle obvious.
 
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
