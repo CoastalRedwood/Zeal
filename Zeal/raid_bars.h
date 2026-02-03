@@ -61,6 +61,7 @@ class RaidBars {
 
   void Clean();  // Resets state and releases all resources.
   void ParseArgs(const std::vector<std::string> &args);
+  bool HandleSetGrid(int num_rows, int num_cols);
   void LoadBitmapFont();  // Loads the bitmap font for rendering.
   void CallbackRender();  // Displays raid bars.
   void SyncClassPriority();
