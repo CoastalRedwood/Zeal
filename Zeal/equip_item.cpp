@@ -57,8 +57,9 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
       inv_index = src_slot_id;
     // Try Bard Melody's use_item, otherwise regular use_item
     if (c->Class == Zeal::GameEnums::ClassTypes::Bard &&
-          !ZealService::get_instance()->melody->use_item(inv_index, bag_sub_index))
-      Zeal::Game::use_item(inv_index, bag_sub_index);
+          ZealService::get_instance()->melody->use_item(inv_index, bag_sub_index))
+      return true;
+    Zeal::Game::use_item(inv_index, bag_sub_index);
     return true;
   }
 
