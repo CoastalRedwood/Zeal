@@ -353,7 +353,9 @@ void ZealService::AddCommands() {
                        return false;
                      });
   commands_hook->Add(
-      "/useitem", {}, "Use an item's right click function arugment is 0-29 which indicates the slot",
+      "/useitem", {},
+      std::format("Use an item's right click function. Arugment is 0-29 which indicates the inventory slot, "
+        "or \"<Bag #> <Slot #>\" which indicates an item in a bag"),
       [](std::vector<std::string> &args) {
         Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
         Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
@@ -361,15 +363,22 @@ void ZealService::AddCommands() {
           Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
           return true;
         }
-        int item_index = 0;
-        if (args.size() > 1 && Zeal::String::tryParse(args[1], &item_index)) {
+        int inv_index = 0;
+        int bagslot_index = 0;
+        bool quiet = false;
+        if (args.size() > 1 && Zeal::String::tryParse(args[1], &inv_index)) {
+          if (args.size() > 2 && args[2] == "quiet") quiet = true;
+          else if (args.size() > 2) {
+            Zeal::String::tryParse(args[2], &bagslot_index);
+            if (args.size() > 3 && args[3] == "quiet") quiet = true;
+          }
           if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
-              ZealService::get_instance()->melody->use_item(item_index))
+              ZealService::get_instance()->melody->use_item(inv_index, bagslot_index))
             return true;
-          bool quiet = args.size() > 2 && args[2] == "quiet";
-          Zeal::Game::use_item(item_index, quiet);
+          Zeal::Game::use_item(inv_index, bagslot_index, quiet);
         } else {
-          Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "useitem requires an item slot between 0 and 29");
+          Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
+            "useitem requires an item slot between 0 and 29, or \"<Bag #> <Slot #>\" for bagged items");
           Zeal::Game::print_chat("0: Left ear, 1: Head, 2: Face, 3: Right Ear, 4: Neck, 5: Shoulders");
           Zeal::Game::print_chat("6: Arms, 7: Back, 8: Left Wrist, 9: Right Wrist, 10: Ranged");
           Zeal::Game::print_chat("11: Hands, 12: Primary, 13: Secondary, 14: Left Finger, 15: Right Finger");

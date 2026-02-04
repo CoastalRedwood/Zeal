@@ -1845,7 +1845,7 @@ int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item) {
   return 0;
 }
 
-bool use_item(int item_index, bool quiet) {
+bool use_item(int inv_index, int bag_sub_index, bool quiet) {
   Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   if (!chr || !self) {
@@ -1853,17 +1853,40 @@ bool use_item(int item_index, bool quiet) {
     return false;
   }
   Zeal::GameStructures::GAMEITEMINFO *item = nullptr;
-  if (item_index < 0 || item_index > 29) {
-    Zeal::Game::print_chat("useitem requires an item slot between 0 and 29, you tried to use %i", item_index);
+  if (!bag_sub_index && (inv_index < 0 || inv_index > 29 ) ){
+    Zeal::Game::print_chat("useitem requires an item slot between 0 and 29, you tried to use %i", inv_index);
     return false;
   }
-  if (item_index < 21)
-    item = chr->InventoryItem[item_index];
-  else
-    item = chr->InventoryPackItem[item_index - 22];  //-22 to make it back to 0 index
+  if (bag_sub_index && (inv_index < 1 || inv_index > GAME_NUM_INVENTORY_PACK_SLOTS
+        || bag_sub_index < 1 || bag_sub_index > GAME_NUM_CONTAINER_SLOTS)) {
+    Zeal::Game::print_chat("useitem for bags requires an item slot between 1 and %i, and a bag-item slot between 1 and %i",
+      GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
+    return false;
+  }
+
+  if (bag_sub_index == 0 && inv_index < 21)
+    item = chr->InventoryItem[inv_index];
+  else if (bag_sub_index == 0)
+    item = chr->InventoryPackItem[inv_index - 22];  //-22 to make it back to 0 index
+  else {
+    Zeal::GameStructures::GAMEITEMINFO *bag = nullptr;
+    inv_index = inv_index - 1;
+    bag_sub_index = bag_sub_index - 1;
+    bag = chr->InventoryPackItem[inv_index];
+    if (!bag) {
+      if (!quiet) Zeal::Game::print_chat("You don't have a bag in Slot %i", inv_index + 1);
+      return false;
+    }
+    item = bag->Container.Item[bag_sub_index];
+    if (!item) {
+      if (!quiet) Zeal::Game::print_chat("You don't have an item in Bag %i, Slot %i", inv_index + 1, bag_sub_index + 1);
+      return false;
+    }
+    inv_index = GAME_CONTAINER_SLOTS_START + (inv_index * GAME_NUM_CONTAINER_SLOTS) + bag_sub_index;
+  }
 
   if (!item) {
-    if (!quiet) Zeal::Game::print_chat("There isn't an item at %i", item_index);
+    if (!quiet) Zeal::Game::print_chat("There isn't an item at %i", inv_index);
     return false;
   }
   if (item->Type != 0 || !item->Common.SpellId) {
@@ -1888,7 +1911,7 @@ bool use_item(int item_index, bool quiet) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
     return false;
   }
-  chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index);
+  chr->cast(0xA, 0, (int *)&item, inv_index < 21 ? inv_index + 1 : inv_index);
   return true;
 }
 
