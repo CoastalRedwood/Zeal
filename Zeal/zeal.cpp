@@ -363,14 +363,19 @@ void ZealService::AddCommands() {
           Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
           return true;
         }
-        int inv_index = 0;
-        int bagslot_index = 0;
+        int inv_index = -1;
+        int bagslot_index = -1;
         bool quiet = false;
         if (args.size() > 1 && Zeal::String::tryParse(args[1], &inv_index)) {
           if (args.size() > 2 && args[2] == "quiet") quiet = true;
           else if (args.size() > 2) {
             Zeal::String::tryParse(args[2], &bagslot_index);
             if (args.size() > 3 && args[3] == "quiet") quiet = true;
+          }
+          // Convert item-in-bag to zero index
+          if (bagslot_index >= 0) {
+            inv_index = inv_index - 1;
+            bagslot_index = bagslot_index - 1;
           }
           if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
               ZealService::get_instance()->melody->use_item(inv_index, bagslot_index))

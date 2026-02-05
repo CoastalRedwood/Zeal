@@ -47,11 +47,11 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
         || src_slot_id > GAME_CONTAINER_SLOTS_END) return false;
     // Line up slot ID with what use_item expects
     int inv_index;
-    int bag_sub_index = 0;
+    int bag_sub_index = -1;
     if (src_slot_id < 22) inv_index = src_slot_id - 1;
     else if (src_slot_id >= GAME_CONTAINER_SLOTS_START) {
-      inv_index = (src_slot_id - 250) / GAME_NUM_CONTAINER_SLOTS + 1;
-      bag_sub_index = (src_slot_id - 250) % GAME_NUM_CONTAINER_SLOTS + 1;
+      inv_index = (src_slot_id - 250) / GAME_NUM_CONTAINER_SLOTS;
+      bag_sub_index = (src_slot_id - 250) % GAME_NUM_CONTAINER_SLOTS;
     }
     else
       inv_index = src_slot_id;
@@ -69,7 +69,7 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
   }
 
   int src_container_i = (src_slot_id - GAME_CONTAINER_SLOTS_START) / GAME_NUM_CONTAINER_SLOTS;
-  if (src_container_i < 0 || src_container_i > GAME_NUM_INVENTORY_PACK_SLOTS - 1) {
+  if (src_container_i < 0 || src_container_i >= GAME_NUM_INVENTORY_PACK_SLOTS) {
     return false;  // Shouldn't happen. Ensure bag is 0..7
   }
 

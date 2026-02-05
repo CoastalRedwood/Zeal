@@ -122,8 +122,8 @@ void Melody::end(bool do_print) {
 
 bool Melody::use_item(int inv_index, int bag_sub_index) {
   if (!is_active || (!bag_sub_index && (inv_index < 0 || inv_index > 29)) ||
-      (bag_sub_index && (inv_index < 1 || inv_index > GAME_NUM_INVENTORY_PACK_SLOTS
-        || bag_sub_index < 1 || bag_sub_index > GAME_NUM_CONTAINER_SLOTS)))
+      (bag_sub_index >= 0 && (inv_index < 0 || inv_index >= GAME_NUM_INVENTORY_PACK_SLOTS
+        || bag_sub_index >= GAME_NUM_CONTAINER_SLOTS )))
     return false;
   // Set fields so use_item(item_index) will execute during tick().
   use_item_index = {inv_index, bag_sub_index};

@@ -1853,25 +1853,23 @@ bool use_item(int inv_index, int bag_sub_index, bool quiet) {
     return false;
   }
   Zeal::GameStructures::GAMEITEMINFO *item = nullptr;
-  if (!bag_sub_index && (inv_index < 0 || inv_index > 29 ) ){
+  if (bag_sub_index < 0 && (inv_index < 0 || inv_index > 29 ) ){
     Zeal::Game::print_chat("useitem requires an item slot between 0 and 29, you tried to use %i", inv_index);
     return false;
   }
-  if (bag_sub_index && (inv_index < 1 || inv_index > GAME_NUM_INVENTORY_PACK_SLOTS
-        || bag_sub_index < 1 || bag_sub_index > GAME_NUM_CONTAINER_SLOTS)) {
+  if (bag_sub_index >= 0 && (inv_index < 0 || inv_index >= GAME_NUM_INVENTORY_PACK_SLOTS
+        || bag_sub_index >= GAME_NUM_CONTAINER_SLOTS )) {
     Zeal::Game::print_chat("useitem for bags requires an item slot between 1 and %i, and a bag-item slot between 1 and %i",
       GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
     return false;
   }
 
-  if (bag_sub_index == 0 && inv_index < 21)
+  if (bag_sub_index < 0 && inv_index < 21)
     item = chr->InventoryItem[inv_index];
-  else if (bag_sub_index == 0)
+  else if (bag_sub_index < 0)
     item = chr->InventoryPackItem[inv_index - 22];  //-22 to make it back to 0 index
   else {
     Zeal::GameStructures::GAMEITEMINFO *bag = nullptr;
-    inv_index = inv_index - 1;
-    bag_sub_index = bag_sub_index - 1;
     bag = chr->InventoryPackItem[inv_index];
     if (!bag) {
       if (!quiet) Zeal::Game::print_chat("You don't have a bag in Slot %i", inv_index + 1);
