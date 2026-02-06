@@ -95,7 +95,7 @@ static void handle_decline() {
   if (self && self->ActorInfo && self->ActorInfo->IsInvited) Zeal::Game::get_game()->Disband();
 }
 
-void ui_options::ShowInviteDialog(const char *raid_invite_name) const {
+void ui_options::ShowInviteDialog(const char *raid_invite_name, bool cross_zone) const {
   if (!setting_invite_dialog.get() || !ZealService::get_instance()->ui->inputDialog) return;
 
   std::string message = raid_invite_name ? (std::string(raid_invite_name) + " invites you to join a raid.")
@@ -105,8 +105,9 @@ void ui_options::ShowInviteDialog(const char *raid_invite_name) const {
   ZealService::get_instance()->ui->inputDialog->hide();
   if (raid_invite_name)
     ZealService::get_instance()->ui->inputDialog->show(
-        kInviteDialogTitle, message, "Accept", "Decline", [this](std::string unused) { Zeal::Game::do_raidaccept(); },
-        [this](std::string unused) { Zeal::Game::do_raiddecline(); }, false);
+        kInviteDialogTitle, message, "Accept", "Decline",
+        [this, cross_zone](std::string unused) { Zeal::Game::do_raidaccept(cross_zone); },
+        [this, cross_zone](std::string unused) { Zeal::Game::do_raiddecline(cross_zone); }, false);
   else
     ZealService::get_instance()->ui->inputDialog->show(
         kInviteDialogTitle, message, "Follow", "Decline", [this](std::string unused) { handle_follow(); },

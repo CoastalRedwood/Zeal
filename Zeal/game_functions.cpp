@@ -509,13 +509,18 @@ void do_who(const char *query) {
   }
 }
 
-void do_raidaccept() {
+void do_raidaccept(bool cross_zone) {
+  if (cross_zone) {
+    Zeal::Game::do_say(true, "#raidaccept");
+    return;
+  }
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3be5)(
         get_self(), "");
 }
 
-void do_raiddecline() {
+void do_raiddecline(bool cross_zone) {
+  if (cross_zone) return; // No current deny command for cross-zone invites
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3bc1)(
         get_self(), "");
