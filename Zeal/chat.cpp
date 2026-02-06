@@ -779,7 +779,7 @@ void Chat::DoPercentReplacements(std::string &str_data) {
   for (auto &fn : percent_replacements) fn(str_data);
 }
 
-// Stores a player name if a cross-raid invite is received
+// Returns a player name if the message matches a cross-zone raid invite
 std::string GetCrossZoneInviteName(const std::string &data) {
 
   static const char raid_invite_ending[] = " a raid."; 
