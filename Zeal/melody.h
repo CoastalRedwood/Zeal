@@ -21,6 +21,7 @@ class Melody {
   int get_next_gem_index();
   bool is_gem_ready(int gem_index);
   void stop_current_cast();
+  bool handle_opcode(int opcode);
   bool is_active = false;                          // Set when melody is actively running.
   int current_index = 0;                           // Active song index. -1 if not started yet.
   std::vector<int> songs;                          // Gem indices (base 0) for melody.
@@ -30,6 +31,7 @@ class Melody {
   WORD retry_spell_id = kInvalidSpellId;           // Song failed (fizzled or otherwise, retry).
   WORD deferred_spell_id = kInvalidSpellId;        // Song wasn't ready so deferred to next opportunity.
   int use_item_index = -1;                         // The pending use_item() to try.
+  int use_item_ack_state = 0;                      // Tracks special server ack case for use items.
   ULONGLONG use_item_timeout = 0;                  // The max timestamp until the pending use_item() gives up.
   ULONGLONG enter_zone_time = 0;                   // Timestamp of the most recent enter zone callback.
 };

@@ -1888,8 +1888,7 @@ bool use_item(int item_index, bool quiet) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
     return false;
   }
-  chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index);
-  return true;
+  return chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index) != 0;
 }
 
 bool is_autoattacking() { return *reinterpret_cast<BYTE *>(0x007f6ffe); }
