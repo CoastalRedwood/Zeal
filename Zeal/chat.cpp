@@ -22,7 +22,6 @@
 #include "labels.h"
 #include "memory.h"
 #include "string_util.h"
-#include "ui_manager.h"
 #include "zeal.h"
 
 std::map<std::string, std::string> channelPrefixes = {
@@ -779,28 +778,6 @@ void Chat::DoPercentReplacements(std::string &str_data) {
   for (auto &fn : percent_replacements) fn(str_data);
 }
 
-// Returns a player name if the message matches a cross-zone raid invite
-std::string GetCrossZoneInviteName(const std::string &data) {
-
-  static const char raid_invite_ending[] = " a raid."; 
-  if (!data.ends_with(raid_invite_ending)) return "";
-
-  size_t first_space = data.find_first_of(" ");
-  std::string inviter = data.substr(0, first_space);
-  std::string invite_msg = data.substr(first_space + 1);
-
-  // Standard raid invite is a static message, return inviter if found
-  if (invite_msg == "has invited you to join a raid.") return inviter;
-
-  // Group lead invite contains a variable group number
-  static const char raid_group_prefix[] = "has invited you to lead group ";
-  static const char raid_group_suffix[] = " in a raid.";
-  if (invite_msg.starts_with(raid_group_prefix) && invite_msg.ends_with(raid_group_suffix)) return inviter;
-
-  // Return empty name if message didn't match
-  return "";
-}
-
 // Returns a player name if the tell matches the expected /tc format.
 std::string GetConsentMeTellName(const std::string &data) {
   static const char consent_ending[] = " tells you, 'Consent me'";
@@ -918,15 +895,6 @@ void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &ch
         channel = CHATCOLOR_DEFAULT;
         msg = name + " sent a tell that triggered an out of zone Zeal auto-consent permissions check.";
       }
-    }
-  }
-
-  const auto &setting_invite_dialog = ZealService::get_instance()->ui->options->setting_invite_dialog;
-  if (channel == CHATCOLOR_YELLOW && setting_invite_dialog.get()) {
-    std::string cross_zone_raid_inviter = GetCrossZoneInviteName(msg);
-    if (!cross_zone_raid_inviter.empty()) {
-       ZealService::get_instance()->ui->options->PlayInviteSound();
-       ZealService::get_instance()->ui->options->ShowInviteDialog(cross_zone_raid_inviter.c_str(), true);
     }
   }
 

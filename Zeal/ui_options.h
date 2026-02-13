@@ -9,6 +9,7 @@
 
 class ui_options {
  public:
+  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel);
   void UpdateOptions();
   void UpdateOptionsMap();
   void UpdateOptionsTargetRing();
