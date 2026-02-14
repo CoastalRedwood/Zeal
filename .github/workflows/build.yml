@@ -1,0 +1,58 @@
+# CI build workflow that compiles the project and uploads artifacts for testing.
+# Download artifacts from the Actions tab after a successful build.
+
+name: Build
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+
+env:
+  SOLUTION_FILE_PATH: ./Zeal.sln
+
+jobs:
+  build:
+    name: Build and upload artifacts
+    runs-on: windows-2022
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Parse the git short hash
+        id: parse_git
+        shell: bash
+        run: |
+          SHORT_HASH=$(git rev-parse --short "$GITHUB_SHA")
+          echo short_hash=$SHORT_HASH >> $GITHUB_OUTPUT
+
+      - name: Extract ZEAL_VERSION from source
+        id: zeal_version
+        shell: bash
+        env:
+          SED_PARAMS: 's/^[^"]*"\([^"]*\)".*/\1/'
+        run: |
+          ZEAL_VERSION=$(grep '#define ZEAL_VERSION' Zeal/zeal.h | sed $SED_PARAMS)
+          echo version=v$ZEAL_VERSION >> $GITHUB_OUTPUT
+
+      - name: Build
+        env:
+          ZEAL_BUILD_VERSION: ${{ steps.parse_git.outputs.short_hash }}
+        run: |
+          msbuild /m /p:Configuration=Release /p:Platform=x86 /p:zeal_build_version=$env:ZEAL_BUILD_VERSION /p:LanguageStandard=stdcpp20 $env:SOLUTION_FILE_PATH /p:ExportHeader="" /p:ScanDependencies=""
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeal-${{ steps.zeal_version.outputs.version }}-${{ steps.parse_git.outputs.short_hash }}
+          path: |
+            Release/Zeal.asi
+            Release/Zeal.pdb
+            Zeal/uifiles
+            README.md
