@@ -638,7 +638,7 @@ void ZealService::AddCommands() {
                      [](std::vector<std::string> &args) { return handle_tell_consent(); });
   commands_hook->Add("/replyconsent", {"/rc"}, "Does a /consent to the sender of most recent tell.",
                      [](std::vector<std::string> &args) { return handle_reply_consent(); });
-  commands_hook->Add("/replyraidinvite", {"/rii"}, "Does a #raidinvite to the sender of most recent tell.",
+  commands_hook->Add("/replyraidinvite", {"/rri"}, "Does a #raidinvite to the sender of most recent tell.",
                      [](std::vector<std::string> &args) { return handle_reply_raidinvite(); });
   commands_hook->Add("/targetprevious", {}, "Switches to previous target (can toggle last two).",
                      [this](std::vector<std::string> &args) {
