@@ -75,6 +75,7 @@ class ZealService {
   std::unique_ptr<class Labels> labels_hook = nullptr;
   std::unique_ptr<class ItemDisplay> item_displays = nullptr;
   std::unique_ptr<class EquipItem> equip_item_hook = nullptr;
+  std::unique_ptr<class Bandoleer> bandoleer = nullptr;
   std::unique_ptr<class chatfilter> chatfilter_hook = nullptr;
   std::unique_ptr<class Chat> chat_hook = nullptr;
   std::unique_ptr<class NamePlate> nameplate = nullptr;

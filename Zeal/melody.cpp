@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "bandoleer.h"
 #include "callbacks.h"
 #include "commands.h"
 #include "game_functions.h"
@@ -121,6 +122,11 @@ void Melody::end(bool do_print) {
     deferred_spell_id = kInvalidSpellId;
     use_item_index = -1;
     use_item_ack_state = UseItemState::Idle;
+
+    // Notify bandoleer to restore weapons if instruments were swapped in.
+    if (ZealService::get_instance()->bandoleer)
+      ZealService::get_instance()->bandoleer->notify_melody_stop();
+
     if (do_print) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Your melody has ended.");
   }
 }
@@ -314,10 +320,19 @@ void Melody::tick() {
   else
     stop_current_cast();  // Just in case call. Does nothing if casting not active (expected).
 
-  if (char_info->cast(current_gem, current_gem_spell_id, 0, -1))
+  // Bandoleer: restore weapons before casting the next song (instruments were swapped in
+  // during the last second of the previous song). Then after cast starts, notify bandoleer
+  // to begin monitoring the new song's cast timer.
+  if (ZealService::get_instance()->bandoleer)
+    ZealService::get_instance()->bandoleer->restore_if_swapped();
+
+  if (char_info->cast(current_gem, current_gem_spell_id, 0, -1)) {
     casting_melody_spell_id = current_gem_spell_id;  // Successful start of cast; arm retry.
-  else
+    if (ZealService::get_instance()->bandoleer)
+      ZealService::get_instance()->bandoleer->notify_song_start(current_gem);
+  } else {
     retry_count++;  // Re-use the retry logic to limit runaway spam if entire song list is invalid.
+  }
 
   start_of_cast_timestamp = current_timestamp;
 }
