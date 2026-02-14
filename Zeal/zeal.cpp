@@ -233,15 +233,29 @@ static bool handle_tell_consent() {
   return true;
 }
 
-// Sends a "Consent me" tell to the owner of the targeted corpse.
-static bool handle_reply_consent() {
+static const char* get_last_tell_sender() {
   const char(*tell_list)[64] = reinterpret_cast<const char(*)[64]>(0x007CE45C);
   const char *last_teller = tell_list[0];
   if (last_teller[0] == 0) {
     Zeal::Game::print_chat("No players in recent tell history.");
-    return true;
+    return "";
   }
-  Zeal::Game::do_consent(last_teller);
+  return last_teller;
+}
+
+// Sends a "Consent me" tell to the owner of the targeted corpse.
+static bool handle_reply_consent() {
+  const char *last_teller = get_last_tell_sender();
+  if (last_teller[0] != 0)
+    Zeal::Game::do_consent(last_teller);
+  return true;
+}
+
+// Sends a "#raidinvite" message with the player from the last tell received
+static bool handle_reply_raidinvite() {
+  const char *last_teller = get_last_tell_sender();
+  if (last_teller[0] != 0)
+    Zeal::Game::do_say(true, "#raidinvite %s", last_teller);
   return true;
 }
 
@@ -624,6 +638,8 @@ void ZealService::AddCommands() {
                      [](std::vector<std::string> &args) { return handle_tell_consent(); });
   commands_hook->Add("/replyconsent", {"/rc"}, "Does a /consent to the sender of most recent tell.",
                      [](std::vector<std::string> &args) { return handle_reply_consent(); });
+  commands_hook->Add("/replyraidinvite", {"/rri"}, "Does a #raidinvite to the sender of most recent tell.",
+                     [](std::vector<std::string> &args) { return handle_reply_raidinvite(); });
   commands_hook->Add("/targetprevious", {}, "Switches to previous target (can toggle last two).",
                      [this](std::vector<std::string> &args) {
                        cycle_target->handle_toggle_last_two(true, true);
