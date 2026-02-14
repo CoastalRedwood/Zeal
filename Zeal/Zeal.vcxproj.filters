@@ -156,6 +156,9 @@
     <ClInclude Include="autofire.h">
       <Filter>Header Files\hooks</Filter>
     </ClInclude>
+    <ClInclude Include="bandoleer.h">
+      <Filter>Header Files\hooks</Filter>
+    </ClInclude>
     <ClInclude Include="string_util.h">
       <Filter>Header Files\helpers</Filter>
     </ClInclude>
@@ -390,6 +393,9 @@
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="autofire.cpp">
+      <Filter>Source Files\hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="bandoleer.cpp">
       <Filter>Source Files\hooks</Filter>
     </ClCompile>
     <ClCompile Include="ui_raid.cpp">
