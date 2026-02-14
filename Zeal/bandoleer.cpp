@@ -286,8 +286,11 @@ void Bandoleer::tick() {
   DWORD game_time = display->GameTimeMs;
   DWORD cast_finish = self->ActorInfo->CastingTimeout;
 
+  // Sanity check: cast_finish should be ahead of game_time and within a reasonable range.
+  if (cast_finish <= game_time || (cast_finish - game_time) > 30000) return;
+
   // Check if we are within the last kSwapThresholdMs of the cast.
-  if (cast_finish > game_time && (cast_finish - game_time) < kSwapThresholdMs) {
+  if ((cast_finish - game_time) < kSwapThresholdMs) {
     swap_instruments_in();
     if (!active_swaps.empty())
       state = State::Swapped;
