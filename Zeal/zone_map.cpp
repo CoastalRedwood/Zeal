@@ -1059,8 +1059,9 @@ void ZoneMap::add_self_pet_position_vertices(std::vector<MapVertex> &vertices) c
     if (pet_entity) {
       const float kShrinkFactor = 0.7f;  // Make pet 30% smaller.
       const float size = convert_size_fraction_to_model(position_size * kShrinkFactor);
-
-      auto pet_color = D3DCOLOR_XRGB(195, 176, 145);  // Lemon khaki
+      // The lemon khaki is hard to see with tan so switch to an olive pet color.
+      auto pet_color =
+          (map_background_state == BackgroundType::kTan) ? D3DCOLOR_XRGB(195, 176, 0) : D3DCOLOR_XRGB(195, 176, 145);
       add_position_marker_vertices(-pet_entity->Position.x, -pet_entity->Position.y, pet_entity->Heading, size,
                                    pet_color, vertices);
     }
