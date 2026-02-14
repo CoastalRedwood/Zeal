@@ -329,6 +329,10 @@ ___
   - **Aliases:** `/rc`
   - **Description:** Executes a /consent on the last player to send you a tell.
 
+- `/replyraidinvite`
+  - **Aliases:** `/rri`
+  - **Description:** Executes a "#raidinvite <player>" on the last player to send you a tell.
+
 - `/resetexp`
   - **Arguments:** `` (none resets exp), `ding` (enables aa ding sound), `off` (disables ding sound)
   - **Example:** `/resetexp`
