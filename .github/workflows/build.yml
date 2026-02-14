@@ -12,6 +12,9 @@ on:
 env:
   SOLUTION_FILE_PATH: ./Zeal.sln
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build and upload artifacts
@@ -38,7 +41,7 @@ jobs:
         env:
           SED_PARAMS: 's/^[^"]*"\([^"]*\)".*/\1/'
         run: |
-          ZEAL_VERSION=$(grep '#define ZEAL_VERSION' Zeal/zeal.h | sed $SED_PARAMS)
+          ZEAL_VERSION=$(grep '#define ZEAL_VERSION' Zeal/zeal.h | sed "$SED_PARAMS")
           echo version=v$ZEAL_VERSION >> $GITHUB_OUTPUT
 
       - name: Build
