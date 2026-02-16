@@ -221,7 +221,35 @@ ChatCommands::ChatCommands(ZealService *zeal) {
         Zeal::Game::do_say(true, "#showlootlockouts");
         return true;
       });
+  Add("/cancelbuff", {}, "Cancels a specific beneficial buff by spellid", [](std::vector<std::string> &args) {
+    int spell_id = 0;
+    if (args.size() == 2 && Zeal::String::tryParse(args[1], &spell_id)) {
+      if (!Zeal::Game::Spells::IsValidSpellIndex(spell_id)) {
+        Zeal::Game::print_chat("Invalid spell id");
+        return true;
+      }
+      const auto *spell_mgr = Zeal::Game::get_spell_mgr();
+      const auto *spell = spell_mgr ? spell_mgr->Spells[spell_id] : nullptr;
+      auto char_info = Zeal::Game::get_char_info();
+      if (!spell || !char_info) return true;
+      if (spell->SpellType == 0) {
+        Zeal::Game::print_chat("Can only cancel beneficial spells");
+        return true;
+      }
 
+      for (size_t i = 0; i < GAME_NUM_BUFFS; i++) {
+        Zeal::GameStructures::_GAMEBUFFINFO *buff = char_info->GetBuff(i);
+        if (buff && buff->BuffType != 0 && buff->SpellId == spell_id) {
+          char_info->RemoveMyAffect(i);
+          return true;
+        }
+      }
+      Zeal::Game::print_chat("No matching spell found");
+      return true;
+    }
+    Zeal::Game::print_chat("Usage: /cancelbuff <spellid>");
+    return true;
+  });
   Add("/clienthptick", {"/cht"}, "Toggle client health tick (disabled by default in this client).",
       [this](std::vector<std::string> &args) {
         BYTE orig1[9] = {0x55, 0x50, 0x8B, 0xCE, 0xE8, 0x10, 0x65, 0xFF, 0xFF};

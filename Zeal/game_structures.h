@@ -980,6 +980,10 @@ struct GAMECHARINFO  // common/patches/mac_structs.h::PlayerProfile_Struct
 
   int GetMaxBuffs() { return reinterpret_cast<BYTE(__thiscall *)(GAMECHARINFO *)>(0x004C4637)(this); }
 
+  int *RemoveMyAffect(int buff_slot) {  // Supports 0..15
+    return reinterpret_cast<int *(__thiscall *)(GAMECHARINFO *, int)>(0x004d0337)(this, buff_slot);
+  }
+
   /* 0x0000 */ BYTE Unknown0000[2];
   /* 0x0002 */ CHAR Name[64];      // [0x40]
   /* 0x0042 */ CHAR LastName[70];  // [0x46] ; surname or title
