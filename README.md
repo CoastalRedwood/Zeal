@@ -109,6 +109,10 @@ ___
 - `/bluecon`
   - **Description:** Changes the blue con color to Zeal Color Button #15 which is in the Zeal Options window, Colors Tab.
 
+- `/cancelbuff`
+  - **Arguments:** `spellid`
+  - **Description:** Removes an effect of a beneficial spell that matches spellid
+
 - `/classchatcolors`
   - **Aliases** `/clc`
   - **Example:** `/clc`
