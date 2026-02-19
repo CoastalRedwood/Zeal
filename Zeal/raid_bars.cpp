@@ -498,7 +498,9 @@ bool RaidBars::HandleLMouseUp(short x, short y) {
   auto entity = visible_list[index];
   if (entity == nullptr) return false;
 
-  Zeal::Game::do_target(entity->Name);
+  // Quarm now allows targeting of any raid member across the zone. So just go ahead
+  // and directly set the target instead of using do_target(entity->Name) with checks.
+  Zeal::Game::set_target(entity);
   return true;
 }
 

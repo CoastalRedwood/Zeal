@@ -323,7 +323,7 @@ ___
           the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom. It
           is recommended to first set the upper left with `/raidbars position <left> <top>` and then use
           `/raidbars grid <num_rows> <num_cols>` to calculate the right and bottom values. Re-run the grid
-          command if the font or barheights or widths are changeed.Setting `/raidbars background` to something
+          command if the font or barheights or widths are changed. Setting `/raidbars background` to something
           like 70 will make the draw rectangle obvious.
 
 - `/reloadskin`
@@ -573,6 +573,7 @@ Manual editing of the ini file is required to copy from old section to the new s
   RingRight, Ammo
 - Can hold Shift (2nd) / Ctrl (3rd) / Shift+Ctrl (4th) to equip the item to alternate slots
   if it can be equipped in several slots in the list.
+- Holding Alt blocks click to equip to allow processing by the eqgame.dll
 
 ## Triggers
 - Supports a very simplistic visible timer countdown display based on char parsed trigger events
