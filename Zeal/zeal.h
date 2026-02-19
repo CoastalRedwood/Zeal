@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define ZEAL_VERSION "1.3.7"
+#define ZEAL_VERSION "1.3.8-beta0"
 #ifndef ZEAL_BUILD_VERSION               // Set by github actions
 #define ZEAL_BUILD_VERSION "UNOFFICIAL"  // Local build
 #endif
