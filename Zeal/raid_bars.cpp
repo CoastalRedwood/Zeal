@@ -498,7 +498,9 @@ bool RaidBars::HandleLMouseUp(short x, short y) {
   auto entity = visible_list[index];
   if (entity == nullptr) return false;
 
-  Zeal::Game::do_target(entity->Name);
+  // Quarm now allows targeting of any raid member across the zone. So just go ahead
+  // and directly set the target instead of using do_target(entity->Name) with checks.
+  Zeal::Game::set_target(entity);
   return true;
 }
 
@@ -608,7 +610,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
     // This does keep the same class priority sorting within groups except leader first.
     int group_count = 0;  // Track number of group members found.
     std::vector<const RaidMember *> group_members;
-    const int group_max = ungrouped ? 6 : 72;
+    const int group_max = ungrouped ? 72 : 6;
     for (const int class_index : class_priority) {
       for (const auto &member : raid_classes[class_index]) {
         if (member.group_number != group_index || group_members.size() >= group_max) continue;

@@ -39,8 +39,8 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
   }
 
   Zeal::GameUI::CXWndManager *wnd_mgr = Zeal::Game::get_wnd_manager();
-  if (!wnd_mgr) {
-    return false;
+  if (!wnd_mgr || wnd_mgr->AltKeyState) {
+    return false;  // Alt modifier key disables click to equip and lets eqgame.dll process it.
   }
 
   Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
