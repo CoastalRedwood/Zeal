@@ -68,6 +68,7 @@
     <ClInclude Include="alarm.h" />
     <ClInclude Include="assist.h" />
     <ClInclude Include="autofire.h" />
+    <ClInclude Include="bandoleer.h" />
     <ClInclude Include="bitmap_font.h" />
     <ClInclude Include="operator_overloads.h" />
     <ClInclude Include="character_select.h" />
@@ -152,6 +153,7 @@
     <ClCompile Include="alarm.cpp" />
     <ClCompile Include="assist.cpp" />
     <ClCompile Include="autofire.cpp" />
+    <ClCompile Include="bandoleer.cpp" />
     <ClCompile Include="bitmap_font.cpp" />
     <ClCompile Include="character_select.cpp" />
     <ClCompile Include="chatfilter.cpp" />
