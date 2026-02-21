@@ -33,7 +33,7 @@ class Bandoleer {
   static constexpr int kManagedSlots[kNumManagedSlots] = {kPrimarySlot, kSecondarySlot, kRangeSlot};
 
   // Threshold in milliseconds before song finishes to swap instruments in.
-  static constexpr DWORD kSwapThresholdMs = 1000;
+  static constexpr DWORD kSwapThresholdMs = 300;
 
   enum class State { Idle, Monitoring, Swapped };
 
