@@ -457,8 +457,8 @@ ___
   - **Description:** Sets (on) or clears (off) the UI Lock value on primary game windows. Bag windows must be open to take effect.
 
 - `/useitem`
-  - **Arguments:** `slot_#` (+ optional `quiet` that suppresses warnings if no click effect)
-  - **Description:** Activates a click effect on item in slot_#.
+  - **Arguments:** `slot_#` or `bag_# slot_#` (+ optional `quiet` that suppresses warnings if no click effect)
+  - **Description:** Activates a click effect on item in slot_#, or bag_# (1-8) slot_# (1-10) for an item in a bag.
   - **Example:** `/useitem 16 quiet` activates click effect on BP and suppresses some warnings
 
 - `/zeal`

@@ -125,7 +125,7 @@ bool Melody::use_item(int item_index) {
         || item_index > GAME_CONTAINER_SLOTS_END )
     return false;
   // Set fields so use_item(item_index) will execute during tick().
-  use_item_index = {item_index};
+  use_item_index = item_index;
   use_item_timeout = GetTickCount64() + USE_ITEM_QUEUE_TIMEOUT;
   return true;
 }

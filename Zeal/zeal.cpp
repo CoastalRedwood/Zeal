@@ -355,7 +355,8 @@ void ZealService::AddCommands() {
   commands_hook->Add(
       "/useitem", {},
       std::format("Use an item's right click function. Arugment is 0-29 which indicates the inventory slot, "
-        "or \"<Bag #> <Slot #>\" which indicates an item in a bag"),
+        "or \"<Bag 1-%i> <Slot 1-%i>\" which indicates an item in a bag",
+        GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS),
       [](std::vector<std::string> &args) {
         Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
         Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
@@ -388,7 +389,8 @@ void ZealService::AddCommands() {
           Zeal::Game::use_item(inv_index, quiet);
         } else {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
-            "useitem requires an item slot between 0 and 29, or \"<Bag #> <Slot #>\" for bagged items");
+            "useitem requires an item slot between 0 and 29, or \"<Bag 1-%i> <Slot 1-%i>\" for bagged items",
+            GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
           Zeal::Game::print_chat("0: Left ear, 1: Head, 2: Face, 3: Right Ear, 4: Neck, 5: Shoulders");
           Zeal::Game::print_chat("6: Arms, 7: Back, 8: Left Wrist, 9: Right Wrist, 10: Ranged");
           Zeal::Game::print_chat("11: Hands, 12: Primary, 13: Secondary, 14: Left Finger, 15: Right Finger");

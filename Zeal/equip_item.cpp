@@ -28,20 +28,24 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
     return false;
   }
 
+  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
+
   Zeal::GameUI::CXWndManager *wnd_mgr = Zeal::Game::get_wnd_manager();
-  if (!wnd_mgr) {
+  if (!wnd_mgr || !c) {
     return false;
   }
-
-  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
 
   int src_slot_id = src_wnd->SlotID;
 
   // Check for alt early as we want to use a clicky
   BYTE alt = wnd_mgr->AltKeyState;
 
+  // Note: The default client behavior for items is to do nothing when a modifier is used with right click,
+  //       so no checks for opening containers, consuming food, etc is currently in place
+
   // Holding alt will use clickies even if in bags
-  if (alt) {
+  if (alt && setting_click_from_inventory.get()) {
+
     // Ignore non-player slots
     if (src_slot_id < 0 || (src_slot_id > 29 && src_slot_id < GAME_CONTAINER_SLOTS_START)
         || src_slot_id > GAME_CONTAINER_SLOTS_END) return false;
@@ -54,6 +58,8 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
           ZealService::get_instance()->melody->use_item(src_slot_id))
       return true;
     Zeal::Game::use_item(src_slot_id);
+
+    // Always returning true here to snuff out any other downstream attempted handling
     return true;
   }
 

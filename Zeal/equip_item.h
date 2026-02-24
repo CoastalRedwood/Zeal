@@ -11,6 +11,7 @@ class EquipItem {
   bool HandleRButtonUp(Zeal::GameUI::InvSlot *inv_slot);
 
   ZealSetting<bool> Enabled = {false, "Zeal", "RightClickToEquip", false};
+  ZealSetting<bool> setting_click_from_inventory = {true, "Zeal", "ClickFromInventory", false};
 
  private:
   Zeal::GameUI::InvSlot *GetInventorySlot(int inv_slot_id);
