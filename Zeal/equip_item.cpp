@@ -19,7 +19,7 @@ static void __fastcall CInvSlot_HandleRButtonUp(Zeal::GameUI::InvSlot *inv_slot,
 }
 
 bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
-  if (!Enabled.get() || !src_inv_slot) {
+  if (!src_inv_slot) {
     return false;
   }
 
@@ -62,6 +62,9 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
     // Always returning true here to snuff out any other downstream attempted handling
     return true;
   }
+
+  // Nothing downstream is required if RightClickToEquip is disabled
+  if (!Enabled.get()) return false;
 
   // Slot ID for bagged items is 250 + (bag_i*10) + (contents_i) = [250...329]
   if (src_slot_id < GAME_CONTAINER_SLOTS_START || src_slot_id > GAME_CONTAINER_SLOTS_END) {
