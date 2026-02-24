@@ -30,16 +30,13 @@ static bool handle_raidmove(std::vector<std::string> &args) {
     return true;
   }  
 
-  if (args.size() == 2) {
-    int group_number = 0;
-    if (Zeal::String::tryParse(args[1], &group_number)) {
+  int group_number = 0;
+  if (args.size() == 2 && Zeal::String::tryParse(args[1], &group_number, true)) {
       Zeal::Game::do_say(true, "#raidmove %s %d", target->Name, group_number);
-    } else {
-      Zeal::Game::print_chat("Usage: /raidmove [groupnumber]");
-    }
   } else {
     Zeal::Game::print_chat("Usage: /raidmove [groupnumber]");
   }
+
   return true;
 }
 

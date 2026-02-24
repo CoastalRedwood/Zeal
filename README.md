@@ -326,6 +326,17 @@ ___
           command if the font or barheights or widths are changed. Setting `/raidbars background` to something
           like 70 will make the draw rectangle obvious.
 
+- `/raidmove`
+  - **Aliases:** `/rm`
+  - **Arguments:** `int`
+  - **Example:** `/raidmove 0` Moves targeted player to ungrouped.
+  - **Example:** `/raidmove 1` Moves targeted player to group 1.
+  - **Description:** Executes #raidmove command on the targeted player.
+
+- `/raidpromote`
+  - **Aliases:** `/rp`
+  - **Description:** Executes #raidpromote command on the targeted player.
+
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
 
