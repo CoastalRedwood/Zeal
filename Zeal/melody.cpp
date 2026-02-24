@@ -126,8 +126,9 @@ void Melody::end(bool do_print) {
 }
 
 bool Melody::use_item(int item_index) {
-  if (!is_active || item_index < 0 || item_index > 29) return false;
-
+  if (!is_active || item_index < 0 || (item_index > 29 && item_index < GAME_CONTAINER_SLOTS_START)
+        || item_index > GAME_CONTAINER_SLOTS_END )
+    return false;
   // Set fields so use_item(item_index) will execute during tick().
   use_item_index = item_index;
   use_item_timeout = GetTickCount64() + USE_ITEM_QUEUE_TIMEOUT;

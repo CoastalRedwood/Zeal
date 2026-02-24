@@ -402,6 +402,9 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_CastAutoStand", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->movement->CastAutoStand.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_ClickFromInventory", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->equip_item_hook->setting_click_from_inventory.set(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_RightClickToEquip", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->equip_item_hook->Enabled.set(wnd->Checked);
   });
@@ -1027,6 +1030,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
   ui->SetChecked("Zeal_SpellbookAutoStand", ZealService::get_instance()->movement->SpellBookAutoStand.get());
   ui->SetChecked("Zeal_CastAutoStand", ZealService::get_instance()->movement->CastAutoStand.get());
+  ui->SetChecked("Zeal_ClickFromInventory", ZealService::get_instance()->equip_item_hook->setting_click_from_inventory.get());
   ui->SetChecked("Zeal_RightClickToEquip", ZealService::get_instance()->equip_item_hook->Enabled.get());
   ui->SetChecked("Zeal_BuffTimers", ZealService::get_instance()->ui->buffs->BuffTimers.get());
   ui->SetChecked("Zeal_RecastTimers", ZealService::get_instance()->ui->buffs->RecastTimers.get());

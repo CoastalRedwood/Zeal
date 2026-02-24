@@ -1857,15 +1857,35 @@ bool use_item(int item_index, bool quiet) {
     Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get charinfo for useitem!");
     return false;
   }
+  int bag_slot = -1;
+  int bag_sub_slot = -1;
+  if (item_index >= GAME_CONTAINER_SLOTS_START) {
+    bag_slot = (item_index - 250) / GAME_NUM_CONTAINER_SLOTS;
+    bag_sub_slot = (item_index - 250) % GAME_NUM_CONTAINER_SLOTS;
+  }
   Zeal::GameStructures::GAMEITEMINFO *item = nullptr;
-  if (item_index < 0 || item_index > 29) {
-    Zeal::Game::print_chat("useitem requires an item slot between 0 and 29, you tried to use %i", item_index);
+  if (bag_sub_slot < 0 && (item_index < 0 || item_index > 29)){
+    Zeal::Game::print_chat("useitem <slot> requires an item slot between 0 and 29, you tried to use %i", item_index);
     return false;
   }
-  if (item_index < 21)
+
+  if (bag_sub_slot < 0 && item_index < 21)
     item = chr->InventoryItem[item_index];
-  else
+  else if (bag_sub_slot < 0)
     item = chr->InventoryPackItem[item_index - 22];  //-22 to make it back to 0 index
+  else {
+    Zeal::GameStructures::GAMEITEMINFO *bag = nullptr;
+    bag = chr->InventoryPackItem[bag_slot];
+    if (!bag) {
+      if (!quiet) Zeal::Game::print_chat("You don't have a bag in Slot %i", bag_slot + 1);
+      return false;
+    }
+    item = bag->Container.Item[bag_sub_slot];
+    if (!item) {
+      if (!quiet) Zeal::Game::print_chat("You don't have an item in Bag %i, Slot %i", bag_slot + 1, bag_sub_slot + 1);
+      return false;
+    }
+  }
 
   if (!item) {
     if (!quiet) Zeal::Game::print_chat("There isn't an item at %i", item_index);
