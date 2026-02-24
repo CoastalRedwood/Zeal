@@ -148,6 +148,19 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     }
   }
 
+  if (args.size() >= 2 && args[1] == "grid") {
+    int rows, columns;
+    bool valid = false;
+    if (args.size() == 4 && Zeal::String::tryParse(args[2], &rows, true) &&
+        Zeal::String::tryParse(args[3], &columns, true) && HandleSetGrid(rows, columns)) {
+      Zeal::Game::print_chat("Raidbars position set to (%d, %d, %d, %d)", setting_position_left.get(),
+                             setting_position_top.get(), setting_position_right.get(), setting_position_bottom.get());
+    } else {
+      Zeal::Game::print_chat("Usage: /raidbars grid <num_rows> <num_cols>");
+    }
+    return;
+  }
+
   if (args.size() >= 2 && args[1] == "showall") {
     if (args.size() == 3 && (args[2] == "on" || args[2] == "off"))
       setting_show_all.set(args[2] == "on");
@@ -209,6 +222,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /raidbars <on | off | toggle>");
   Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right> <bottom>]");
   Zeal::Game::print_chat("Note: right and bottom are screen coordinates relative to upper left");
+  Zeal::Game::print_chat("Usage: /raidbars grid <num_rows> <num_cols> (auto-calcs right and bottom)");
   Zeal::Game::print_chat("Usage: /raidbars background <alpha> (0 to 100 = invisible to solid black)");
   Zeal::Game::print_chat("Usage: /raidbars [barheight | barwidth] <value> (0 = autoscale to font)");
   Zeal::Game::print_chat("Usage: /raidbars font font_filename");
@@ -220,6 +234,34 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
   Zeal::Game::print_chat("Usage: /raidbars filter <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars threshold <value> (filtered class shown with hp % <= value)");
+}
+
+// Utility for auto-calculating the positions box right and bottom using a target number of rows and columns.
+bool RaidBars::HandleSetGrid(int num_rows, int num_cols) {
+  if (num_rows <= 0 || num_rows > 100 || num_cols <= 0 || num_cols > 100) {
+    Zeal::Game::print_chat("Error: num_rows and num_cols must be between 1 and 100");
+    return false;
+  }
+
+  LoadBitmapFont();  // Need font loaded to set grid_height and grid_width properly.
+  if (!bitmap_font || grid_height <= 0 || grid_width <= 0) return false;
+
+  int max_rows = static_cast<int>((Zeal::Game::get_screen_resolution_y() - setting_position_top.get()) / grid_height);
+  int max_cols = static_cast<int>((Zeal::Game::get_screen_resolution_x() - setting_position_left.get()) / grid_width);
+
+  if (max_rows <= 0 || max_cols <= 0) {
+    Zeal::Game::print_chat("Error: Can not fit any on screen. Reduce /raidbar positions left or top.");
+    return false;
+  }
+
+  num_rows = min(num_rows, max_rows);
+  num_cols = min(num_cols, max_cols);
+  Zeal::Game::print_chat("Setting grid to %d rows by %d cols", num_rows, num_cols);
+  float bottom = setting_position_top.get() + num_rows * grid_height;
+  float right = setting_position_left.get() + num_cols * grid_width;
+  setting_position_bottom.set(static_cast<int>(std::ceil(bottom)));
+  setting_position_right.set(static_cast<int>(std::ceil(right)));
+  return true;
 }
 
 // Loads the bitmap font for real-time text rendering to screen.
@@ -456,7 +498,9 @@ bool RaidBars::HandleLMouseUp(short x, short y) {
   auto entity = visible_list[index];
   if (entity == nullptr) return false;
 
-  Zeal::Game::do_target(entity->Name);
+  // Quarm now allows targeting of any raid member across the zone. So just go ahead
+  // and directly set the target instead of using do_target(entity->Name) with checks.
+  Zeal::Game::set_target(entity);
   return true;
 }
 
@@ -566,7 +610,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
     // This does keep the same class priority sorting within groups except leader first.
     int group_count = 0;  // Track number of group members found.
     std::vector<const RaidMember *> group_members;
-    const int group_max = ungrouped ? 6 : 72;
+    const int group_max = ungrouped ? 72 : 6;
     for (const int class_index : class_priority) {
       for (const auto &member : raid_classes[class_index]) {
         if (member.group_number != group_index || group_members.size() >= group_max) continue;

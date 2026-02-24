@@ -39,6 +39,41 @@
 static constexpr int kMaxComboBoxItems = 50;  // Maximum length of dynamic combobox lists.
 static constexpr char kDefaultSoundNone[] = "None";
 
+// Returns a player name if the message matches a cross-zone raid invite
+std::string GetCrossZoneInviteName(const std::string &data) {
+
+  static const char raid_invite_ending[] = " a raid."; 
+  if (!data.ends_with(raid_invite_ending)) return "";
+
+  size_t first_space;
+  std::string inviter;
+  if (data.starts_with("<c")) {
+    // Handle color tag if Class Chat Colors is on
+    size_t name_start = data.find(">");
+    size_t name_end = data.find("</c>");
+    if (name_start == std::string::npos || name_end == std::string::npos) return "";
+    first_space = data.find("> ") + 1;
+    inviter = data.substr(name_start + 1, name_end - name_start - 1);
+  } else {
+    // Handle normal messages
+    first_space = data.find_first_of(" ");
+    inviter = data.substr(0, first_space);
+  }
+
+  std::string invite_msg = data.substr(first_space + 1);
+
+  // Standard raid invite is a static message, return inviter if found
+  if (invite_msg == "has invited you to join a raid.") return inviter;
+
+  // Group lead invite contains a variable group number
+  static const char raid_group_prefix[] = "has invited you to lead group ";
+  static const char raid_group_suffix[] = " in a raid.";
+  if (invite_msg.starts_with(raid_group_prefix) && invite_msg.ends_with(raid_group_suffix)) return inviter;
+
+  // Return empty name if message didn't match
+  return "";
+}
+
 float GetSensitivityFromSlider(int value) { return value / 100.f; }
 
 int GetSensitivityForSlider(float *value) {
@@ -60,6 +95,19 @@ int Shownames_Combobox_dropdown() {
   bool names_enabled = *(int *)0x798af4 != 0;  // ShowPCNamesGUIButton
   int current_shownames = std::clamp(Zeal::Game::get_showname(), 1, 7);
   return names_enabled ? current_shownames : 0;
+}
+
+void ui_options::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel) {
+  if (channel == USERCOLOR_TELL) PlayTellSound();
+
+  //const auto &setting_invite_dialog = ZealService::get_instance()->ui->options->setting_invite_dialog;
+  if (channel == CHATCOLOR_YELLOW && setting_invite_dialog.get()) {
+    std::string cross_zone_raid_inviter = GetCrossZoneInviteName(msg);
+    if (!cross_zone_raid_inviter.empty()) {
+      PlayInviteSound();
+      ShowInviteDialog(cross_zone_raid_inviter.c_str(), true);
+    }
+  }
 }
 
 void ui_options::PlayTellSound() const {
@@ -95,7 +143,7 @@ static void handle_decline() {
   if (self && self->ActorInfo && self->ActorInfo->IsInvited) Zeal::Game::get_game()->Disband();
 }
 
-void ui_options::ShowInviteDialog(const char *raid_invite_name) const {
+void ui_options::ShowInviteDialog(const char *raid_invite_name, bool cross_zone) const {
   if (!setting_invite_dialog.get() || !ZealService::get_instance()->ui->inputDialog) return;
 
   std::string message = raid_invite_name ? (std::string(raid_invite_name) + " invites you to join a raid.")
@@ -105,8 +153,9 @@ void ui_options::ShowInviteDialog(const char *raid_invite_name) const {
   ZealService::get_instance()->ui->inputDialog->hide();
   if (raid_invite_name)
     ZealService::get_instance()->ui->inputDialog->show(
-        kInviteDialogTitle, message, "Accept", "Decline", [this](std::string unused) { Zeal::Game::do_raidaccept(); },
-        [this](std::string unused) { Zeal::Game::do_raiddecline(); }, false);
+        kInviteDialogTitle, message, "Accept", "Decline",
+        [this, cross_zone](std::string unused) { Zeal::Game::do_raidaccept(cross_zone); },
+        [this, cross_zone](std::string unused) { Zeal::Game::do_raiddecline(cross_zone); }, false);
   else
     ZealService::get_instance()->ui->inputDialog->show(
         kInviteDialogTitle, message, "Follow", "Decline", [this](std::string unused) { handle_follow(); },
@@ -1482,8 +1531,8 @@ ui_options::ui_options(ZealService *zeal, UIManager *mgr) : ui(mgr) {
   zeal->hooks->Add("ContainerWndSetContainer", 0x0041717d, ContainerWndSetContainer, hook_type_detour);
   zeal->hooks->Add("SidlScreenWndHandleRButtonDown", 0x005703f0, SidlScreenWndHandleRButtonDown, hook_type_detour);
 
-  zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, const std::string &msg, const short &channel) {
-    if (channel == USERCOLOR_TELL) this->PlayTellSound();
+  zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
+    this->AddOutputText(wnd, msg, channel);
   });
 
   zeal->hooks->Add("CConfirmationDialog_Center", 0x00415b57, CConfirmationDialog_Center, hook_type_replace_call);

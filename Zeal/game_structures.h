@@ -31,6 +31,22 @@
 
 #define CHATCOLOR_DEFAULT 0  // Defined in namespace Chat of common/eq_constants.h.
 #define CHATCOLOR_WHITE 0
+#define CHATCOLOR_DIMGRAY 1
+#define CHATCOLOR_GREEN 2
+#define CHATCOLOR_BRIGHTBLUE 3
+#define CHATCOLOR_LIGHTBLUE 4
+#define CHATCOLOR_MAGENTA 5
+#define CHATCOLOR_GRAY 6
+#define CHATCOLOR_LIGHTGRAY 7
+#define CHATCOLOR_NPCQUESTSAY 10
+#define CHATCOLOR_DARKGRAY 12
+#define CHATCOLOR_RED 13
+#define CHATCOLOR_LIME 14
+#define CHATCOLOR_YELLOW 15
+#define CHATCOLOR_BLUE 16
+#define CHATCOLOR_LIGHTNAVY 17
+#define CHATCOLOR_CYAN 18
+#define CHATCOLOR_BLACK 20
 #define USERCOLOR_SAY 0xFF + 1                 //  1  - Say
 #define USERCOLOR_TELL 0xFF + 2                //  2  - Tell
 #define USERCOLOR_GROUP 0xFF + 3               //  3  - Group
@@ -965,6 +981,10 @@ struct GAMECHARINFO  // common/patches/mac_structs.h::PlayerProfile_Struct
   }
 
   int GetMaxBuffs() { return reinterpret_cast<BYTE(__thiscall *)(GAMECHARINFO *)>(0x004C4637)(this); }
+
+  int *RemoveMyAffect(int buff_slot) {  // Supports 0..15
+    return reinterpret_cast<int *(__thiscall *)(GAMECHARINFO *, int)>(0x004d0337)(this, buff_slot);
+  }
 
   /* 0x0000 */ BYTE Unknown0000[2];
   /* 0x0002 */ CHAR Name[64];      // [0x40]

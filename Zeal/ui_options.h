@@ -9,6 +9,7 @@
 
 class ui_options {
  public:
+  void AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel);
   void UpdateOptions();
   void UpdateOptionsMap();
   void UpdateOptionsTargetRing();
@@ -19,7 +20,7 @@ class ui_options {
   void SaveColors() const;
   void LoadColors();
   DWORD GetColor(int index) const;
-  void ShowInviteDialog(const char *raid_invite_name = nullptr) const;
+  void ShowInviteDialog(const char *raid_invite_name = nullptr, bool cross_zone = false) const;
   void HideInviteDialog() const;
   void PlayInviteSound() const;
   void PlayTellSound() const;

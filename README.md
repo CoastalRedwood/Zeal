@@ -109,6 +109,10 @@ ___
 - `/bluecon`
   - **Description:** Changes the blue con color to Zeal Color Button #15 which is in the Zeal Options window, Colors Tab.
 
+- `/cancelbuff`
+  - **Arguments:** `spellid`
+  - **Description:** Removes an effect of a beneficial spell that matches spellid
+
 - `/classchatcolors`
   - **Aliases** `/clc`
   - **Example:** `/clc`
@@ -295,6 +299,7 @@ ___
 - `/raidbars`
   - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the raidbars
                    `position <left> <top> [<right> <bottom>]`: Specifies rectangle to draw into (all screen coordinates)
+                   `grid <num_rows> <num_cols>`: Autocalculates right and bottom based on current font/bar size.
                    `background <value>`: Sets the opacity of the position rectangle (0 to 100 = invisible to solid)
                    `font <filename>`: Selects the font to use for names
                    `<barheight | bardwidth> <value>`: Sets HP bar height or width (0 = autoscale, clamped to sane values)
@@ -315,7 +320,11 @@ ___
   - **Example:** `/raidbars filter SHM NEC` These classes are hidden if HP > threshold (if showall off)
   - **Description:** Supports enabling a class-prioritized or a by group list of raid members with health bars. The bars
           are drawn into a rectangular screen area specified by the position command (viewport compatible) where
-          the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom.
+          the upper left screen corner is (x=0, y=0) and x increases to the right, y increases to the bottom. It
+          is recommended to first set the upper left with `/raidbars position <left> <top>` and then use
+          `/raidbars grid <num_rows> <num_cols>` to calculate the right and bottom values. Re-run the grid
+          command if the font or barheights or widths are changed. Setting `/raidbars background` to something
+          like 70 will make the draw rectangle obvious.
 
 - `/reloadskin`
   - **Description:** reloads your current skin using ini.
@@ -323,6 +332,10 @@ ___
 - `/replyconsent`
   - **Aliases:** `/rc`
   - **Description:** Executes a /consent on the last player to send you a tell.
+
+- `/replyraidinvite`
+  - **Aliases:** `/rri`
+  - **Description:** Executes a "#raidinvite <player>" on the last player to send you a tell.
 
 - `/resetexp`
   - **Arguments:** `` (none resets exp), `ding` (enables aa ding sound), `off` (disables ding sound)
@@ -560,6 +573,7 @@ Manual editing of the ini file is required to copy from old section to the new s
   RingRight, Ammo
 - Can hold Shift (2nd) / Ctrl (3rd) / Shift+Ctrl (4th) to equip the item to alternate slots
   if it can be equipped in several slots in the list.
+- Holding Alt blocks click to equip to allow processing by the eqgame.dll
 
 ## Triggers
 - Supports a very simplistic visible timer countdown display based on char parsed trigger events

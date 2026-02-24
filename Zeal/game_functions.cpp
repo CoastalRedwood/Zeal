@@ -509,13 +509,18 @@ void do_who(const char *query) {
   }
 }
 
-void do_raidaccept() {
+void do_raidaccept(bool cross_zone) {
+  if (cross_zone) {
+    Zeal::Game::do_say(true, "#raidaccept");
+    return;
+  }
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3be5)(
         get_self(), "");
 }
 
-void do_raiddecline() {
+void do_raiddecline(bool cross_zone) {
+  if (cross_zone) return; // No current deny command for cross-zone invites
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3bc1)(
         get_self(), "");
@@ -1908,8 +1913,7 @@ bool use_item(int item_index, bool quiet) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
     return false;
   }
-  chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index);
-  return true;
+  return chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index) != 0;
 }
 
 bool is_autoattacking() { return *reinterpret_cast<BYTE *>(0x007f6ffe); }
