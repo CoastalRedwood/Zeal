@@ -12,7 +12,7 @@ class Melody {
   void end(bool do_print = false);
   void handle_stop_cast_callback(BYTE reason, WORD spell_id);
   void handle_deactivate_ui();
-  bool use_item(int inv_index, int bagslot_index);  // asks Melody to handle /useitem command. Returns true if melody handled the command.
+  bool use_item(int item_index);  // asks Melody to handle /useitem command. Returns true if melody handled the command.
   Melody(class ZealService *pHookWrapper);
   ~Melody();
 
@@ -29,7 +29,7 @@ class Melody {
                                                    // window is visible (actively casting).
   WORD retry_spell_id = kInvalidSpellId;           // Song failed (fizzled or otherwise, retry).
   WORD deferred_spell_id = kInvalidSpellId;        // Song wasn't ready so deferred to next opportunity.
-  std::pair<int, int> use_item_index = {-1, -1};     // The pending use_item() to try.
+  int use_item_index = -1;                         // The pending use_item() to try.
   ULONGLONG use_item_timeout = 0;                  // The max timestamp until the pending use_item() gives up.
   ULONGLONG enter_zone_time = 0;                   // Timestamp of the most recent enter zone callback.
 };

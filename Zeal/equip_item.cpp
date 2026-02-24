@@ -45,21 +45,15 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
     // Ignore non-player slots
     if (src_slot_id < 0 || (src_slot_id > 29 && src_slot_id < GAME_CONTAINER_SLOTS_START)
         || src_slot_id > GAME_CONTAINER_SLOTS_END) return false;
-    // Line up slot ID with what use_item expects
-    int inv_index;
-    int bag_sub_index = -1;
-    if (src_slot_id < 22) inv_index = src_slot_id - 1;
-    else if (src_slot_id >= GAME_CONTAINER_SLOTS_START) {
-      inv_index = (src_slot_id - 250) / GAME_NUM_CONTAINER_SLOTS;
-      bag_sub_index = (src_slot_id - 250) % GAME_NUM_CONTAINER_SLOTS;
-    }
-    else
-      inv_index = src_slot_id;
+
+    //  Adjust index for equipment slots
+    if (src_slot_id < 22) src_slot_id = src_slot_id - 1;
+
     // Try Bard Melody's use_item, otherwise regular use_item
     if (c->Class == Zeal::GameEnums::ClassTypes::Bard &&
-          ZealService::get_instance()->melody->use_item(inv_index, bag_sub_index))
+          ZealService::get_instance()->melody->use_item(src_slot_id))
       return true;
-    Zeal::Game::use_item(inv_index, bag_sub_index);
+    Zeal::Game::use_item(src_slot_id);
     return true;
   }
 

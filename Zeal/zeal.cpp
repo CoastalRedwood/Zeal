@@ -372,15 +372,20 @@ void ZealService::AddCommands() {
             Zeal::String::tryParse(args[2], &bagslot_index);
             if (args.size() > 3 && args[3] == "quiet") quiet = true;
           }
-          // Convert item-in-bag to zero index
           if (bagslot_index >= 0) {
-            inv_index = inv_index - 1;
-            bagslot_index = bagslot_index - 1;
+            if (inv_index <= 0 || inv_index > GAME_NUM_INVENTORY_PACK_SLOTS
+                  || bagslot_index <= 0 || bagslot_index > GAME_NUM_CONTAINER_SLOTS ) {
+              Zeal::Game::print_chat("useitem for bags requires an item slot between 1 and %i, and a bag-item slot between 1 and %i",
+                GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
+              return true;
+            }
+            // Convert Bag + Item into raw item index
+            inv_index = 250 + (inv_index - 1) * GAME_NUM_CONTAINER_SLOTS + (bagslot_index - 1);
           }
           if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
-              ZealService::get_instance()->melody->use_item(inv_index, bagslot_index))
+              ZealService::get_instance()->melody->use_item(inv_index))
             return true;
-          Zeal::Game::use_item(inv_index, bagslot_index, quiet);
+          Zeal::Game::use_item(inv_index, quiet);
         } else {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
             "useitem requires an item slot between 0 and 29, or \"<Bag #> <Slot #>\" for bagged items");

@@ -90,7 +90,7 @@ bool Melody::start(const std::vector<int> &new_songs, bool resume) {
   casting_melody_spell_id = kInvalidSpellId;
   retry_spell_id = kInvalidSpellId;
   deferred_spell_id = kInvalidSpellId;
-  use_item_index = {-1, -1};
+  use_item_index = -1;
   if (is_active) Zeal::Game::print_chat(USERCOLOR_SPELLS, "You begin playing a melody.");
   return true;
 }
@@ -115,18 +115,17 @@ void Melody::end(bool do_print) {
     casting_melody_spell_id = kInvalidSpellId;
     retry_spell_id = kInvalidSpellId;
     deferred_spell_id = kInvalidSpellId;
-    use_item_index = {-1, -1};
+    use_item_index = -1;
     if (do_print) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Your melody has ended.");
   }
 }
 
-bool Melody::use_item(int inv_index, int bag_sub_index) {
-  if (!is_active || (!bag_sub_index && (inv_index < 0 || inv_index > 29)) ||
-      (bag_sub_index >= 0 && (inv_index < 0 || inv_index >= GAME_NUM_INVENTORY_PACK_SLOTS
-        || bag_sub_index >= GAME_NUM_CONTAINER_SLOTS )))
+bool Melody::use_item(int item_index) {
+  if (!is_active || item_index < 0 || (item_index > 29 && item_index < GAME_CONTAINER_SLOTS_START)
+        || item_index > GAME_CONTAINER_SLOTS_END )
     return false;
   // Set fields so use_item(item_index) will execute during tick().
-  use_item_index = {inv_index, bag_sub_index};
+  use_item_index = {item_index};
   use_item_timeout = GetTickCount64() + USE_ITEM_QUEUE_TIMEOUT;
   return true;
 }
@@ -252,11 +251,10 @@ void Melody::tick() {
     return;
 
   // Execute a pending use_item() call here
-  if (use_item_index.first >= 0) {
+  if (use_item_index >= 0) {
     stop_current_cast();  // Terminate bard song (if active) in order to cast.
-    bool success = (use_item_timeout >= current_timestamp)
-        && Zeal::Game::use_item(use_item_index.first, use_item_index.second);
-    use_item_index = {-1, -1};
+    bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index);
+    use_item_index = -1;
     if (success) {
       casting_visible_timestamp = current_timestamp;  // Pushes back the start of next song by MELODY_SONG_INTERVAL ms.
       return;
