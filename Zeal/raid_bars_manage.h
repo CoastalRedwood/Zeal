@@ -35,6 +35,11 @@ class RaidBarsManage {
   int FindFirstEmptyGroup() const;
   std::string GetRaidMemberNameAtIndex(int index) const;
 
+  // Individual click modifier handlers. Return true if the click was consumed.
+  bool HandleAltClick(int index);
+  bool HandleShiftClick(int index);
+  bool HandleCtrlClick(int index);
+
   RaidBars &bars;  // Reference to parent for accessing visible_list, raid_classes, etc.
   bool enabled = false;
   std::string move_pending_name;  // Name of player selected for Ctrl move (empty = none pending).
