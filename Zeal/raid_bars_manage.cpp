@@ -113,22 +113,22 @@ bool RaidBarsManage::HandleCtrlClick(int index) {
     // Second Ctrl+Click: determine destination group from clicked location.
     DWORD dest_group = Zeal::GameStructures::RaidMember::kRaidUngrouped;
 
-    // Try to resolve the group from the clicked entity (or adjacent entries for labels).
-    std::string dest_name = GetRaidMemberNameAtIndex(index);
-    if (!dest_name.empty()) {
-      dest_group = Zeal::Game::get_raid_group_number(dest_name.c_str());
-    } else {
-      // Clicked on a nullptr entry (group label or empty slot) — scan forward to find
-      // the first entity in the same visual group section.
-      for (int i = index + 1;
-           i < static_cast<int>(bars.visible_list.size()) && i < index + 7; ++i) {
-        std::string adj_name = GetRaidMemberNameAtIndex(i);
-        if (!adj_name.empty()) {
-          dest_group = Zeal::Game::get_raid_group_number(adj_name.c_str());
+    // If index is a nullptr entry (group label or empty slot), scan backward to find the nearest
+    // member in the same visual group section.
+    int resolve_index = index;
+    if (bars.visible_list[index] == nullptr) {
+      for (int i = index - 1; i >= 0 && i > index - 7; --i) {
+        if (bars.visible_list[i] != nullptr) {
+          resolve_index = i;
           break;
         }
       }
     }
+
+    // Look up the name, then query the raid structure for the group.
+    std::string dest_name = GetRaidMemberNameAtIndex(resolve_index);
+    if (!dest_name.empty())
+      dest_group = Zeal::Game::get_raid_group_number(dest_name.c_str());
 
     if (dest_group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
       Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());
