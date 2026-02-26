@@ -70,7 +70,7 @@ bool RaidBarsManage::HandleAltClick(int index) {
   move_pending_name.clear();  // Cancel any pending move.
   std::string name = GetRaidMemberNameAtIndex(index);
   if (name.empty()) return true;  // Clicked on a label or empty slot.
-  DWORD group = bars.GetGroupAtVisibleIndex(index);
+  DWORD group = GetRaidMemberGroupAtIndex(index);
   if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
     Zeal::Game::print_chat("Player %s is already ungrouped.", name.c_str());
     return true;
@@ -84,7 +84,7 @@ bool RaidBarsManage::HandleShiftClick(int index) {
   move_pending_name.clear();  // Cancel any pending move.
   std::string name = GetRaidMemberNameAtIndex(index);
   if (name.empty()) return true;  // Clicked on a label or empty slot.
-  DWORD group = bars.GetGroupAtVisibleIndex(index);
+  DWORD group = GetRaidMemberGroupAtIndex(index);
   if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
     // Ungrouped: move to first empty group to create a new group with them as leader.
     int empty_group = FindFirstEmptyGroup();
@@ -111,7 +111,7 @@ bool RaidBarsManage::HandleCtrlClick(int index) {
     return true;
   } else {
     // Second Ctrl+Click: determine destination group from clicked location.
-    DWORD dest_group = bars.GetGroupAtVisibleIndex(index);
+    DWORD dest_group = GetRaidMemberGroupAtIndex(index);
 
     if (dest_group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
       Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());
@@ -144,7 +144,7 @@ int RaidBarsManage::FindFirstEmptyGroup() const {
 std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
   if (index < 0 || index >= bars.visible_list.size()) return {};
 
-  auto entity = bars.visible_list[index].entity;
+  auto entity = bars.visible_list[index];
   if (entity) {
     for (const auto &class_group : bars.raid_classes)
       for (const auto &member : class_group)
@@ -153,4 +153,15 @@ std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
   return {};
 }
 
+DWORD RaidBarsManage::GetRaidMemberGroupAtIndex(int index) const {
+  if (index < 0 || index >= bars.visible_list.size()) return Zeal::GameStructures::RaidMember::kRaidUngrouped;
+
+  auto entity = bars.visible_list[index];
+  if (entity) {
+    for (const auto &class_group : bars.raid_classes)
+      for (const auto &member : class_group)
+        if (member.entity == entity) return member.group_number;
+  }
+  return Zeal::GameStructures::RaidMember::kRaidUngrouped;
+}
 
