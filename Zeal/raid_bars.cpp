@@ -46,8 +46,12 @@ RaidBars::RaidBars(ZealService *zeal) {
             if (member.entity == entity) member.entity = nullptr;
 
         // Also clean the visible list.  Sweep through all of it to be safe.
-        for (auto &entry : visible_list)
-          if (entry.entity == entity) entry.entity = nullptr;
+        for (auto &entry : visible_list) {
+          if (entry.entity == entity) {
+            entry.entity = nullptr;
+            entry.group_number = Zeal::GameStructures::RaidMember::kRaidUngrouped;
+          }
+        }
       },
       callback_type::EntityDespawn);
 }
