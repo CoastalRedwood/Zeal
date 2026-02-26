@@ -27,6 +27,14 @@ RaidBars::RaidBars(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXCleanDevice);
 
+  // Listen for OP_RaidUpdate packets to immediately trigger a visible list refresh.
+  zeal->callbacks->AddPacket(
+      [this](UINT opcode, char *buffer, UINT len) {
+        if (opcode == Zeal::Packets::RaidUpdate) raid_update_dirty = true;
+        return false;
+      },
+      callback_type::WorldMessage);
+
   zeal->commands_hook->Add("/raidbars", {}, "Controls raid status bars display",
                            [this](std::vector<std::string> &args) {
                              ParseArgs(args);
@@ -534,8 +542,9 @@ void RaidBars::CallbackRender() {
   if (!bitmap_font) return;
 
   DWORD current_time_ms = display->GameTimeMs;
-  if (next_update_game_time_ms <= current_time_ms) {
+  if (raid_update_dirty || next_update_game_time_ms <= current_time_ms) {
     next_update_game_time_ms = current_time_ms + 1000;  // Roughly one second update intervals.
+    raid_update_dirty = false;
     UpdateRaidMembers();
   }
 

@@ -81,6 +81,7 @@ class RaidBars {
   int CalcClickIndex(short x, short y) const;
 
   DWORD next_update_game_time_ms = 0;
+  bool raid_update_dirty = false;  // Set true by OP_RaidUpdate packet to skip the 1s delay.
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
   float grid_height = 0;
   float grid_width = 0;

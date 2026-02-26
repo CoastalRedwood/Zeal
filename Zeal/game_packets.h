@@ -21,7 +21,8 @@ enum opcodes {
   Assist = 0x4200,
   Stamina = 0x4157,
   RequestClientZoneChange = 0x414d,
-  ItemLinkResponse = 0x4264
+  ItemLinkResponse = 0x4264,
+  RaidUpdate = 0x4062,
 };
 
 struct Animation_Struct {
