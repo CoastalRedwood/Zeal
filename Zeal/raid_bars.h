@@ -49,6 +49,9 @@ class RaidBars {
   // Internal callback use only.
   bool HandleLMouseUp(short x, short y);
 
+  // Returns the group number for the visible_list entry at the given index.
+  DWORD GetGroupAtVisibleIndex(int index) const;
+
  private:
   friend class RaidBarsManage;  // Allow manage class to access internals.
 
@@ -61,6 +64,11 @@ class RaidBars {
     D3DCOLOR color;                        // Class color.
     unsigned long group_number;            // Group number within raid.
     bool is_group_leader;                  // Lead of the group.
+  };
+
+  struct VisibleEntry {
+    Zeal::GameStructures::Entity *entity;  // nullptr for labels/empty slots.
+    DWORD group_number;                    // Group number for this row.
   };
 
   void Clean();  // Resets state and releases all resources.
@@ -91,7 +99,7 @@ class RaidBars {
   std::array<bool, kNumClasses> class_always;                     // Boolean flag to show always for class types.
   std::array<bool, kNumClasses> class_never;                      // Boolean flag to show never for class types.
   std::array<bool, kNumClasses> class_filter;                     // Boolean flag to filter class types by threshold.
-  std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
+  std::vector<VisibleEntry> visible_list;                         // List of visible entries (for clicking and targeting).
 
   RaidBarsManage manage{*this};  // Manage mode handler.
 };

@@ -34,7 +34,6 @@ class RaidBarsManage {
  private:
   int FindFirstEmptyGroup() const;
   std::string GetRaidMemberNameAtIndex(int index) const;
-  DWORD GetRaidMemberGroupAtIndex(int index) const;
 
   RaidBars &bars;  // Reference to parent for accessing visible_list, raid_classes, etc.
   bool enabled = false;

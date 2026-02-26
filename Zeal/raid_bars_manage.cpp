@@ -51,25 +51,13 @@ int RaidBarsManage::FindFirstEmptyGroup() const {
 std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
   if (index < 0 || index >= bars.visible_list.size()) return {};
 
-  auto entity = bars.visible_list[index];
+  auto entity = bars.visible_list[index].entity;
   if (entity) {
     for (const auto &class_group : bars.raid_classes)
       for (const auto &member : class_group)
         if (member.entity == entity) return member.name;
   }
   return {};
-}
-
-DWORD RaidBarsManage::GetRaidMemberGroupAtIndex(int index) const {
-  if (index < 0 || index >= bars.visible_list.size()) return Zeal::GameStructures::RaidMember::kRaidUngrouped;
-
-  auto entity = bars.visible_list[index];
-  if (entity) {
-    for (const auto &class_group : bars.raid_classes)
-      for (const auto &member : class_group)
-        if (member.entity == entity) return member.group_number;
-  }
-  return Zeal::GameStructures::RaidMember::kRaidUngrouped;
 }
 
 bool RaidBarsManage::HandleClick(short x, short y) {
@@ -93,7 +81,7 @@ bool RaidBarsManage::HandleClick(short x, short y) {
     move_pending_name.clear();  // Cancel any pending move.
     std::string name = GetRaidMemberNameAtIndex(index);
     if (name.empty()) return true;  // Clicked on a label or empty slot.
-    DWORD group = GetRaidMemberGroupAtIndex(index);
+    DWORD group = bars.GetGroupAtVisibleIndex(index);
     if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
       Zeal::Game::print_chat("Player %s is already ungrouped.", name.c_str());
       return true;
@@ -108,7 +96,7 @@ bool RaidBarsManage::HandleClick(short x, short y) {
     move_pending_name.clear();  // Cancel any pending move.
     std::string name = GetRaidMemberNameAtIndex(index);
     if (name.empty()) return true;  // Clicked on a label or empty slot.
-    DWORD group = GetRaidMemberGroupAtIndex(index);
+    DWORD group = bars.GetGroupAtVisibleIndex(index);
     if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
       // Ungrouped: move to first empty group to create a new group with them as leader.
       int empty_group = FindFirstEmptyGroup();
@@ -136,17 +124,7 @@ bool RaidBarsManage::HandleClick(short x, short y) {
       return true;
     } else {
       // Second Ctrl+Click: determine destination group from clicked location.
-      DWORD dest_group = GetRaidMemberGroupAtIndex(index);
-      // If clicked on a nullptr entry (group label or empty slot), try to find the group
-      // by looking at adjacent entries in the visible list.
-      if (bars.visible_list[index] == nullptr) {
-        for (int i = index + 1; i < bars.visible_list.size() && i < index + 7; ++i) {
-          if (bars.visible_list[i] != nullptr) {
-            dest_group = GetRaidMemberGroupAtIndex(i);
-            break;
-          }
-        }
-      }
+      DWORD dest_group = bars.GetGroupAtVisibleIndex(index);
 
       if (dest_group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
         Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());

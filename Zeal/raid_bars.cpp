@@ -46,8 +46,8 @@ RaidBars::RaidBars(ZealService *zeal) {
             if (member.entity == entity) member.entity = nullptr;
 
         // Also clean the visible list.  Sweep through all of it to be safe.
-        for (auto &list_entity : visible_list)
-          if (list_entity == entity) list_entity = nullptr;
+        for (auto &entry : visible_list)
+          if (entry.entity == entity) entry.entity = nullptr;
       },
       callback_type::EntityDespawn);
 }
@@ -495,6 +495,12 @@ int RaidBars::CalcClickIndex(short x, short y) const {
   return index;
 }
 
+DWORD RaidBars::GetGroupAtVisibleIndex(int index) const {
+  if (index < 0 || index >= static_cast<int>(visible_list.size()))
+    return Zeal::GameStructures::RaidMember::kRaidUngrouped;
+  return visible_list[index].group_number;
+}
+
 bool RaidBars::HandleLMouseUp(short x, short y) {
   if (!setting_enabled.get() || visible_list.empty()) return false;
 
@@ -510,7 +516,7 @@ bool RaidBars::HandleLMouseUp(short x, short y) {
   int index = CalcClickIndex(x, y);
   if (index < 0) return false;
 
-  auto entity = visible_list[index];
+  auto entity = visible_list[index].entity;
   if (entity == nullptr) return false;
 
   // Quarm now allows targeting of any raid member across the zone. So just go ahead
@@ -598,7 +604,7 @@ void RaidBars::QueueByClass(const float x_min, const float y_min, const float x_
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       std::string full_text = member.name + healthbar;
 
-      visible_list.push_back(entity);
+      visible_list.push_back({entity, member.group_number});
       bitmap_font->set_hp_percent(hp_percent);
       DWORD color = entity ? member.color : out_of_zone_color;
       bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
@@ -647,7 +653,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
     const std::string group_label =
         ungrouped ? "Ungrouped:" : std::string("Group ") + std::to_string(group_index + 1) + ": ";
     float y_offset = grid_height - bitmap_font->get_line_spacing() - 2;  // Add some padding for the label.
-    visible_list.push_back(nullptr);
+    visible_list.push_back({nullptr, static_cast<DWORD>(group_index)});
     bitmap_font->queue_string(group_label.c_str(), Vec3(x, y + y_offset, 0), false,
                               D3DCOLOR_XRGB(0xff, 0xff, 0xff));  // White label
     y += grid_height;
@@ -664,7 +670,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
           (entity && entity->HpCurrent > 0 && entity->HpMax > 0) ? (entity->HpCurrent * 100) / entity->HpMax : 0;
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
       std::string full_text = member->name + healthbar;
-      visible_list.push_back(entity);
+      visible_list.push_back({entity, member->group_number});
       bitmap_font->set_hp_percent(hp_percent);
       DWORD color = entity ? member->color : out_of_zone_color;
       bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
@@ -679,7 +685,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
         x += grid_width;
       }
       if (x + grid_width > x_max) return;  // Bail out if list grows off-screen.
-      visible_list.push_back(nullptr);
+      visible_list.push_back({nullptr, static_cast<DWORD>(group_index)});
       bitmap_font->queue_string("Empty", Vec3(x, y, 0), false, empty_color);
       y += grid_height;
     }
