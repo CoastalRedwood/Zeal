@@ -297,20 +297,24 @@ ___
           `./<character_name>_protected.ini` file.
 
 - `/raidbars`
-  - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the raidbars
-                   `position <left> <top> [<right> <bottom>]`: Specifies rectangle to draw into (all screen coordinates)
-                   `grid <num_rows> <num_cols>`: Autocalculates right and bottom based on current font/bar size.
-                   `background <value>`: Sets the opacity of the position rectangle (0 to 100 = invisible to solid)
-                   `font <filename>`: Selects the font to use for names
-                   `<barheight | bardwidth> <value>`: Sets HP bar height or width (0 = autoscale, clamped to sane values)
-                   `clickable <on | off>`: Enables or disables click targeting with raidbars
-                   `groups <on | off | toggle>`: Switches between listing by class prioritization or by groups
-                   `showall <on | off>`: Class mode: Disables health thresholding, Group mode: Shows empty slots
-                   `never <classes list>`: Never shows classes in the list (class prio mode only)
-                   `always <classes list>`: Like showall but only applies to classes in list (class prio mode only)
-                   `priority <classes list>`: Sets listing order of classes (class prio mode only)
-                   `filter <classes list>`: Shows classes only if HP <= threshold value (class prio mode only)
-                   `threshold <value>`: Sets the filter threshold value (0 to 100%)
+  - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the raidbars \
+                   `position <left> <top> [<right> <bottom>]`: Specifies rectangle to draw into (all screen coordinates) \
+                   `grid <num_rows> <num_cols>`: Autocalculates right and bottom based on current font/bar size. \
+                   `background <value>`: Sets the opacity of the position rectangle (0 to 100 = invisible to solid) \
+                   `font <filename>`: Selects the font to use for names \
+                   `<barheight | bardwidth> <value>`: Sets HP bar height or width (0 = autoscale, clamped to sane values) \
+                   `clickable <on | off>`: Enables or disables click targeting with raidbars \
+                   `groups <on | off | toggle>`: Switches between listing by class prioritization or by groups \
+                   `showall <on | off>`: Class mode: Disables health thresholding, Group mode: Shows empty slots \
+                   `never <classes list>`: Never shows classes in the list (class prio mode only) \
+                   `always <classes list>`: Like showall but only applies to classes in list (class prio mode only) \
+                   `priority <classes list>`: Sets listing order of classes (class prio mode only) \
+                   `filter <classes list>`: Shows classes only if HP <= threshold value (class prio mode only) \
+                   `threshold <value>`: Sets the filter threshold value (0 to 100%) \
+                   `manage <on | off>`: When toggled on, sets /raidbars groups on, /raidbars clickable on, /raidbars showall on and also enables the following click modifier actions: \
+                     Alt + Click: Kick to ungrouped \
+                     Shift + Click: Promote to group leader (if in a group) or move to first empty group (if ungrouped) \
+                     Control + Click: Move to another group (must control click on destination group #) \
   - **Example:** `/raidbars position 5 10` Constrains bars to a box from (x=5,y=10) to right and bottom screen edge.
   - **Example:** `/raidbars position 5 10 300 250` Constrains bars to a box from (x=5,y=10) to (x=300, y=250).
   - **Example:** `/raidbars showall on` Shows healthbars of all raid members (including 100% health, out of zone)
