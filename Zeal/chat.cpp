@@ -783,11 +783,11 @@ void Chat::DoPercentReplacements(std::string &str_data) {
 std::string GetAutoRaidInviteName(const std::string &data) {
   // Regex string that will mach normal or abbreviated chat
   std::string autoInviteMatch_string =
-      std::format(R"(^(?:\[.*\] ?)*(?:(\w+) tells you, '{0}'|\[Fr\] \[(\w+)\]: {0})$)", autoInvitePassword);
+      std::format(R"((?:\[.*\] ?)*(?:(\w+) tells you, '{0}'|\[Fr\] \[(\w+)\]: {0}))", autoInvitePassword);
   std::regex autoInviteMatch_pattern(autoInviteMatch_string);
   std::smatch match;
 
-  if (std::regex_search(data, match, autoInviteMatch_pattern)) {
+  if (std::regex_match(data, match, autoInviteMatch_pattern)) {
     if (match[1].matched)
       // Return name for normal formatted messages
       return match[1].str();
