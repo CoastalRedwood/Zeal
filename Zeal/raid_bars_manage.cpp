@@ -70,7 +70,7 @@ bool RaidBarsManage::HandleAltClick(int index) {
   move_pending_name.clear();  // Cancel any pending move.
   std::string name = GetRaidMemberNameAtIndex(index);
   if (name.empty()) return true;  // Clicked on a label or empty slot.
-  DWORD group = GetRaidMemberGroupAtIndex(index);
+  DWORD group = Zeal::Game::get_raid_group_number(name.c_str());
   if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
     Zeal::Game::print_chat("Player %s is already ungrouped.", name.c_str());
     return true;
@@ -84,7 +84,7 @@ bool RaidBarsManage::HandleShiftClick(int index) {
   move_pending_name.clear();  // Cancel any pending move.
   std::string name = GetRaidMemberNameAtIndex(index);
   if (name.empty()) return true;  // Clicked on a label or empty slot.
-  DWORD group = GetRaidMemberGroupAtIndex(index);
+  DWORD group = Zeal::Game::get_raid_group_number(name.c_str());
   if (group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
     // Ungrouped: move to first empty group to create a new group with them as leader.
     int empty_group = FindFirstEmptyGroup();
@@ -111,7 +111,24 @@ bool RaidBarsManage::HandleCtrlClick(int index) {
     return true;
   } else {
     // Second Ctrl+Click: determine destination group from clicked location.
-    DWORD dest_group = GetRaidMemberGroupAtIndex(index);
+    DWORD dest_group = Zeal::GameStructures::RaidMember::kRaidUngrouped;
+
+    // Try to resolve the group from the clicked entity (or adjacent entries for labels).
+    std::string dest_name = GetRaidMemberNameAtIndex(index);
+    if (!dest_name.empty()) {
+      dest_group = Zeal::Game::get_raid_group_number(dest_name.c_str());
+    } else {
+      // Clicked on a nullptr entry (group label or empty slot) — scan forward to find
+      // the first entity in the same visual group section.
+      for (int i = index + 1;
+           i < static_cast<int>(bars.visible_list.size()) && i < index + 7; ++i) {
+        std::string adj_name = GetRaidMemberNameAtIndex(i);
+        if (!adj_name.empty()) {
+          dest_group = Zeal::Game::get_raid_group_number(adj_name.c_str());
+          break;
+        }
+      }
+    }
 
     if (dest_group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
       Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());
@@ -142,7 +159,7 @@ int RaidBarsManage::FindFirstEmptyGroup() const {
 }
 
 std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
-  if (index < 0 || index >= bars.visible_list.size()) return {};
+  if (index < 0 || index >= static_cast<int>(bars.visible_list.size())) return {};
 
   auto entity = bars.visible_list[index];
   if (entity) {
@@ -151,17 +168,5 @@ std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
         if (member.entity == entity) return member.name;
   }
   return {};
-}
-
-DWORD RaidBarsManage::GetRaidMemberGroupAtIndex(int index) const {
-  if (index < 0 || index >= bars.visible_list.size()) return Zeal::GameStructures::RaidMember::kRaidUngrouped;
-
-  auto entity = bars.visible_list[index];
-  if (entity) {
-    for (const auto &class_group : bars.raid_classes)
-      for (const auto &member : class_group)
-        if (member.entity == entity) return member.group_number;
-  }
-  return Zeal::GameStructures::RaidMember::kRaidUngrouped;
 }
 

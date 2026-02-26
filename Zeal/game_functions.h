@@ -274,7 +274,7 @@ int get_region_from_pos(Vec3 *pos);
 GameUI::CXWndManager *get_wnd_manager();
 bool is_player_pet(const Zeal::GameStructures::Entity &entity);
 std::vector<Zeal::GameStructures::RaidMember *> get_raid_list();
-DWORD get_raid_group_number();
+DWORD get_raid_group_number(const char* name = nullptr);
 int get_raid_group_count(DWORD group_number);
 DWORD get_raid_class_color(BYTE class_id);  // Returns ARGB color for the class.
 bool is_raid_pet(const Zeal::GameStructures::Entity &entity);

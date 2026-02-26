@@ -34,7 +34,6 @@ class RaidBarsManage {
  private:
   int FindFirstEmptyGroup() const;
   std::string GetRaidMemberNameAtIndex(int index) const;
-  DWORD GetRaidMemberGroupAtIndex(int index) const;
 
   // Individual click modifier handlers. Return true if the click was consumed.
   bool HandleAltClick(int index);
