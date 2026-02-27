@@ -111,16 +111,26 @@ bool RaidBarsManage::HandleCtrlClick(int index) {
     return true;
   } else {
     // Second Ctrl+Click: determine destination group from clicked location.
+    // Take into account that user may be clicking on a group label or empty slot, so scan forward/backward for the
+    // nearest valid member to determine the group.
     DWORD dest_group = Zeal::GameStructures::RaidMember::kRaidUngrouped;
-
-    // If index is a nullptr entry (group label or empty slot), scan backward to find the nearest
-    // member in the same visual group section.
     int resolve_index = index;
+
     if (bars.visible_list[index] == nullptr) {
-      for (int i = index - 1; i >= 0 && i > index - 7; --i) {
-        if (bars.visible_list[i] != nullptr) {
-          resolve_index = i;
-          break;
+      const int size = static_cast<int>(bars.visible_list.size());
+      const bool is_label = (index == 0) ||
+                            (index + 1 < size && bars.visible_list[index + 1] != nullptr);
+
+      if (is_label) {
+        // Clicked on a group label: get the next member index, as it should be the group leader
+        resolve_index = index + 1;
+      } else {
+        // Clicked on an empty slot: scan backward to find the nearest member already in this group.
+        for (int i = index - 1; i >= 0 && i > index - 7; --i) {
+          if (bars.visible_list[i] != nullptr) {
+            resolve_index = i;
+            break;
+          }
         }
       }
     }
