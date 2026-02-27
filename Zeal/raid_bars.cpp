@@ -53,6 +53,7 @@ RaidBars::RaidBars(ZealService *zeal) {
           for (auto &member : class_group)
             if (member.entity == entity) member.entity = nullptr;
 
+        // Also clean the visible list.  Sweep through all of it to be safe.
         for (auto &list_entity : visible_list)
           if (list_entity == entity) list_entity = nullptr;
       },
@@ -505,14 +506,14 @@ int RaidBars::CalcClickIndex(short x, short y) const {
 bool RaidBars::HandleLMouseUp(short x, short y) {
   if (!setting_enabled.get() || visible_list.empty()) return false;
 
-  // Check manage mode modifier clicks first.
-  if (manage.HandleClick(x, y)) return true;
-
   if (!setting_clickable.get()) return false;
 
   // Copy some client call behavior to bail out upon certain conditions.
   if (*reinterpret_cast<int *>(0x007d0254) != 0) return false;   // Waiting for server ack to unfreeze UI.
   if (*reinterpret_cast<BYTE *>(0x007985ea) != 0) return false;  // RMB held down.
+
+  // Check manage mode modifier clicks first.
+  if (manage.HandleClick(x, y)) return true;
 
   int index = CalcClickIndex(x, y);
   if (index < 0) return false;
