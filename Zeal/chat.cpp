@@ -38,7 +38,7 @@ std::map<std::string, std::string> channelPrefixes = {
     {"raid", "R"},              // Raid
 };
 
-std::string autoInvitePassword;
+std::string autoInvitePassword; // Non-persistent
 std::string playerRolling;
 
 std::string ReadFromClipboard() {
@@ -781,7 +781,7 @@ void Chat::DoPercentReplacements(std::string &str_data) {
 
 // Returns a player name if the tell message matches the AutoInvitePassword
 std::string GetAutoRaidInviteName(const std::string &data) {
-  // Regex string that will mach normal or abbreviated chat
+  // Regex string that will match normal or abbreviated chat
   std::string autoInviteMatch_string =
       std::format(R"((?:\[.*\] ?)*(?:(\w+) tells you, '{0}'|\[Fr\] \[(\w+)\]: {0}))", autoInvitePassword);
   std::regex autoInviteMatch_pattern(autoInviteMatch_string);
@@ -1054,8 +1054,7 @@ Chat::Chat(ZealService *zeal) {
         } else {
           Zeal::Game::print_chat("Use \"/autoraidinvite <password>\" to enable or \"/autoraidinvite off\" to disable.");
         }
-        return true;  // return true to stop the game from processing any further on this command,
-                      // false if you want to just add features to an existing cmd
+        return true;
       });
   zeal->commands_hook->Add(
       "/timestamp", {"/tms"}, "Toggles/sets timestamps on chat windows: 0:Off, 1:Long, 2:Short, 3:Short+Secs.",

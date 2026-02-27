@@ -102,7 +102,8 @@ ___
 - `/autoraidinvite`
   - **Aliases:** `/ari`
   - **Arguments:** `<password>` (enables), `off` (disables)
-  - **Description:** When enabled, will automatically invite a player to raid if they send a tell with a matching password.
+  - **Description:** When enabled, will automatically invite a player to raid if they send a tell with an exact match
+    to the password.
 
 - `/autoinventory`
   - **Aliases:** `/autoinv`, `/ai`
