@@ -27,6 +27,14 @@ RaidBars::RaidBars(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXCleanDevice);
 
+  // Listen for OP_RaidUpdate packets to immediately trigger a visible list refresh.
+  zeal->callbacks->AddPacket(
+      [this](UINT opcode, char *buffer, UINT len) {
+        if (opcode == Zeal::Packets::RaidUpdate) raid_update_dirty = true;
+        return false;
+      },
+      callback_type::WorldMessage);
+
   zeal->commands_hook->Add("/raidbars", {}, "Controls raid status bars display",
                            [this](std::vector<std::string> &args) {
                              ParseArgs(args);
@@ -59,6 +67,7 @@ void RaidBars::Clean() {
   bitmap_font.reset();  // Releases all DX and other resources.
   visible_list.clear();
   for (auto &class_group : raid_classes) class_group.clear();  // Drop all entity references.
+  manage.Clean();
 }
 
 void RaidBars::ParseArgs(const std::vector<std::string> &args) {
@@ -73,6 +82,8 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     Zeal::Game::print_chat("Raidbars are %s", setting_enabled.get() ? "on" : "off");
     return;
   }
+
+  if (manage.ParseManageArgs(args)) return;
 
   if (args.size() >= 2 && args[1] == "groups") {
     if (args.size() == 3 && (args[2] == "on" || args[2] == "off"))
@@ -220,6 +231,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   }
 
   Zeal::Game::print_chat("Usage: /raidbars <on | off | toggle>");
+  Zeal::Game::print_chat("Usage: /raidbars manage <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars position <left> <top> [<right> <bottom>]");
   Zeal::Game::print_chat("Note: right and bottom are screen coordinates relative to upper left");
   Zeal::Game::print_chat("Usage: /raidbars grid <num_rows> <num_cols> (auto-calcs right and bottom)");
@@ -475,26 +487,37 @@ void RaidBars::UpdateRaidMembers() {
   }
 }
 
+// Returns the visible_list index for screen coordinates, or -1 if out of bounds.
+int RaidBars::CalcClickIndex(short x, short y) const {
+  const float x_min = static_cast<float>(setting_position_left.get());
+  const float y_min = static_cast<float>(setting_position_top.get());
+  if (x < x_min || y < y_min) return -1;  // Off left or top side.
+  int click_row_index = static_cast<int>((y - y_min) / grid_height);
+  if (click_row_index >= grid_height_count_max) return -1;  // Off bottom.
+  int click_column_index = static_cast<int>((x - x_min) / grid_width);
+  int click_column_start = click_column_index * grid_height_count_max;
+  int column_row_index_max = static_cast<int>(visible_list.size()) - click_column_start;
+  if (column_row_index_max < 0 || click_row_index >= column_row_index_max) return -1;
+  int index = click_column_start + click_row_index;
+  if (index < 0 || index >= visible_list.size()) return -1;
+  return index;
+}
+
 bool RaidBars::HandleLMouseUp(short x, short y) {
-  if (!setting_clickable.get() || !setting_enabled.get() || visible_list.empty()) return false;
+  if (!setting_enabled.get() || visible_list.empty()) return false;
+
+  if (!setting_clickable.get()) return false;
 
   // Copy some client call behavior to bail out upon certain conditions.
   if (*reinterpret_cast<int *>(0x007d0254) != 0) return false;   // Waiting for server ack to unfreeze UI.
   if (*reinterpret_cast<BYTE *>(0x007985ea) != 0) return false;  // RMB held down.
 
-  // Calculate the index into the visible list.
-  const float x_min = static_cast<float>(setting_position_left.get());
-  const float y_min = static_cast<float>(setting_position_top.get());
-  if (x < x_min || y < y_min) return false;  // Off left or top side.
-  int click_row_index = static_cast<int>((y - y_min) / grid_height);
-  if (click_row_index >= grid_height_count_max) return false;  // Off bottom.
-  int click_column_index = static_cast<int>((x - x_min) / grid_width);
-  int click_column_start = click_column_index * grid_height_count_max;
-  int column_row_index_max = static_cast<int>(visible_list.size()) - click_column_start;
-  if (column_row_index_max < 0 || click_row_index >= column_row_index_max) return false;
-  int index = click_column_start + click_row_index;
+  // Check manage mode modifier clicks first.
+  if (manage.HandleClick(x, y)) return true;
 
-  if (index < 0 || index >= visible_list.size()) return false;  // Paranoid final check.
+  int index = CalcClickIndex(x, y);
+  if (index < 0) return false;
+
   auto entity = visible_list[index];
   if (entity == nullptr) return false;
 
@@ -520,8 +543,9 @@ void RaidBars::CallbackRender() {
   if (!bitmap_font) return;
 
   DWORD current_time_ms = display->GameTimeMs;
-  if (next_update_game_time_ms <= current_time_ms) {
+  if (raid_update_dirty || next_update_game_time_ms <= current_time_ms) {
     next_update_game_time_ms = current_time_ms + 1000;  // Roughly one second update intervals.
+    raid_update_dirty = false;
     UpdateRaidMembers();
   }
 

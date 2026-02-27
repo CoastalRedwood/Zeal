@@ -680,10 +680,10 @@ std::vector<Zeal::GameStructures::RaidMember *> get_raid_list() {
   return raid_member_list;
 }
 
-DWORD get_raid_group_number() {
+DWORD get_raid_group_number(const char *name) {
   Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
   if (!raid_info->is_in_raid()) return Zeal::GameStructures::RaidMember::kRaidUngrouped;
-  const char *self_name = Zeal::Game::get_char_info()->Name;
+  const char *self_name = name ? name : Zeal::Game::get_char_info()->Name;
   for (int i = 0; i < Zeal::GameStructures::RaidInfo::kRaidMaxMembers; ++i) {
     if (strcmp(self_name, raid_info->MemberList[i].Name) == 0) return raid_info->MemberList[i].GroupNumber;
   }

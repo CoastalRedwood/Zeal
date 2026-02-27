@@ -7,6 +7,7 @@
 
 #include "bitmap_font.h"
 #include "game_structures.h"
+#include "raid_bars_manage.h"
 #include "zeal_settings.h"
 
 class RaidBars {
@@ -48,6 +49,8 @@ class RaidBars {
   bool HandleLMouseUp(short x, short y);
 
  private:
+  friend class RaidBarsManage;  // Allow manage class to access internals.
+
   static constexpr int kNumClasses = Zeal::GameEnums::ClassTypes::Beastlord - Zeal::GameEnums::ClassTypes::Warrior + 1;
   static constexpr int kClassIndexOffset = Zeal::GameEnums::ClassTypes::Warrior;
 
@@ -73,7 +76,11 @@ class RaidBars {
   void QueueByClass(const float x_min, const float y_min, const float x_max, const float y_max);
   void QueueByGroup(const float x_min, const float y_min, const float x_max, const float y_max);
 
+  // Returns the visible_list index for screen coordinates, or -1 if out of bounds.
+  int CalcClickIndex(short x, short y) const;
+
   DWORD next_update_game_time_ms = 0;
+  bool raid_update_dirty = false;  // Set true by OP_RaidUpdate packet to skip the 1s delay.
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
   float grid_height = 0;
   float grid_width = 0;
@@ -85,4 +92,6 @@ class RaidBars {
   std::array<bool, kNumClasses> class_never;                      // Boolean flag to show never for class types.
   std::array<bool, kNumClasses> class_filter;                     // Boolean flag to filter class types by threshold.
   std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
+
+  RaidBarsManage manage{*this};  // Manage mode handler.
 };
