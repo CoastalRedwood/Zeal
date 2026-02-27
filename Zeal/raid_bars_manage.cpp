@@ -162,11 +162,9 @@ std::string RaidBarsManage::GetRaidMemberNameAtIndex(int index) const {
   if (index < 0 || index >= static_cast<int>(bars.visible_list.size())) return {};
 
   auto entity = bars.visible_list[index];
-  if (entity) {
-    for (const auto &class_group : bars.raid_classes)
-      for (const auto &member : class_group)
-        if (member.entity == entity) return member.name;
-  }
+  if (entity)
+    return entity->Name;  // If it's a valid entity, return the name directly from it
+  
   return {};
 }
 
