@@ -11,6 +11,7 @@
 #include "alarm.h"
 #include "assist.h"
 #include "autofire.h"
+#include "bandoleer.h"
 #include "binds.h"
 #include "buff_timers.h"
 #include "callbacks.h"
@@ -152,6 +153,7 @@ ZealService::ZealService() {
   labels_hook = MakeCheckedUnique(Labels);          // Uses tick and experience.
   item_displays = MakeCheckedUnique(ItemDisplay);   // Uses new UI ItemDisplayWnd.
   equip_item_hook = MakeCheckedUnique(EquipItem);   // Uses new UI InvSlotWnd.
+  bandoleer = MakeCheckedUnique(Bandoleer);          // Uses InvSlotWnd, integrates with melody.
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
   raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
