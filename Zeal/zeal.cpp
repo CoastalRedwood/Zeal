@@ -414,6 +414,48 @@ void ZealService::AddCommands() {
         return true;  // return true to stop the game from processing any further on this command, false if you want to
                       // just add features to an existing cmd
       });
+  commands_hook->Add("/use", {}, "Use an item's right click function by partial match of the item name",
+                     [](std::vector<std::string> &args) {
+                       Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+                       if (!char_info) return true;
+                       // Rebuild the passed in string
+                       std::string buffer;
+                       for (int i = 1; i < args.size(); i++) {
+                         if (i > 1) buffer += ' ';
+                         buffer += args[i];
+                       }
+                       // Find the item
+                       short item_index = -1;
+                       Zeal::GameStructures::GAMEITEMINFO *item =
+                           Zeal::Game::find_clicky_item_by_name(buffer.c_str(), strlen(buffer.c_str()), item_index);
+                       if (item_index < 0) return true;
+                       if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
+                           ZealService::get_instance()->melody->use_item(item_index))
+                         return true;
+                       Zeal::Game::use_item(item_index);
+                       return true;
+                     });
+  commands_hook->Add("/useexact", {}, "Use an item's right click function by exact match of the item name",
+                     [](std::vector<std::string> &args) {
+                       Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+                       if (!char_info) return true;
+                       // Rebuild the passed in string
+                       std::string buffer;
+                       for (int i = 1; i < args.size(); i++) {
+                         if (i > 1) buffer += ' ';
+                         buffer += args[i];
+                       }
+                       // Find the item
+                       short item_index = -1;
+                       Zeal::GameStructures::GAMEITEMINFO *item =
+                           Zeal::Game::find_clicky_item_by_name(buffer.c_str(), 63, item_index);
+                       if (item_index < 0) return true;
+                       if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
+                           ZealService::get_instance()->melody->use_item(item_index))
+                         return true;
+                       Zeal::Game::use_item(item_index);
+                       return true;
+                     });
 
   commands_hook->Add("/zeal", {"/zea"}, "Help and version information.", [this](std::vector<std::string> &args) {
     if (args.size() == 1) {

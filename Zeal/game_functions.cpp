@@ -1850,6 +1850,59 @@ int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item) {
   return 0;
 }
 
+bool is_clicky_item(Zeal::GameStructures::GAMEITEMINFO *item) {
+  // Checks copied from UseItem (0x4223CA)
+  return item && item->Type == 0 && item->Common.Charges > 0 && item->Common.SpellId >= 1 &&
+         item->Common.SpellId < 4000 && item->Common.Skill != 20 && item->Common.Skill != 42 &&  // poison
+         item->Common.Skill != 14 &&                                                             // food
+         item->Common.Skill != 15 &&                                                             // drink
+         item->Common.Skill != 38 &&                                                             // beer
+         item->Common.IsStackable >= 2 &&
+         (item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectClick ||
+          item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectExpendable ||
+          item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectMustEquipClick ||
+          item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectCanEquipClick);
+}
+
+Zeal::GameStructures::GAMEITEMINFO* find_clicky_item_by_name(const char *name, size_t len, short &out_item_index) {
+  out_item_index = -1;
+  if (len == 0) return nullptr;
+  if (len > 63) len = 63;
+  auto *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return nullptr;
+
+  // Equipped Items
+  for (int i = 0; i < GAME_NUM_INVENTORY_SLOTS; i++) {
+    if (is_clicky_item(char_info->InventoryItem[i]) && strncmp(char_info->InventoryItem[i]->Name, name, len) == 0) {
+      out_item_index = i;
+      return char_info->InventoryItem[i];
+    }
+  }
+
+  // Pack Items
+  for (int i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; i++) {
+    if (is_clicky_item(char_info->InventoryPackItem[i]) &&
+        strncmp(char_info->InventoryPackItem[i]->Name, name, len) == 0) {
+      out_item_index = i + 22;
+      return char_info->InventoryPackItem[i];
+    }
+  }
+
+  // Items in Bags
+  for (int i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; i++) {
+    auto *container = char_info->InventoryPackItem[i];
+    if (!container || container->Type != 1 || container->Container.Capacity > 10) continue;
+    int container_slots = container->Container.Capacity;
+    for (int s = 0; s < container_slots; s++) {
+      if (is_clicky_item(container->Container.Item[s]) && strncmp(container->Container.Item[s]->Name, name, len) == 0) {
+        out_item_index = GAME_CONTAINER_SLOTS_START + (GAME_NUM_CONTAINER_SLOTS * i) + s;
+        return container->Container.Item[s];
+      }
+    }
+  }
+  return nullptr;
+}
+
 bool use_item(int item_index, bool quiet) {
   Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
@@ -1896,10 +1949,7 @@ bool use_item(int item_index, bool quiet) {
     return false;
   }
   // List of checks copied from server zone/client_packet.cpp:
-  if ((item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectClick) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectExpendable) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectMustEquipClick) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectCanEquipClick)) {
+  if (!is_clicky_item(item)) {
     if (!quiet) Zeal::Game::print_chat("Item %s does not have a click effect.", item->Name);
     return false;
   }
