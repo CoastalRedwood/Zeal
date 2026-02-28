@@ -804,8 +804,39 @@
     <Style_HScroll>false</Style_HScroll>
     <Style_Transparent>false</Style_Transparent>
     <Style_Checkbox>true</Style_Checkbox>
-    <TooltipReference>Enables Alt + Right click to use clickies in invetory/bags.</TooltipReference>
+    <TooltipReference>Enables use of right click to activate click items in inventory bags.</TooltipReference>
     <Text>Click from Inventory</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+
+  <Button item="Zeal_UseAltForClicky">
+    <ScreenID>Zeal_UseAltForClicky</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>20</X>
+      <Y>1148</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <TooltipReference>Requires Alt key modifier to activate click from inventory.</TooltipReference>
+    <Text>Click requires Alt</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -1909,6 +1940,7 @@
     <Pieces>Zeal_PerCharKeybinds</Pieces>
     <Pieces>Zeal_PerCharAutojoin</Pieces>
     <Pieces>Zeal_ClickFromInventory</Pieces>
+    <Pieces>Zeal_UseAltForClicky</Pieces>
     
     <Pieces>Zeal_HoverTimeout_Label</Pieces>
     <Pieces>Zeal_HoverTimeout_Slider</Pieces>

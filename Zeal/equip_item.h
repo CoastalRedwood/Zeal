@@ -9,9 +9,11 @@ class EquipItem {
   ~EquipItem();
 
   bool HandleRButtonUp(Zeal::GameUI::InvSlot *inv_slot);
+  bool HandleRightClickActivation(Zeal::GameUI::InvSlot *inv_slot);
 
   ZealSetting<bool> Enabled = {false, "Zeal", "RightClickToEquip", false};
   ZealSetting<bool> setting_click_from_inventory = {true, "Zeal", "ClickFromInventory", false};
+  ZealSetting<bool> setting_use_alt_for_clicky = {true, "Zeal", "UseAltForClicky", false};
 
  private:
   Zeal::GameUI::InvSlot *GetInventorySlot(int inv_slot_id);
