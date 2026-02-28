@@ -126,8 +126,7 @@ void Melody::end(bool do_print) {
 }
 
 bool Melody::use_item(int item_index) {
-  if (!is_active)
-    return false;
+  if (!is_active) return false;
   // Set fields so use_item(item_index) will execute during tick().
   use_item_index = item_index;
   use_item_timeout = GetTickCount64() + USE_ITEM_QUEUE_TIMEOUT;
@@ -166,12 +165,10 @@ void Melody::stop_current_cast() {
   casting_melody_spell_id = kInvalidSpellId;
 }
 
-// This code gets rid of the "Your song ends" spam and an unneeded server message by replacing the
-// StopSpellCast() call with specific duplicated code. The server code does not require Bards to
-// send a stop, but the client logic expects the casting state to be cleared before calling the next
-// StartCast of a song. This path does not send the server an OP_ManaChange message (StopSpellCast),
-// so it must be immediately followed by a start cast to keep things in sync.
-static void stop_current_song_client_only() {
+// This is a simplified version of the StopCast (StopSpellCast) call that should only be called
+// if Zeal::Game::GameInternal::IsPlayerABardAndSingingASong() is true. It eliminates the
+// "Your song ends" log spam and just performs the bard song stop processing.
+static void stop_current_song_quietly() {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
 
@@ -193,6 +190,11 @@ static void stop_current_song_client_only() {
     }
     self->ActorInfo->RecastTimeout[i] = 0;
   }
+
+  // Send a message to the server to halt the bard song. This should not generate any packets
+  // back to the client and with the casting ack handshake things should not get out of sync.
+  const int OP_ManaChange = 0x417f;
+  Zeal::Game::send_message(OP_ManaChange, nullptr, 0, 1);  // Stops the bard song on server.
 }
 
 void Melody::tick() {
@@ -252,10 +254,12 @@ void Melody::tick() {
   // which triggers the visible casting bar. For a normal clicky, the server sends an
   // OP_ManaChange that calls StopSpellCast() which sets CastingSpellId to kInvalidSpell,
   // CastingSpellGemNumber to zero, and CastingTimeout to 0.
-  // (3) Item clickies with bard songs:
+  // (3) Item clickies with bard songs with non-zero cast times:
   // These are similar to normal clickies however the OP_ManaChange message is not sent
   // so we are stuck relying on a fixed MELODY_WAIT_USE_ITEM_TIMEOUT to be long enough
   // that the server will be finished and ready for the next melody start of cast.
+  // (4) Item clickies with bard songs with zero cast times (e.g. Breath of Harmony)
+  // These basically complete immediately so just skip all handshaking and go to idle.
 
   // The timeout is for debug reporting and recovery if something goes wrong.
   bool casting_active = self->ActorInfo->CastingSpellId != kInvalidSpellId;
@@ -280,10 +284,13 @@ void Melody::tick() {
   use_item_ack_state = UseItemState::Idle;
   if (use_item_index >= 0) {
     stop_current_cast();  // Terminate bard song (if active) in order to cast.
-    bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index);
+    Zeal::GameStructures::GAMEITEMINFO *used_item = nullptr;
+    bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index, false, &used_item);
     use_item_index = -1;
     if (success) {
       use_item_ack_state = UseItemState::CastRequested;
+      if (used_item && used_item->Common.CastTime == 0 && Zeal::Game::get_game()->IsOkToTransact())
+        use_item_ack_state = UseItemState::Idle;      // Instant bard clicky. Can't use request/ack format.
       start_of_cast_timestamp = current_timestamp;    // Used in timeout check.
       casting_visible_timestamp = current_timestamp;  // Insta-clickies may not update.
       return;
@@ -307,10 +314,8 @@ void Melody::tick() {
     return;
   }
 
-  // Note: A cast() call must always follow a stop_current_song_client_only() call to ensure
-  // the server and client stay in sync.
   if (Zeal::Game::GameInternal::IsPlayerABardAndSingingASong())
-    stop_current_song_client_only();  // Use the shortcut to reduce log spam and handshaking.
+    stop_current_song_quietly();  // Use the custom stop to reduce log spam.
   else
     stop_current_cast();  // Just in case call. Does nothing if casting not active (expected).
 

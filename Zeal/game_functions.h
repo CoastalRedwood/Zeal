@@ -274,7 +274,7 @@ int get_region_from_pos(Vec3 *pos);
 GameUI::CXWndManager *get_wnd_manager();
 bool is_player_pet(const Zeal::GameStructures::Entity &entity);
 std::vector<Zeal::GameStructures::RaidMember *> get_raid_list();
-DWORD get_raid_group_number(const char* name = nullptr);
+DWORD get_raid_group_number(const char *name = nullptr);
 int get_raid_group_count(DWORD group_number);
 DWORD get_raid_class_color(BYTE class_id);  // Returns ARGB color for the class.
 bool is_raid_pet(const Zeal::GameStructures::Entity &entity);
@@ -288,7 +288,7 @@ std::string generateTimestamp();
 int get_effect_required_level(const Zeal::GameStructures::GAMEITEMINFO *item);
 int find_use_item_by_name(const std::string &partial_name, bool check_bags);
 bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool is_equipped, bool quiet = true);
-bool use_item(int item_index, bool quiet = false);
+bool use_item(int item_index, bool quiet = false, Zeal::GameStructures::GAMEITEMINFO **out_item = nullptr);
 enum class SortType { Ascending, Descending, Toggle };
 void sort_list_wnd(Zeal::GameUI::ListWnd *list_wnd, int sort_column, SortType sort_type = SortType::Ascending);
 short total_spell_affects(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE affect_type, BYTE a3,
