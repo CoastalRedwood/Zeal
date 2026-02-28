@@ -2023,12 +2023,13 @@ Zeal::GameStructures::GAMEITEMINFO *get_use_item_from_global_slot_id(int slot_id
 // This function takes global_slot_id as the input but prints out error messages in "user" space
 // with decoding of equipment to 0 to 20, packs from 22 to 29, and pack slots in one-indexed
 // bag and slot numbers.
-bool use_item(int global_slot_id, bool quiet) {
+bool use_item(int global_slot_id, bool quiet, Zeal::GameStructures::GAMEITEMINFO **out_item) {
   if (!is_valid_state_to_use_item(quiet)) return false;
 
   Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
   Zeal::GameStructures::GAMEITEMINFO *item = get_use_item_from_global_slot_id(global_slot_id, quiet);
   if (!chr || !item) return false;
+  if (out_item) *out_item = item;
 
   const UINT kUseItemGemSlot = 10;  // Slot 10 tells the server this is an item clicky.
   return chr->cast(kUseItemGemSlot, 0, (int *)&item, global_slot_id) != 0;
