@@ -38,6 +38,7 @@ std::map<std::string, std::string> channelPrefixes = {
     {"raid", "R"},              // Raid
 };
 
+std::string autoInvitePassword; // Non-persistent
 std::string playerRolling;
 
 std::string ReadFromClipboard() {
@@ -778,6 +779,27 @@ void Chat::DoPercentReplacements(std::string &str_data) {
   for (auto &fn : percent_replacements) fn(str_data);
 }
 
+// Returns a player name if the tell message matches the AutoInvitePassword
+std::string GetAutoRaidInviteName(const std::string &data) {
+  // Regex string that will match normal or abbreviated chat
+  std::string autoInviteMatch_string =
+      std::format(R"((?:\[.*\] ?)*(?:(\w+) tells you, '{0}'|\[Fr\] \[(\w+)\]: {0}))", autoInvitePassword);
+  std::regex autoInviteMatch_pattern(autoInviteMatch_string);
+  std::smatch match;
+
+  if (std::regex_match(data, match, autoInviteMatch_pattern)) {
+    if (match[1].matched)
+      // Return name for normal formatted messages
+      return match[1].str();
+    else if (match[2].matched)
+      // Return name for abbreviated chat messages
+      return match[2].str();
+  }
+
+  // Always return a blank name if none was found
+  return "";
+}
+
 // Returns a player name if the tell matches the expected /tc format.
 std::string GetConsentMeTellName(const std::string &data) {
   static const char consent_ending[] = " tells you, 'Consent me'";
@@ -905,6 +927,11 @@ void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &ch
     }
   }
 
+  if (channel == USERCOLOR_TELL && !autoInvitePassword.empty()) {
+    std::string name = GetAutoRaidInviteName(msg);
+    if (!name.empty()) Zeal::Game::do_say(true, "#raidinvite %s", name.c_str());
+  }
+
   if (UseClassChatColors.get() && !msg.empty()) {
     msg = add_class_colors(msg, channel);
   }
@@ -1015,6 +1042,19 @@ Chat::Chat(ZealService *zeal) {
             UseAbbreviatedChat.get() == 0 ? "Off" : (UseAbbreviatedChat.get() == 1 ? "Chat only" : "Chat and Log"));
         return true;  // return true to stop the game from processing any further on this command,
                       // false if you want to just add features to an existing cmd
+      });
+  zeal->commands_hook->Add(
+      "/autoraidinvite", {"/ari"}, "Will raid-invite anyone who sends you a tell with a matching password.", [this](std::vector<std::string> &args) {
+        if (args.size() == 2) {
+          if (args[1] == "off")
+            autoInvitePassword.clear();
+          else
+            autoInvitePassword = args[1];
+          Zeal::Game::print_chat("Auto-Raid invite %s.", autoInvitePassword.empty() ? "disabled" : "enabled");
+        } else {
+          Zeal::Game::print_chat("Use \"/autoraidinvite <password>\" to enable or \"/autoraidinvite off\" to disable.");
+        }
+        return true;
       });
   zeal->commands_hook->Add(
       "/timestamp", {"/tms"}, "Toggles/sets timestamps on chat windows: 0:Off, 1:Long, 2:Short, 3:Short+Secs.",

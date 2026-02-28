@@ -99,6 +99,12 @@ ___
   - **Arguments:** none (toggles), `on`, `off`
   - **Description:** Enables/disables ranged autofire mode.
 
+- `/autoraidinvite`
+  - **Aliases:** `/ari`
+  - **Arguments:** `<password>` (enables), `off` (disables)
+  - **Description:** When enabled, will automatically invite a player to raid if they send a tell with an exact match
+    to the password.
+
 - `/autoinventory`
   - **Aliases:** `/autoinv`, `/ai`
   - **Description:** Drops whatever is on your cursor into your inventory.
