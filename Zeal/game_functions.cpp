@@ -312,7 +312,7 @@ bool can_equip_item(Zeal::GameStructures::GAMEITEMINFO *item) {
   if (!item || !c) return false;
   if (!can_use_item(c, item)) return false;
   for (int i = 0; i < GAME_NUM_INVENTORY_SLOTS; i++) {
-    if (can_item_equip_in_slot(c, item, i + 1) && !c->InventoryItem[i]) {
+    if (can_item_equip_in_slot(c, item, i + GAME_EQUIPMENT_SLOTS_START) && !c->InventoryItem[i]) {
       // print_chat("equipable? slot: %i  %s   %i", i, equipSlotToString(i).c_str(), c->InventoryItem[i]);
       return true;
     }
@@ -520,7 +520,7 @@ void do_raidaccept(bool cross_zone) {
 }
 
 void do_raiddecline(bool cross_zone) {
-  if (cross_zone) return; // No current deny command for cross-zone invites
+  if (cross_zone) return;  // No current deny command for cross-zone invites
   if (get_self())
     reinterpret_cast<void(__thiscall *)(Zeal::GameStructures::Entity * player, const char *unused)>(0x004f3bc1)(
         get_self(), "");
@@ -1833,7 +1833,7 @@ std::string generateTimestamp() {
   return oss.str();
 }
 
-int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item) {
+int get_effect_required_level(const Zeal::GameStructures::GAMEITEMINFO *item) {
   if (!item || item->Type != 0) return 0;
   if (item->Common.Skill == 21 || item->Common.Skill == 42 || item->Common.Skill == 20)  // potion, poison, scroll
     return 0;
@@ -1850,70 +1850,188 @@ int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item) {
   return 0;
 }
 
-bool use_item(int item_index, bool quiet) {
-  Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
-  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-  if (!chr || !self) {
-    Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get charinfo for useitem!");
+// Copied logic from akplus-dll (eqgame.dll) logic that syncs with client and server.
+bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool is_equipped, bool quiet) {
+  // Common pre-checks, copying what the game does
+  if (!(item && item->Type == 0 && item->Common.Charges > 0 && item->Common.IsStackable >= 2 &&
+        item->Common.SpellId >= 1 && item->Common.SpellId < GAME_NUM_SPELLS  // valid spell index
+        && item->Common.Skill != 20 && item->Common.Skill != 42              // poison
+        && item->Common.Skill != 14                                          // food
+        && item->Common.Skill != 15                                          // drink
+        && item->Common.Skill != 38                                          // beer
+        ))
     return false;
+
+  if (item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectClick ||
+      item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectExpendable ||
+      item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectCanEquipClick)
+    return true;
+
+  // Mimic the game to support reporting the specific failure when not equipped.
+  if (item->Common.EffectType == Zeal::GameEnums::ItemEffect::ItemEffectMustEquipClick) {
+    if (is_equipped) return true;
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot use this item unless it is equipped.");
   }
-  int bag_slot = -1;
-  int bag_sub_slot = -1;
-  if (item_index >= GAME_CONTAINER_SLOTS_START) {
-    bag_slot = (item_index - 250) / GAME_NUM_CONTAINER_SLOTS;
-    bag_sub_slot = (item_index - 250) % GAME_NUM_CONTAINER_SLOTS;
+  return false;
+}
+
+int find_use_item_by_name(const std::string &partial_name, bool check_bags) {
+  auto char_info = get_char_info();
+  ;
+  auto name = partial_name.c_str();
+  size_t len = partial_name.length();
+  if (!char_info || len == 0) return -1;
+
+  // Equipped Items
+  for (int i = 0; i < GAME_NUM_INVENTORY_SLOTS; i++) {
+    auto item = char_info->InventoryItem[i];
+    if (is_valid_item_to_use(item, true) && strncmp(item->Name, name, len) == 0) return GAME_EQUIPMENT_SLOTS_START + i;
   }
-  Zeal::GameStructures::GAMEITEMINFO *item = nullptr;
-  if (bag_sub_slot < 0 && (item_index < 0 || item_index > 29)){
-    Zeal::Game::print_chat("useitem <slot> requires an item slot between 0 and 29, you tried to use %i", item_index);
+
+  // Pack Items
+  for (int i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; i++) {
+    auto item = char_info->InventoryPackItem[i];
+    if (is_valid_item_to_use(item, false) && strncmp(item->Name, name, len) == 0) return GAME_PACKS_SLOTS_START + i;
+  }
+
+  // Items in Bags
+  if (check_bags) {
+    for (int i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; i++) {
+      auto *container = char_info->InventoryPackItem[i];
+      if (!container || container->Type != 1 || container->Container.Capacity > GAME_NUM_CONTAINER_SLOTS) continue;
+      int container_slots = container->Container.Capacity;
+      for (int s = 0; s < container_slots; s++) {
+        auto item = container->Container.Item[s];
+        if (is_valid_item_to_use(item, false) && strncmp(item->Name, name, len) == 0)
+          return GAME_CONTAINER_SLOTS_START + i * GAME_NUM_CONTAINER_SLOTS + s;
+      }
+    }
+  }
+
+  return -1;
+}
+
+// Returns true if the players is in a valid state to use a click effect from an item.
+static bool is_valid_state_to_use_item(bool quiet) {
+  auto *char_info = get_char_info();
+  if (!char_info || char_info->StunnedState != 0) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You can not cast a spell while stunned.");
     return false;
   }
 
-  if (bag_sub_slot < 0 && item_index < 21)
-    item = chr->InventoryItem[item_index];
-  else if (bag_sub_slot < 0)
-    item = chr->InventoryPackItem[item_index - 22];  //-22 to make it back to 0 index
-  else {
-    Zeal::GameStructures::GAMEITEMINFO *bag = nullptr;
-    bag = chr->InventoryPackItem[bag_slot];
-    if (!bag) {
-      if (!quiet) Zeal::Game::print_chat("You don't have a bag in Slot %i", bag_slot + 1);
-      return false;
-    }
-    item = bag->Container.Item[bag_sub_slot];
-    if (!item) {
-      if (!quiet) Zeal::Game::print_chat("You don't have an item in Bag %i, Slot %i", bag_slot + 1, bag_sub_slot + 1);
-      return false;
-    }
-  }
-
-  if (!item) {
-    if (!quiet) Zeal::Game::print_chat("There isn't an item at %i", item_index);
-    return false;
-  }
-  if (item->Type != 0 || !item->Common.SpellId) {
-    if (!quiet) Zeal::Game::print_chat("Item %s does not have a spell attached to it.", item->Name);
-    return false;
-  }
-  // List of checks copied from server zone/client_packet.cpp:
-  if ((item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectClick) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectExpendable) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectMustEquipClick) &&
-      (item->Common.EffectType != Zeal::GameEnums::ItemEffect::ItemEffectCanEquipClick)) {
-    if (!quiet) Zeal::Game::print_chat("Item %s does not have a click effect.", item->Name);
-    return false;
-  }
-  if (!self->ActorInfo || self->ActorInfo->CastingSpellId != kInvalidSpellId) {
-    Zeal::Game::print_chat(USERCOLOR_SPELLS, "You must stop casting to cast this spell!");
-    return false;
-  }
+  auto *self = get_self();
+  if (!self) return false;
   if (self->StandingState != Stance::Stand &&
       self->StandingState != Stance::Sit)  // game.dll casting has autostand while sitting
   {
-    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
     return false;
   }
-  return chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index) != 0;
+
+  if (!self->ActorInfo || self->ActorInfo->CastingSpellId != kInvalidSpellId) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must stop casting to cast this spell!");
+    return false;
+  }
+
+  auto *game = get_game();
+  if (!game || !game->IsOkToTransact()) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You are too busy to cast a spell!");
+    return false;
+  }
+
+  const BYTE SE_DivineAura = 40;
+  short divine_aura = Zeal::Game::total_spell_affects(char_info, SE_DivineAura, true, nullptr);
+  if (divine_aura > 0) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot cast a spell while INVULNERABLE!");
+    return false;
+  }
+
+  const BYTE SE_Silence = 96;
+  short silence = Zeal::Game::total_spell_affects(char_info, SE_DivineAura, true, nullptr);
+  if (silence > 0) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot cast a spell while silenced!");
+    return false;
+  }
+
+  return true;
+}
+
+// Returns an item from the global slot_id if it is ready to use (click activated) otherwise nullptr.
+Zeal::GameStructures::GAMEITEMINFO *get_use_item_from_global_slot_id(int slot_id, bool quiet) {
+  auto *char_info = get_char_info();
+  if (!char_info) return nullptr;
+
+  if (slot_id >= GAME_EQUIPMENT_SLOTS_START && slot_id <= GAME_EQUIPMENT_SLOTS_END) {
+    int index = slot_id - GAME_EQUIPMENT_SLOTS_START;
+    auto item = char_info->InventoryItem[index];
+    if (!item) {
+      if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You don't have an item in equipment Slot %d", index);
+      return nullptr;
+    }
+    if (!is_valid_item_to_use(item, true, quiet)) {
+      if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot click the item in Slot %d", index);
+      return nullptr;
+    }
+    return item;
+  }
+
+  if (slot_id >= GAME_PACKS_SLOTS_START && slot_id <= GAME_PACKS_SLOTS_END) {
+    int index = slot_id - GAME_PACKS_SLOTS_START;
+    auto item = char_info->InventoryPackItem[index];
+    if (!item) {
+      if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You don't have an item in Slot %d", slot_id);
+      return nullptr;
+    }
+    if (!is_valid_item_to_use(item, true, quiet)) {
+      if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot click the item in Slot %d", slot_id);
+      return nullptr;
+    }
+    return item;
+  }
+
+  if (slot_id < GAME_CONTAINER_SLOTS_START || slot_id > GAME_CONTAINER_SLOTS_END) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Invalid useitem Slot %d", slot_id);
+    return nullptr;
+  }
+
+  int bag_slot = (slot_id - GAME_CONTAINER_SLOTS_START) / GAME_NUM_CONTAINER_SLOTS;
+  int bag_index = (slot_id - GAME_CONTAINER_SLOTS_START) % GAME_NUM_CONTAINER_SLOTS;
+
+  auto bag = char_info->InventoryPackItem[bag_slot];
+  if (!bag) {
+    if (!quiet) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You don't have a bag in Slot %i", bag_slot + 1);
+    return nullptr;
+  }
+  auto item = bag->Container.Item[bag_index];
+  if (!item) {
+    if (!quiet)
+      Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You don't have an item in Bag %i, Slot %i", bag_slot + 1,
+                             bag_index + 1);
+    return nullptr;
+  }
+
+  if (!is_valid_item_to_use(item, false, quiet)) {
+    if (!quiet)
+      Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You cannot click the item in Bag %i, Slot %i", bag_slot + 1,
+                             bag_index + 1);
+    return nullptr;
+  }
+
+  return item;
+}
+
+// This function takes global_slot_id as the input but prints out error messages in "user" space
+// with decoding of equipment to 0 to 20, packs from 22 to 29, and pack slots in one-indexed
+// bag and slot numbers.
+bool use_item(int global_slot_id, bool quiet) {
+  if (!is_valid_state_to_use_item(quiet)) return false;
+
+  Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
+  Zeal::GameStructures::GAMEITEMINFO *item = get_use_item_from_global_slot_id(global_slot_id, quiet);
+  if (!chr || !item) return false;
+
+  const UINT kUseItemGemSlot = 10;  // Slot 10 tells the server this is an item clicky.
+  return chr->cast(kUseItemGemSlot, 0, (int *)&item, global_slot_id) != 0;
 }
 
 bool is_autoattacking() { return *reinterpret_cast<BYTE *>(0x007f6ffe); }

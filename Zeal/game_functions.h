@@ -285,7 +285,9 @@ void print_raid_leaders(bool show_all_groups = false, bool show_open_groups = fa
 void print_raid_ungrouped();
 void dump_raid_state();
 std::string generateTimestamp();
-int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item);
+int get_effect_required_level(const Zeal::GameStructures::GAMEITEMINFO *item);
+int find_use_item_by_name(const std::string &partial_name, bool check_bags);
+bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool is_equipped, bool quiet = true);
 bool use_item(int item_index, bool quiet = false);
 enum class SortType { Ascending, Descending, Toggle };
 void sort_list_wnd(Zeal::GameUI::ListWnd *list_wnd, int sort_column, SortType sort_type = SortType::Ascending);

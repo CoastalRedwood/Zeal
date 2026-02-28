@@ -18,8 +18,13 @@
 #define GAME_NUM_HOTBUTTONS 10
 #define GAME_NUM_HOTBUTTONS_TOTAL 100
 #define GAME_NUM_CONTAINER_SLOTS 10
+#define GAME_EQUIPMENT_SLOTS_START 1
+#define GAME_EQUIPMENT_SLOTS_END (GAME_EQUIPMENT_SLOTS_START + GAME_NUM_INVENTORY_SLOTS - 1)
+#define GAME_PACKS_SLOTS_START 22
+#define GAME_PACKS_SLOTS_END (GAME_PACKS_SLOTS_START + GAME_NUM_INVENTORY_PACK_SLOTS - 1)
 #define GAME_CONTAINER_SLOTS_START 250
-#define GAME_CONTAINER_SLOTS_END (GAME_CONTAINER_SLOTS_START + (GAME_NUM_INVENTORY_PACK_SLOTS * GAME_NUM_CONTAINER_SLOTS) - 1)
+#define GAME_CONTAINER_SLOTS_END \
+  (GAME_CONTAINER_SLOTS_START + (GAME_NUM_INVENTORY_PACK_SLOTS * GAME_NUM_CONTAINER_SLOTS) - 1)
 #define GAMESTATE_STARTUP 0
 #define GAMESTATE_CHARSELECT 1
 #define GAMESTATE_ENTERWORLD 3   // Character selected, waiting to connect to zone.
@@ -240,6 +245,8 @@ enum ItemEffect {
 
 namespace EquipSlot {  // Avoids 'Back' collision; enum class is inconvenient.
 
+// Note: These EquipSlot enums are indices into the character Inventory array.
+// Add GAME_EQUIPMENT_SLOTS_START to calculate the global slot ID value.
 enum EquipSlot {
   LeftEar = 0,
   Head,

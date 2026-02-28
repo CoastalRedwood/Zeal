@@ -485,9 +485,14 @@ ___
   - **Description:** Sets (on) or clears (off) the UI Lock value on primary game windows. Bag windows must be open to take effect.
 
 - `/useitem`
-  - **Arguments:** `slot_#` or `bag_# slot_#` (+ optional `quiet` that suppresses warnings if no click effect)
-  - **Description:** Activates a click effect on item in slot_#, or bag_# (1-8) slot_# (1-10) for an item in a bag.
+  - **Arguments:** `slot_#`, `bag_# slot_#`, or `partial_name` (+ optional `quiet` that suppresses failure details)
+  - **Description:** Activates a click effect on inventory items
+    - Zeal click from inventory must be enabled to use click effects within bags
+    - The partial name search is case sensitive
+    - The zeal `/useitem` will queue into melody (unlike eqgame.dll's `/use, /useexact`)
   - **Example:** `/useitem 16 quiet` activates click effect on BP and suppresses some warnings
+  - **Example:** `/useitem 8 3` activates click effect on the third slot of bag 8
+  - **Example:** `/useitem Journeyman` searches inventory for first ready to click item that starts with `Journeyman`
 
 - `/zeal`
   - **Arguments:** `version`
@@ -579,7 +584,7 @@ Manual editing of the ini file is required to copy from old section to the new s
 - Note that self generated spell damage goes to Spells->Non Melee Hits for direct damage
   and to Spells->Worn Off for damage over time
 
-## Right click to equip item
+## Right click to equip item and Right click to use from inventory
 - Enabled in Zeal general options
 - Must be in your bags.
 - Will equip to an empty slot when available.
@@ -588,7 +593,11 @@ Manual editing of the ini file is required to copy from old section to the new s
   RingRight, Ammo
 - Can hold Shift (2nd) / Ctrl (3rd) / Shift+Ctrl (4th) to equip the item to alternate slots
   if it can be equipped in several slots in the list.
-- Holding Alt blocks click to equip to allow processing by the eqgame.dll
+- If Zeal `Click from inventory` is enabled, then the state of the Alt key matters
+  - If the `Click requires Alt` is enabled then the primary right click to equip
+    works normally, otherwise the right click activates clicks and the Alt key
+    must be held down for the primary right click to equip action
+- The `Click from inventory` will queue items into melody when active
 
 ## Triggers
 - Supports a very simplistic visible timer countdown display based on char parsed trigger events

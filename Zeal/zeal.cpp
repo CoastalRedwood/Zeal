@@ -233,7 +233,7 @@ static bool handle_tell_consent() {
   return true;
 }
 
-static const char* get_last_tell_sender() {
+static const char *get_last_tell_sender() {
   const char(*tell_list)[64] = reinterpret_cast<const char(*)[64]>(0x007CE45C);
   const char *last_teller = tell_list[0];
   if (last_teller[0] == 0) {
@@ -246,16 +246,75 @@ static const char* get_last_tell_sender() {
 // Sends a "Consent me" tell to the owner of the targeted corpse.
 static bool handle_reply_consent() {
   const char *last_teller = get_last_tell_sender();
-  if (last_teller[0] != 0)
-    Zeal::Game::do_consent(last_teller);
+  if (last_teller[0] != 0) Zeal::Game::do_consent(last_teller);
   return true;
 }
 
 // Sends a "#raidinvite" message with the player from the last tell received
 static bool handle_reply_raidinvite() {
   const char *last_teller = get_last_tell_sender();
-  if (last_teller[0] != 0)
-    Zeal::Game::do_say(true, "#raidinvite %s", last_teller);
+  if (last_teller[0] != 0) Zeal::Game::do_say(true, "#raidinvite %s", last_teller);
+  return true;
+}
+
+static bool handle_useitem(const std::vector<std::string> &args, bool check_bags) {
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (!char_info || !self || !self->ActorInfo) {
+    Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
+    return true;
+  }
+  if (args.size() <= 1) return false;
+
+  auto size = args.size();
+  bool quiet = args[size - 1] == "quiet";
+  if (quiet) size--;
+  if (size < 2) return false;
+
+  int global_slot_id = -1;
+  if (size == 2) {
+    if (Zeal::String::tryParse(args[1], &global_slot_id, true)) {
+      if (global_slot_id < 0 || global_slot_id > GAME_PACKS_SLOTS_END || global_slot_id == GAME_EQUIPMENT_SLOTS_END) {
+        Zeal::Game::print_chat("valid use item slots are between 0 and %d except for %d", GAME_PACKS_SLOTS_END,
+                               GAME_EQUIPMENT_SLOTS_END);
+        return true;
+      }
+      if (global_slot_id < GAME_EQUIPMENT_SLOTS_END)
+        global_slot_id += GAME_EQUIPMENT_SLOTS_START;  // Translate 0 to 20 to global slot ID's 1 to 21.
+    }
+  } else if (size == 3) {
+    int bag_index = 0;
+    int bagslot_index = 0;
+    if (Zeal::String::tryParse(args[1], &bag_index, true) && Zeal::String::tryParse(args[2], &bagslot_index, true)) {
+      if (!check_bags) {
+        Zeal::Game::print_chat("Use from bags is disabled");
+        return false;
+      }
+      if (bag_index < 1 || bag_index > GAME_NUM_INVENTORY_PACK_SLOTS || bagslot_index < 1 ||
+          bagslot_index > GAME_NUM_CONTAINER_SLOTS) {
+        Zeal::Game::print_chat(
+            "useitem for bags requires an item slot between 1 and %i, and a bag-item slot between 1 and %i",
+            GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
+        return true;
+      }
+      global_slot_id = GAME_CONTAINER_SLOTS_START + (bag_index - 1) * GAME_NUM_CONTAINER_SLOTS + bagslot_index - 1;
+    }
+  }
+
+  if (global_slot_id < GAME_EQUIPMENT_SLOTS_START) {
+    std::string name = args[1];
+    for (auto i = 2; i < size; ++i) name += " " + args[i];  // Re-create full name string with spaces.
+    global_slot_id = Zeal::Game::find_use_item_by_name(name, check_bags);
+    if (global_slot_id < GAME_EQUIPMENT_SLOTS_START) {
+      if (!quiet) Zeal::Game::print_chat("Could not find a ready to click item starting with %s", name.c_str());
+      return true;
+    }
+  }
+
+  if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
+      ZealService::get_instance()->melody->use_item(global_slot_id))
+    return true;
+  Zeal::Game::use_item(global_slot_id, quiet);
   return true;
 }
 
@@ -367,52 +426,22 @@ void ZealService::AddCommands() {
                        return false;
                      });
   commands_hook->Add(
-      "/useitem", {},
-      std::format("Use an item's right click function. Arugment is 0-29 which indicates the inventory slot, "
-        "or \"<Bag 1-%i> <Slot 1-%i>\" which indicates an item in a bag",
-        GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS),
-      [](std::vector<std::string> &args) {
-        Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
-        Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
-        if (!char_info || !self || !self->ActorInfo) {
-          Zeal::Game::print_chat(USERCOLOR_SHOUT, "[Fatal Error] Failed to get entity for useitem!");
-          return true;
-        }
-        int inv_index = -1;
-        int bagslot_index = -1;
-        bool quiet = false;
-        if (args.size() > 1 && Zeal::String::tryParse(args[1], &inv_index)) {
-          if (args.size() > 2 && args[2] == "quiet") quiet = true;
-          else if (args.size() > 2) {
-            Zeal::String::tryParse(args[2], &bagslot_index);
-            if (args.size() > 3 && args[3] == "quiet") quiet = true;
-          }
-          if (bagslot_index >= 0) {
-            if (inv_index <= 0 || inv_index > GAME_NUM_INVENTORY_PACK_SLOTS
-                  || bagslot_index <= 0 || bagslot_index > GAME_NUM_CONTAINER_SLOTS ) {
-              Zeal::Game::print_chat("useitem for bags requires an item slot between 1 and %i, and a bag-item slot between 1 and %i",
-                GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
-              return true;
-            }
-            // Convert Bag + Item into raw item index
-            inv_index = 250 + (inv_index - 1) * GAME_NUM_CONTAINER_SLOTS + (bagslot_index - 1);
-          }
-          if (char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
-              ZealService::get_instance()->melody->use_item(inv_index))
-            return true;
-          Zeal::Game::use_item(inv_index, quiet);
-        } else {
+      "/useitem", {}, "Use an item's right click function by slot #, bag and slot #'s, or name match",
+      [this](std::vector<std::string> &args) {
+        static const bool check_bags = equip_item_hook->setting_click_from_inventory.get();
+        if (!handle_useitem(args, check_bags)) {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
-            "useitem requires an item slot between 0 and 29, or \"<Bag 1-%i> <Slot 1-%i>\" for bagged items",
-            GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
+                                 "useitem requires an item slot between 0 and 29, \"<Bag 1-%i> <Slot 1-%i>\" for "
+                                 "bagged items, or case sensitive partial match of an item name (must enable "
+                                 "Zeal click from inventory to click / search within bags)",
+                                 GAME_NUM_INVENTORY_PACK_SLOTS, GAME_NUM_CONTAINER_SLOTS);
           Zeal::Game::print_chat("0: Left ear, 1: Head, 2: Face, 3: Right Ear, 4: Neck, 5: Shoulders");
           Zeal::Game::print_chat("6: Arms, 7: Back, 8: Left Wrist, 9: Right Wrist, 10: Ranged");
           Zeal::Game::print_chat("11: Hands, 12: Primary, 13: Secondary, 14: Left Finger, 15: Right Finger");
           Zeal::Game::print_chat("16: Chest, 17: Legs, 18: Feet, 19: Waist, 20: Ammo");
           Zeal::Game::print_chat("Inventory: 22: Top Left, 25: Bottom left, 26: Top Right, 29: Bottom Right");
         }
-        return true;  // return true to stop the game from processing any further on this command, false if you want to
-                      // just add features to an existing cmd
+        return true;
       });
 
   commands_hook->Add("/zeal", {"/zea"}, "Help and version information.", [this](std::vector<std::string> &args) {

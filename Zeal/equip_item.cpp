@@ -18,55 +18,67 @@ static void __fastcall CInvSlot_HandleRButtonUp(Zeal::GameUI::InvSlot *inv_slot,
       inv_slot, unused_edx, x, y);
 }
 
+bool EquipItem::HandleRightClickActivation(Zeal::GameUI::InvSlot *inv_slot) {
+  if (!inv_slot) return false;
+  auto item = reinterpret_cast<const Zeal::GameStructures::GAMEITEMINFO *>(inv_slot->Item);
+  auto wnd = inv_slot->invSlotWnd;
+  if (!item || !wnd) return false;
+  int slot_id = wnd->SlotID;
+
+  // We want to let the client handle all of the non-click effects like opening bags, consuming food,
+  // requesting loot, etc, so we filter aggressively here.
+
+  // Let client handle any slots that are not part of player inventory.
+  bool is_equipped = (slot_id >= GAME_EQUIPMENT_SLOTS_START && slot_id <= GAME_EQUIPMENT_SLOTS_END);
+  bool is_pack = (slot_id >= GAME_PACKS_SLOTS_START && slot_id <= GAME_PACKS_SLOTS_END);
+  bool is_bagged = (slot_id >= GAME_CONTAINER_SLOTS_START && slot_id <= GAME_CONTAINER_SLOTS_END);
+  if (!is_equipped && !is_pack && !is_bagged) return false;
+
+  // Use the same check that use_item() (and also eqgame.dll) uses to verify it is a valid clicky.
+  if (!Zeal::Game::is_valid_item_to_use(item, is_equipped, false)) return false;
+
+  // It is a valid clicky so it should get the right click attempt and we will absorb the click.
+  // First try queuing it into a Bard's Melody otherwise execute it now with use_item().
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (char_info && char_info->Class == Zeal::GameEnums::ClassTypes::Bard &&
+      ZealService::get_instance()->melody->use_item(slot_id))
+    return true;  // Melody has queued the click so snuff it from further processing.
+
+  Zeal::Game::use_item(slot_id);
+  return true;  // Ignore the result of use_item() and return true here to snuff further click processing.
+}
+
 bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
-  if (!src_inv_slot) {
-    return false;
-  }
-
-  Zeal::GameUI::InvSlotWnd *src_wnd = src_inv_slot->invSlotWnd;
-  if (!src_wnd) {
-    return false;
-  }
-
-  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
-
   Zeal::GameUI::CXWndManager *wnd_mgr = Zeal::Game::get_wnd_manager();
-  if (!wnd_mgr || !c) {
+  if (!wnd_mgr) {
     return false;
   }
 
-  int src_slot_id = src_wnd->SlotID;
-
-  // Check for alt early as we want to use a clicky
+  // Get the currently held keyboard modifiers
   BYTE alt = wnd_mgr->AltKeyState;
+  BYTE shift = wnd_mgr->ShiftKeyState;
+  BYTE ctrl = wnd_mgr->ControlKeyState;
 
-  // Note: The default client behavior for items is to do nothing when a modifier is used with right click,
-  //       so no checks for opening containers, consuming food, etc is currently in place
-
-  // Holding alt will use clickies even if in bags
-  if (alt && setting_click_from_inventory.get()) {
-
-    // Ignore non-player slots
-    if (src_slot_id < 0 || (src_slot_id > 29 && src_slot_id < GAME_CONTAINER_SLOTS_START)
-        || src_slot_id > GAME_CONTAINER_SLOTS_END) return false;
-
-    //  Adjust index for equipment slots
-    if (src_slot_id < 22) src_slot_id = src_slot_id - 1;
-
-    // Try Bard Melody's use_item, otherwise regular use_item
-    if (c->Class == Zeal::GameEnums::ClassTypes::Bard &&
-          ZealService::get_instance()->melody->use_item(src_slot_id))
-      return true;
-    Zeal::Game::use_item(src_slot_id);
-
-    // Always returning true here to snuff out any other downstream attempted handling
-    return true;
+  // Right click activation of clickies is allowed when shift and control are not
+  // held and the user selected state of the alt key matches. This call will return
+  // false if there was no attempt to activate allowing the client handler to deal with it.
+  // Note that items in the equipped slots will be activated with or without the modifier
+  // since the client does it in one case and the Zeal handler in the other, but only the
+  // modifier path will queue it into melody.
+  bool clicky_modifier = !shift && !ctrl && ((alt != 0) == setting_use_alt_for_clicky.get());
+  if (clicky_modifier && setting_click_from_inventory.get()) {
+    return HandleRightClickActivation(src_inv_slot);
   }
 
   // Nothing downstream is required if RightClickToEquip is disabled
   if (!Enabled.get()) return false;
 
   // Slot ID for bagged items is 250 + (bag_i*10) + (contents_i) = [250...329]
+  auto src_wnd = src_inv_slot ? src_inv_slot->invSlotWnd : nullptr;
+  if (!src_wnd) {
+    return false;
+  }
+  int src_slot_id = src_wnd->SlotID;
   if (src_slot_id < GAME_CONTAINER_SLOTS_START || src_slot_id > GAME_CONTAINER_SLOTS_END) {
     return false;  // Item is not in an inventory bag.
   }
@@ -76,6 +88,7 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
     return false;  // Shouldn't happen. Ensure bag is 0..7
   }
 
+  Zeal::GameStructures::GAMECHARINFO *c = Zeal::Game::get_char_info();
   if (!c || c->CursorItem || c->CursorCopper || c->CursorGold || c->CursorPlatinum || c->CursorSilver) {
     return false;  // Fast-fail. We are holding something.
   }
@@ -138,10 +151,6 @@ bool EquipItem::HandleRButtonUp(Zeal::GameUI::InvSlot *src_inv_slot) {
   // -----------------------------------------
   // -- Preparing to Swap, Picking the Slot --
   // -----------------------------------------
-
-  // Get the currently held keyboard modifiers
-  BYTE shift = wnd_mgr->ShiftKeyState;
-  BYTE ctrl = wnd_mgr->ControlKeyState;
 
   // User controlled behavior:
   // Based on what keys are held (nothing, Shift, Ctrl, Shift+Ctrl), use the 1st, 2nd, 3rd, or 4th equippable slot,
