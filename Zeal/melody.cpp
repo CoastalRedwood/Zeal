@@ -281,10 +281,14 @@ void Melody::tick() {
   use_item_ack_state = UseItemState::Idle;
   if (use_item_index >= 0) {
     stop_current_cast();  // Terminate bard song (if active) in order to cast.
-    bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index);
+    Zeal::GameStructures::GAMEITEMINFO *used_item = nullptr;
+    bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index, false, &used_item);
     use_item_index = -1;
     if (success) {
       use_item_ack_state = UseItemState::CastRequested;
+      if (used_item && used_item->Common.CastTime == 0 && Zeal::Game::get_game()->IsOkToTransact()) {
+        use_item_ack_state = UseItemState::Idle;  // Instant bard clicky. Can't use request/ack format
+      }
       start_of_cast_timestamp = current_timestamp;    // Used in timeout check.
       casting_visible_timestamp = current_timestamp;  // Insta-clickies may not update.
       return;

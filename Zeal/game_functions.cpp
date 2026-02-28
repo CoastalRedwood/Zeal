@@ -1850,7 +1850,7 @@ int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item) {
   return 0;
 }
 
-bool use_item(int item_index, bool quiet) {
+bool use_item(int item_index, bool quiet, Zeal::GameStructures::GAMEITEMINFO** out_item) {
   Zeal::GameStructures::GAMECHARINFO *chr = Zeal::Game::get_char_info();
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
   if (!chr || !self) {
@@ -1913,6 +1913,7 @@ bool use_item(int item_index, bool quiet) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You must be standing to cast a spell.");
     return false;
   }
+  if (out_item) *out_item = item;
   return chr->cast(0xA, 0, (int *)&item, item_index < 21 ? item_index + 1 : item_index) != 0;
 }
 

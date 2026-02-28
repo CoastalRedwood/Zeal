@@ -286,7 +286,7 @@ void print_raid_ungrouped();
 void dump_raid_state();
 std::string generateTimestamp();
 int get_effect_required_level(Zeal::GameStructures::GAMEITEMINFO *item);
-bool use_item(int item_index, bool quiet = false);
+bool use_item(int item_index, bool quiet = false, Zeal::GameStructures::GAMEITEMINFO** out_item = nullptr);
 enum class SortType { Ascending, Descending, Toggle };
 void sort_list_wnd(Zeal::GameUI::ListWnd *list_wnd, int sort_column, SortType sort_type = SortType::Ascending);
 short total_spell_affects(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE affect_type, BYTE a3,
