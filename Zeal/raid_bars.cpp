@@ -570,6 +570,7 @@ void RaidBars::CallbackRender() {
   }
 
   visible_list.clear();
+  visible_group_index.fill(-1);  // Reset all group indexes to -1 (not visible) before repopulating.
   if (setting_group_sort.get())
     QueueByGroup(x_min, y_min, x_max, y_max);
   else
@@ -656,6 +657,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
     const std::string group_label =
         ungrouped ? "Ungrouped:" : std::string("Group ") + std::to_string(group_index + 1) + ": ";
     float y_offset = grid_height - bitmap_font->get_line_spacing() - 2;  // Add some padding for the label.
+    visible_group_index[i] = static_cast<int>(visible_list.size());      // Record label index before pushing.
     visible_list.push_back(nullptr);
     bitmap_font->queue_string(group_label.c_str(), Vec3(x, y + y_offset, 0), false,
                               D3DCOLOR_XRGB(0xff, 0xff, 0xff));  // White label

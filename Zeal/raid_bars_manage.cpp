@@ -109,53 +109,37 @@ bool RaidBarsManage::HandleCtrlClick(int index) {
     move_pending_name = name;
     Zeal::Game::print_chat("Selected %s for move. Ctrl+Click a destination group.", name.c_str());
     return true;
-  } else {
-    // Second Ctrl+Click: determine destination group from clicked location.
-    // Take into account that user may be clicking on a group label or empty slot, so scan forward/backward for the
-    // nearest valid member to determine the group.
-    DWORD dest_group = Zeal::GameStructures::RaidMember::kRaidUngrouped;
-    int resolve_index = index;
-
-    if (bars.visible_list[index] == nullptr) {
-      const int size = static_cast<int>(bars.visible_list.size());
-      const bool is_label = (index == 0) ||
-                            (index + 1 < size && bars.visible_list[index + 1] != nullptr);
-
-      if (is_label) {
-        // Clicked on a group label: get the next member index, as it should be the group leader
-        resolve_index = index + 1;
-      } else {
-        // Clicked on an empty slot: scan backward to find the nearest member already in this group.
-        for (int i = index - 1; i >= 0 && i > index - 7; --i) {
-          if (bars.visible_list[i] != nullptr) {
-            resolve_index = i;
-            break;
-          }
-        }
-      }
-    }
-
-    // Look up the name, then query the raid structure for the group.
-    std::string dest_name = GetRaidMemberNameAtIndex(resolve_index);
-    if (!dest_name.empty())
-      dest_group = Zeal::Game::get_raid_group_number(dest_name.c_str());
-
-    if (dest_group == Zeal::GameStructures::RaidMember::kRaidUngrouped) {
-      Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());
-      Zeal::Game::do_say(true, "#raidmove %s 0", move_pending_name.c_str());
-    } else {
-      int group_count = Zeal::Game::get_raid_group_count(dest_group);
-      if (group_count >= 6) {
-        Zeal::Game::print_chat("Group %d is full. Cannot move %s.", dest_group + 1, move_pending_name.c_str());
-        move_pending_name.clear();
-        return true;
-      }
-      Zeal::Game::print_chat("Moving %s to group %d.", move_pending_name.c_str(), dest_group + 1);
-      Zeal::Game::do_say(true, "#raidmove %s %d", move_pending_name.c_str(), dest_group + 1);
-    }
-    move_pending_name.clear();
-    return true;
   }
+
+  // Second Ctrl+Click: resolve destination group from the clicked index.
+  DWORD dest_group = Zeal::GameStructures::RaidMember::kRaidUngrouped;
+  
+  // Use the group label index map to identify which group was clicked
+  for (int group_slot = 0; group_slot < static_cast<int>(bars.visible_group_index.size()); ++group_slot) {
+
+    // Ignore non visible groups
+    if (bars.visible_group_index[group_slot] == -1) continue;
+
+    if (bars.visible_group_index[group_slot] <= index) {
+      dest_group = (group_slot == 12) ? Zeal::GameStructures::RaidMember::kRaidUngrouped : static_cast<DWORD>(group_slot);
+    }
+  }
+
+  if (dest_group == static_cast<DWORD>(Zeal::GameStructures::RaidMember::kRaidUngrouped)) {
+    Zeal::Game::print_chat("Moving %s to ungrouped.", move_pending_name.c_str());
+    Zeal::Game::do_say(true, "#raidmove %s 0", move_pending_name.c_str());
+  } else {
+    int group_count = Zeal::Game::get_raid_group_count(dest_group);
+    if (group_count >= 6) {
+      Zeal::Game::print_chat("Group %d is full. Cannot move %s.", dest_group + 1, move_pending_name.c_str());
+      move_pending_name.clear();
+      return true;
+    }
+    Zeal::Game::print_chat("Moving %s to group %d.", move_pending_name.c_str(), dest_group + 1);
+    Zeal::Game::do_say(true, "#raidmove %s %d", move_pending_name.c_str(), dest_group + 1);
+  }
+  move_pending_name.clear();
+  return true;
 }
 
 int RaidBarsManage::FindFirstEmptyGroup() const {

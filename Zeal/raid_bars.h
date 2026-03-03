@@ -53,6 +53,7 @@ class RaidBars {
 
   static constexpr int kNumClasses = Zeal::GameEnums::ClassTypes::Beastlord - Zeal::GameEnums::ClassTypes::Warrior + 1;
   static constexpr int kClassIndexOffset = Zeal::GameEnums::ClassTypes::Warrior;
+  static constexpr int kNumGroupLabelSlots = 13;  // Groups 1-12 plus ungrouped.
 
   struct RaidMember {
     std::string name;                      // Copy to compare against when out of zone.
@@ -92,6 +93,9 @@ class RaidBars {
   std::array<bool, kNumClasses> class_never;                      // Boolean flag to show never for class types.
   std::array<bool, kNumClasses> class_filter;                     // Boolean flag to filter class types by threshold.
   std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
+
+  // Maps group slot (12 groups plus ungrouped) to its visible list label index.
+  std::array<int, kNumGroupLabelSlots> visible_group_index;
 
   RaidBarsManage manage{*this};  // Manage mode handler.
 };
