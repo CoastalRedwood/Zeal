@@ -802,13 +802,23 @@ std::string GetAutoRaidInviteName(const std::string &data) {
 
 // Returns a player name if the tell matches the expected /tc format.
 std::string GetConsentMeTellName(const std::string &data) {
-  static const char consent_ending[] = " tells you, 'Consent me'";
-  if (!data.ends_with(consent_ending)) return "";
+  static const char consent_ending_regular[] = " tells you, 'Consent me'";
+  static const char consent_ending_abbreviated[] = "]: Consent me";
+  char name_prefix;
+  int consent_ending_len;
+  if (data.ends_with(consent_ending_regular)) {
+    name_prefix = ' ';
+    consent_ending_len = strlen(consent_ending_regular);
+  } else if (data.ends_with(consent_ending_abbreviated)) {
+    name_prefix = '[';
+    consent_ending_len = strlen(consent_ending_abbreviated);
+  }
+  else return "";
 
   // Extract the name. Normally it is the first word but we go backwards just in case.
-  std::string truncated = data.substr(0, data.length() - strlen(consent_ending));
-  size_t last_space = truncated.find_last_of(" ");
-  std::string name = (last_space == std::string::npos) ? truncated : truncated.substr(last_space + 1);
+  std::string truncated = data.substr(0, data.length() - consent_ending_len);
+  size_t name_prefix_pos = truncated.find_last_of(name_prefix);
+  std::string name = (name_prefix_pos == std::string::npos) ? truncated : truncated.substr(name_prefix_pos + 1);
   return name;
 }
 
