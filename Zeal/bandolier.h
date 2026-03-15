@@ -48,7 +48,7 @@ class Bandolier {
   std::map<int, int> original_position;         // List of original positions for items for swap back. Map {itemID, Slot}
 
   void tick();
-  bool unequip_set(int slot_to_unequip);
+  void unequip_set(int slot_to_unequip);
   void equip_set(int item_to_equip, int dest_slot);
   bool swap_items(Zeal::GameStructures::GAMECHARINFO *char_info, ItemSwapData swap_data, bool swap = false);
 

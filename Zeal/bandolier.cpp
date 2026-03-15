@@ -67,8 +67,21 @@ void Bandolier::load(const std::string &name) {
   }
   Zeal::Game::print_chat("Loading bandolier set [%s]", name.c_str());
 
-  auto *char_info = Zeal::Game::get_char_info();
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
   if (!char_info) return;
+
+  // Not allow swapping while stunned
+  if (char_info->StunnedState) {
+    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Can not load bandolier set while stunned.");
+    return;
+  }
+
+  // Not allow swapping while casting a spell
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (self && self->ActorInfo && self->ActorInfo->CastingSpellId != kInvalidSpellId) {
+    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Can not load bandolier set while casting.");
+    return;
+  }
 
   steps.clear();
   for (size_t i = 0; i < BANDOLIER_SLOTS.size(); ++i) {
@@ -110,6 +123,24 @@ void Bandolier::tick() {
     return;
   }
 
+  // If stunned during the swapping process, interrupt and reset the process.
+  Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
+  if (!char_info || char_info->StunnedState) {
+    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Can not equip bandolier sets while stunned.");
+    is_swapping = false;
+    steps.clear();
+    return;
+  }
+
+  // If started casting during the swapping process, interrupt and reset the process.
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+  if (self && self->ActorInfo && self->ActorInfo->CastingSpellId != kInvalidSpellId) {
+    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Can not load bandolier set while casting.");
+    is_swapping = false;
+    steps.clear();
+    return;
+  }
+
   SetStep step = steps.front();
   if (step.action == Unequip) {
     unequip_set(step.slot);
@@ -126,42 +157,49 @@ void Bandolier::tick() {
   tick_delay = kStepDelayTicks;
 }
 
-bool Bandolier::unequip_set(int slot_to_unequip) { 
+void Bandolier::unequip_set(int slot_to_unequip) { 
   auto *char_info = Zeal::Game::get_char_info(); 
 
   // If the slot is already empty, skip.
   if (!char_info->InventoryItem[slot_to_unequip]) {
-    return true;
+    return;
   }
 
   Zeal::GameUI::CInvSlotMgr *inv_slot_mgr = Zeal::Game::Windows->InvSlotMgr;
-  if (!inv_slot_mgr) return false;
+  if (!inv_slot_mgr) {
+    return;
+  }
 
   // If the cursor is holding an item or coins, we can't swap items. skip
-  if (char_info->CursorItem || char_info->CursorCopper || char_info->CursorGold || char_info->CursorPlatinum || char_info->CursorSilver) 
-    return false;
+  if (char_info->CursorItem || char_info->CursorCopper || char_info->CursorGold || char_info->CursorPlatinum || char_info->CursorSilver) {
+    return;
+  }
 
   auto item_to_unequip = char_info->InventoryItem[slot_to_unequip];
 
   // Check if the item has the original position stored, if not find a empty inventory slot
-  auto it = original_position.find(item_to_unequip->ID);
-  int dst_slot = (it != original_position.end()) ? it->second 
-      : find_empty_inventory_slot(char_info, slot_to_unequip);
+
+  int dst_slot = -1;
+  if (original_position.contains(item_to_unequip->ID)) {
+     dst_slot = original_position[item_to_unequip->ID];
+    
+  } else {
+     dst_slot = find_empty_inventory_slot(char_info, slot_to_unequip);
+  }
   if (dst_slot == -1) {
-    return false;
+    return;
   }
 
   auto slots_data = get_inventory_slots(char_info, slot_to_unequip + 1, dst_slot);
   if (!slots_data.source_slot || !slots_data.dest_slot) {
-    return false;
+    return;
   }
 
   swap_items(char_info, slots_data);
-  return true;
 
-  // Zeal::Game::move_item(int from_slot, int to_slot, int print_error, int a3)
-  //Zeal::Game::move_item(slot_to_unequip, empty_slot, 0, 1);
-  //return true;
+  // Remove the original position from the map after unequipping
+  original_position.erase(item_to_unequip->ID);
+  return;
 }
 
 void Bandolier::equip_set(int item_to_equip, int dest_slot) { 
@@ -213,12 +251,14 @@ void Bandolier::equip_set(int item_to_equip, int dest_slot) {
 
   // 3. The item currently equiped is different than the item we want to equip. Try to swap if possible
   // Before swapping, check if the currently equiped item can be stored in the same slot where the item to equip is located.
-  // If not, we need to move the currently equiped item to an empty slot first.
-  if (!can_be_stored(char_info, item_to_equip_position, slots_data.dest_item)) {
+  // If not, we need to move the currently equiped item to an empty slot first. 
+  // Also, check if item has the original position stored
+  if (!can_be_stored(char_info, item_to_equip_position, slots_data.dest_item) || original_position.contains(slots_data.dest_item->ID)) {
     unequip_set(dest_slot);
     swap_items(char_info, slots_data);
   } else {
     swap_items(char_info, slots_data, true);
+    
   }
 }
 
@@ -388,6 +428,8 @@ bool Bandolier::can_be_stored(Zeal::GameStructures::GAMECHARINFO *char_info, int
 
   return true;
 }
+
+
 
 // Initializes the character dependent filename useed to store bandolier sets.
 void Bandolier::initialize_ini_filename() {
