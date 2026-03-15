@@ -294,6 +294,15 @@
     <ClInclude Include="triggers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="raid_bars.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="raid_bars_manage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bandolier.h">
+      <Filter>Header Files\hooks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -511,6 +520,15 @@
     </ClCompile>
     <ClCompile Include="triggers.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="raid_bars.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="raid_bars_manage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bandolier.cpp">
+      <Filter>Source Files\hooks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
