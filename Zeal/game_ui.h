@@ -461,6 +461,23 @@ struct CharSelect : SidlWnd {
   /*0x178*/ BYTE Unknown0x178[0x8];  // 0x180 allocated.
 };
 
+struct CursorAttachmentWnd : SidlWnd {
+  void Deactivate() { reinterpret_cast<void(__thiscall *)(const CursorAttachmentWnd *)>(vtbl->Deactivate)(this); }
+
+  /*0x134*/ BYTE Activated;  // Set to 1 when activated and 0 in Deactivate().
+  /*0x135*/ BYTE Unknown0x135[0x3];
+  /*0x138*/ int Unknown0x138;    // Set to -1 in constructor, might be type of attachment
+  /*0x13C*/ int Unknown0x13c;    //
+  /*0x140*/ int Unknown0x140;    // Appears to be a CXSTR
+  /*0x144*/ int Unknown0x144;    // Set to 0 in constructor
+  /*0x148*/ void *Unknown0x148;  // Pointer to 8 byte allocated memory
+  /*0x14C*/ void *CA_Anim;
+  /*0x150*/ void *CA_Anim2;
+  /*0x154*/ void *CA_SpellGem;
+  /*0x158*/ void *Unknown0x158;  // Pointer to 8 byte allocated memory.
+  /*0x15c*/                      // 0x15c allocated.
+};
+
 struct RaidWnd : SidlWnd {
   /*0x134*/ BYTE ToggleState;
   /*0x135*/ BYTE Unknown0x135[0x3b];
@@ -1399,7 +1416,7 @@ struct pInstWindows {
   OptionsWnd *Options;                      // 0x63D634
   SidlWnd *BuffWindowNORMAL;                // 0x63D638
   SidlWnd *CharacterCreation;               // 0x63D63C
-  SidlWnd *CursorAttachment;                // 0x63D640
+  CursorAttachmentWnd *CursorAttachment;    // 0x63D640
   SidlWnd *Casting;                         // 0x63D644
   CastSpellWnd *SpellGems;                  // 0x63D648
   SpellBookWnd *SpellBook;                  // 0x63D64C
