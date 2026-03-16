@@ -35,7 +35,7 @@ bool EquipItem::HandleRightClickActivation(Zeal::GameUI::InvSlot *inv_slot) {
   if (!is_equipped && !is_pack && !is_bagged) return false;
 
   // Use the same check that use_item() (and also eqgame.dll) uses to verify it is a valid clicky.
-  if (!Zeal::Game::is_valid_item_to_use(item, is_equipped, false)) return false;
+  if (!Zeal::Game::is_valid_item_to_use(item, is_equipped, true)) return false;
 
   // It is a valid clicky so it should get the right click attempt and we will absorb the click.
   // First try queuing it into a Bard's Melody otherwise execute it now with use_item().

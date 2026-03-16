@@ -320,6 +320,39 @@ static bool handle_useitem(const std::vector<std::string> &args, bool check_bags
   return true;
 }
 
+// Returns nullptr is successful else failure message.
+static const char *handle_swap(const std::vector<std::string> &args) {
+  static constexpr char kUsage[] =
+      "Usage: /swap <first_bag> <first_slot> <second_bag> <second_slot> "
+      " where bag = 0 to use inventory slots 0 to 29 or bag = 1 to 8 to use bag slots 1 to 10";
+
+  int first_bag = 0;
+  int first_index = 0;
+  int second_bag = 0;
+  int second_index = 0;
+  if (args.size() != 5 || !Zeal::String::tryParse(args[1], &first_bag, true) ||
+      !Zeal::String::tryParse(args[2], &first_index, true) || !Zeal::String::tryParse(args[3], &second_bag, true) ||
+      !Zeal::String::tryParse(args[4], &second_index, true)) {
+    return kUsage;
+  }
+
+  int first_slot_id = (first_bag == 0)
+                          ? first_index
+                          : (GAME_CONTAINER_SLOTS_START + (first_bag - 1) * GAME_NUM_CONTAINER_SLOTS + first_index - 1);
+  if (first_slot_id < GAME_EQUIPMENT_SLOTS_END) first_slot_id++;  // Convert to global.
+
+  int second_slot_id =
+      (second_bag == 0) ? second_index
+                        : (GAME_CONTAINER_SLOTS_START + (second_bag - 1) * GAME_NUM_CONTAINER_SLOTS + second_index - 1);
+  if (second_slot_id < GAME_EQUIPMENT_SLOTS_END) second_slot_id++;  // Convert to global.
+
+  if (!Zeal::Game::is_global_slot_id_an_inventory_slot(first_slot_id) ||
+      !Zeal::Game::is_global_slot_id_an_inventory_slot(second_slot_id))
+    return kUsage;
+
+  return Zeal::Game::swap_inventory_slot_items_through_cursor(first_slot_id, second_slot_id, true);
+}
+
 void ZealService::AddCommands() {
   commands_hook->Add(
       "/alarm", {}, "Open the alarm ui and gives alarm functionality on old ui.",
@@ -445,6 +478,13 @@ void ZealService::AddCommands() {
         }
         return true;
       });
+
+  commands_hook->Add("/swap", {}, "Swaps two inventory slots (cursor must be empty)",
+                     [this](std::vector<std::string> &args) {
+                       const char *msg = handle_swap(args);
+                       if (msg) Zeal::Game::print_chat(msg);
+                       return true;
+                     });
 
   commands_hook->Add("/zeal", {"/zea"}, "Help and version information.", [this](std::vector<std::string> &args) {
     if (args.size() == 1) {

@@ -1207,6 +1207,18 @@ struct Display {
 
   void KeyMapUpdated() { reinterpret_cast<void(__thiscall *)(Display *)>(0x004a7ca5)(this); }
 
+  void HandleMaterial(Zeal::GameStructures::GAMECHARINFO *char_info, short slot_id,
+                      Zeal::GameStructures::GAMEITEMINFO *new_item, Zeal::GameStructures::GAMEITEMINFO *old_item) {
+    reinterpret_cast<void(__thiscall *)(Display *, Zeal::GameStructures::GAMECHARINFO *, short,
+                                        Zeal::GameStructures::GAMEITEMINFO *, Zeal::GameStructures::GAMEITEMINFO *)>(
+        0x004a28b0)(this, char_info, slot_id, new_item, old_item);
+  }
+
+  void DoItemSlot(Zeal::GameStructures::Entity *self, int slot_id) {
+    reinterpret_cast<void(__thiscall *)(Display *, Zeal::GameStructures::Entity *, int)>(0x004a9c8a)(this, self,
+                                                                                                     slot_id);
+  }
+
   struct ReferenceList {
     int unknown;
     int count;           // Number of valid entries in list.
@@ -1219,7 +1231,8 @@ struct Display {
   /* 0x0008 */ float *ActiveCamera;  // Pointer to camera position (source used to update CameraLocation).
   /* 0x000C */ BYTE Unknown000C[0x10];
   /* 0x001C */ float CameraLocation[7];  // Updated in RenderWorld with t3dGetCameraLocation.
-  /* 0x0038 */ BYTE Unknown0038[0x41 - 0x38];
+  /* 0x0038 */ BYTE Unknown0038[0x40 - 0x38];
+  /* 0x0040 */ BYTE CursorItemSet;    // Set to 0 when char_info->CursorItem is null else 1
   /* 0x0041 */ BYTE CursorMoneyType;  // 0 = None, 1 = plat, 2 = gold, 3 = silver, 4 = copper.
   /* 0x0042 */ BYTE Unknown0042[0xc8 - 0x42];
   /* 0x00C8 */ DWORD GameTimeMs;  // Millisecond timestamp updated at start of RealRender_World.
