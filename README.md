@@ -426,6 +426,13 @@ ___
   - **Arguments:** `on`, `off`, `channel`, `new`, `response`, `results`, `share`
   - **Description:** Survey helper for polling raid groups. See /survey section below.
 
+- `/swap`
+  - **Arguments:** `<first_bag> <first slot> <second_bag> <second_slot>`
+  - **Description:** Swaps items between the two slots where bag = 0 to use inventory slots
+       0 to 29 or bag = 1 to 8 to use bag slots 1 to 10. See /useitem for inventory slots.
+       The cursor must be empty and the character not busy casting, banking, trading, etc.
+  - **Example:** `/swap 0 12 4 1`: Swaps the primary weapon slot with bag 4 slot 1.
+
 - `/tag`
   - **Description:** adds an optional text tag to the top of a target NPC's nameplate
     (requires Zeal fonts nameplate mode) and an optional shape above it.
