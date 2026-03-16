@@ -42,12 +42,21 @@ static constexpr char kDefaultSoundNone[] = "None";
 // Returns a player name if the message matches a cross-zone raid invite
 std::string GetCrossZoneInviteName(const std::string &data) {
 
-  static const char raid_invite_ending[] = " a raid."; 
+  static const char raid_invite_ending[] = " a raid.";
   if (!data.ends_with(raid_invite_ending)) return "";
+
+  size_t start_pos = 0;
+  // Filter out timestamps at the start of the message
+  if (data.starts_with("[")) {
+    size_t timestamp_close = data.find_first_of("]");
+    if (timestamp_close == std::string::npos) return "";
+    start_pos = timestamp_close + 2;
+  }
 
   size_t first_space;
   std::string inviter;
-  if (data.starts_with("<c")) {
+
+  if (data[start_pos] == ('<')) {
     // Handle color tag if Class Chat Colors is on
     size_t name_start = data.find(">");
     size_t name_end = data.find("</c>");
@@ -56,8 +65,8 @@ std::string GetCrossZoneInviteName(const std::string &data) {
     inviter = data.substr(name_start + 1, name_end - name_start - 1);
   } else {
     // Handle normal messages
-    first_space = data.find_first_of(" ");
-    inviter = data.substr(0, first_space);
+    first_space = data.find_first_of(" ", start_pos);
+    inviter = data.substr(start_pos, first_space);
   }
 
   std::string invite_msg = data.substr(first_space + 1);
