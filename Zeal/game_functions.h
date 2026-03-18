@@ -150,7 +150,7 @@ float CalcBoundingRadius(Zeal::GameStructures::Entity *ent);
 void DoPercentConvert(std::string &str);
 Zeal::GameStructures::Entity *get_player_partial_name(const char *name);
 bool move_item(int a1, int slot, int a2, int a3);
-const char *swap_inventory_slot_items_through_cursor(int from_slot_id, int to_slot_id, bool print_error = false);
+const char *swap_inventory_slot_items_through_cursor(int from_slot_id, int to_slot_id, bool print_error = false, bool swap = true);
 bool is_global_slot_id_an_inventory_slot(int slot_id);
 bool can_go_in_bag(Zeal::GameStructures::GAMEITEMINFO *item, Zeal::GameStructures::GAMEITEMINFO *container,
                    int print_error);

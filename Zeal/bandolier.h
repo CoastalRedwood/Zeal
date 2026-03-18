@@ -26,11 +26,12 @@ class Bandolier {
   static constexpr int kStepDelayTicks = 10;    // Allow some ticks between each equip/unequip action to allow the client to process the change
   static constexpr std::array<int, kManagedSlots> BANDOLIER_SLOTS = {kPrimarySlot, kSecondarySlot, kRangeSlot, kAmmoSlot};
 
-  enum ActionType { None, Unequip, Equip };  // Type of action to perform
+  enum ActionType { None, Unequip, Equip, Swap };  // Type of action to perform
 
   struct SetStep {
-    int slot = -1;
     int itemID = 0;
+    int first_slot = -1;
+    int second_slot = -1;
     ActionType action = None;
   };
 
@@ -48,13 +49,8 @@ class Bandolier {
   std::map<int, int> original_position;         // List of original positions for items for swap back. Map {itemID, Slot}
 
   void tick();
-  void unequip_set(int slot_to_unequip);
-  void equip_set(int item_to_equip, int dest_slot);
-  bool swap_items(Zeal::GameStructures::GAMECHARINFO *char_info, ItemSwapData swap_data, bool swap = false);
-
-  ItemSwapData get_inventory_slots(Zeal::GameStructures::GAMECHARINFO *char_info, int source_idx, int dst_idx);
-  bool can_be_stored(Zeal::GameStructures::GAMECHARINFO *char_info, int inv_slot, Zeal::GameStructures::GAMEITEMINFO *item);
-  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, int inv_slot);
+  bool check_player_can_swap(Zeal::GameStructures::GAMECHARINFO *char_info);
+  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::GAMEITEMINFO *item);
   int find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_info, int item_id);
 
   // File system storage of bandolier sets.
