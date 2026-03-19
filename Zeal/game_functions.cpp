@@ -318,7 +318,7 @@ static bool pickup_item(int item_slot, Zeal::GameStructures::GAMEITEMINFO *item)
 }
 
 // Generic item swapper based on InvSlot::HandleLButtonUp(). Returns either a failure message or nullptr if successful.
-const char *swap_inventory_slot_items_through_cursor(int first_slot_id, int second_slot_id, bool print_error, bool swap) {
+const char *swap_inventory_slot_items_through_cursor(int first_slot_id, int second_slot_id, bool print_error) {
   // The InvSlot::HandleLButtonUp() blocked moves the Quantity wnd was open.
   if (!Windows->Quantity || Windows->Quantity->Activated) return "You are too busy to swap items!";
 
@@ -354,53 +354,31 @@ const char *swap_inventory_slot_items_through_cursor(int first_slot_id, int seco
 
   if (first_slot_id == second_slot_id) return "Ignoring pointless swap.";
 
-  if (swap) {
-    // Fetch the inventory-only item(s) to swap. It both slots are empty, bail out with a success.
-    Zeal::GameStructures::GAMEITEMINFO *first_item = get_inventory_item_from_global_slot_id(first_slot_id, false);
-    Zeal::GameStructures::GAMEITEMINFO *second_item = get_inventory_item_from_global_slot_id(second_slot_id, false);
-    if (!first_item && !second_item) return "Ignoring swapping empty slots.";
+  // Fetch the inventory-only item(s) to swap. It both slots are empty, bail out with a success.
+  Zeal::GameStructures::GAMEITEMINFO *first_item = get_inventory_item_from_global_slot_id(first_slot_id, false);
+  Zeal::GameStructures::GAMEITEMINFO *second_item = get_inventory_item_from_global_slot_id(second_slot_id, false);
+  if (!first_item && !second_item) return "Ignoring swapping empty slots.";
 
-    // Quick sanity check trying to move only common items (not bags, etc).
-    if ((first_item && first_item->Type != 0) || (second_item && second_item->Type != 0))
-      return "You can only swap common equipment (not bags or special items)!";
+  // Quick sanity check trying to move only common items (not bags, etc).
+  if ((first_item && first_item->Type != 0) || (second_item && second_item->Type != 0))
+    return "You can only swap common equipment (not bags or special items)!";
 
-    // Perform various checks to make sure things can be equipped, will fit in bag, etc.
-    if (first_item && !can_go_in_inventory_slot_id(first_item, second_slot_id))
-      return "The first item can not be moved to the second slot!";
+  // Perform various checks to make sure things can be equipped, will fit in bag, etc.
+  if (first_item && !can_go_in_inventory_slot_id(first_item, second_slot_id))
+    return "The first item can not be moved to the second slot!";
 
-    if (second_item && !can_go_in_inventory_slot_id(second_item, first_slot_id))
-      return "The second item can not be moved to the first slot!";
+  if (second_item && !can_go_in_inventory_slot_id(second_item, first_slot_id))
+    return "The second item can not be moved to the first slot!";
 
-    // Okay, things look ready to go. Try to move things (which we expect to succeed).
-    // (1) First pick up the first item into the cursor.
-    if (first_item && !pickup_item(first_slot_id, first_item)) return "Failed to pickup the first item";
+  // Okay, things look ready to go. Try to move things (which we expect to succeed).
+  // (1) First pick up the first item into the cursor.
+  if (first_item && !pickup_item(first_slot_id, first_item)) return "Failed to pickup the first item";
 
-    // (2) Now swap cursor (which may be empty if !first_item) with the second slot.
-    if (!pickup_item(second_slot_id, second_item)) return "Failed to swap the second item with the cursor";
+  // (2) Now swap cursor (which may be empty if !first_item) with the second slot.
+  if (!pickup_item(second_slot_id, second_item)) return "Failed to swap the second item with the cursor";
 
-    // (3) And place the second item in the first slot (which should be empty / nullptr).
-    if (second_item && !pickup_item(first_slot_id, nullptr)) return "Failed to place the second item";
-  }
-  else {
-    // Fetch the inventory-only item(s) to swap. It both slots are empty, bail out with a success.
-    Zeal::GameStructures::GAMEITEMINFO *first_item = get_inventory_item_from_global_slot_id(first_slot_id, false);
-    if (!first_item) return "Ignoring swapping empty slots.";
-
-    // Quick sanity check trying to move only common items (not bags, etc).
-    if ((first_item && first_item->Type != 0))
-      return "You can only swap common equipment (not bags or special items)!";
-
-    // Perform various checks to make sure things can be equipped, will fit in bag, etc.
-    if (first_item && !can_go_in_inventory_slot_id(first_item, second_slot_id))
-      return "The first item can not be moved to the second slot!";
-
-    // Okay, things look ready to go. Try to move things (which we expect to succeed).
-    // (1) First pick up the first item into the cursor.
-    if (first_item && !pickup_item(first_slot_id, first_item)) return "Failed to pickup the first item";
-
-    // (2) And place the first item in the second slot (which should be empty / nullptr).
-    if (!pickup_item(second_slot_id, nullptr)) return "Failed to place the first item";
-  }
+  // (3) And place the second item in the first slot (which should be empty / nullptr).
+  if (second_item && !pickup_item(first_slot_id, nullptr)) return "Failed to place the second item";
 
   return nullptr;
 }

@@ -26,7 +26,7 @@ class Bandolier {
   static constexpr int kStepDelayTicks = 10;    // Allow some ticks between each equip/unequip action to allow the client to process the change
   static constexpr std::array<int, kManagedSlots> BANDOLIER_SLOTS = {kPrimarySlot, kSecondarySlot, kRangeSlot, kAmmoSlot};
 
-  enum ActionType { None, Unequip, Equip, Swap };  // Type of action to perform
+  enum ActionType { None, Unequip, Equip };  // Type of action to perform
 
   struct SetStep {
     int itemID = 0;

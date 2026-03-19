@@ -124,11 +124,11 @@ void Bandolier::load(const std::string &name) {
       }
 
       // Can we swap both items? Check if equipped item fits on source item container
-      if (Zeal::Game::can_go_in_inventory_slot_id(equipped, src_slot)) {
+      if (Zeal::Game::can_go_in_inventory_slot_id(equipped, src_slot) && !original_position.contains(item_id)) {
 
         // If we can swap, add it to the steps list as a single ste
         // Equip steps should be done last, so insert at the end of the list.
-        steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot, .action = Swap});
+        steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot, .action = Equip});
       } else {
         // Otherwise, we need to unequip the currently equipped item first, then equip the new item. Two different steps
       
@@ -164,7 +164,7 @@ void Bandolier::tick() {
     it = steps.begin();
   }
 
-  const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(it->first_slot, it->second_slot, true, it->action == Swap);
+  const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(it->first_slot, it->second_slot, true);
   if (error) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, error);
     steps.clear();
@@ -223,9 +223,12 @@ int Bandolier::find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *cha
 
   // Check first if we have items original position stored from previous bandolier set swaps
   if (original_position.contains(item->ID)) {
-    int original_slot = original_position[item->ID];
+    int slot = original_position[item->ID];
     original_position.erase(item->ID);
-    return original_slot;
+
+    if (Zeal::Game::can_go_in_inventory_slot_id(item, slot)) {
+      return slot;
+    }
   } 
 
   // Priorize finding an empty slot in bags first, if none found then look for empty regular slot
