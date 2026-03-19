@@ -23,7 +23,6 @@ class Bandolier {
   static constexpr int kRangeSlot = 10;
   static constexpr int kAmmoSlot = 20;
   static constexpr int kManagedSlots = 4;
-  static constexpr int kStepDelayTicks = 10;    // Allow some ticks between each equip/unequip action to allow the client to process the change
   static constexpr std::array<int, kManagedSlots> BANDOLIER_SLOTS = {kPrimarySlot, kSecondarySlot, kRangeSlot, kAmmoSlot};
 
   enum ActionType { None, Unequip, Equip };  // Type of action to perform
@@ -35,15 +34,6 @@ class Bandolier {
     ActionType action = None;
   };
 
-  // Stores swap items data
-  struct ItemSwapData {
-    Zeal::GameUI::InvSlot *source_slot;
-    Zeal::GameUI::InvSlot *dest_slot;
-    Zeal::GameStructures::GAMEITEMINFO *source_item;
-    Zeal::GameStructures::GAMEITEMINFO *dest_item;
-  };
-
-  int tick_delay = 0;
   bool is_swapping = false;                     // Flag to indicate if a swap is currently in progress
   std::vector<SetStep> steps;                   // List of steps to perform for loading the new set
   std::map<int, int> original_position;         // List of original positions for items for swap back. Map {itemID, Slot}
