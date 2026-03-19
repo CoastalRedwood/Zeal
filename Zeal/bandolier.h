@@ -4,6 +4,7 @@
 
 #include <array>
 #include <map>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,22 +26,19 @@ class Bandolier {
   static constexpr int kManagedSlots = 4;
   static constexpr std::array<int, kManagedSlots> BANDOLIER_SLOTS = {kPrimarySlot, kSecondarySlot, kRangeSlot, kAmmoSlot};
 
-  enum ActionType { None, Unequip, Equip };  // Type of action to perform
-
   struct SetStep {
     int itemID = 0;
     int first_slot = -1;
     int second_slot = -1;
-    ActionType action = None;
   };
 
   bool is_swapping = false;                     // Flag to indicate if a swap is currently in progress
-  std::vector<SetStep> steps;                   // List of steps to perform for loading the new set
+  std::stack<SetStep> steps;                    // LIFO stack of steps to perform for loading the new set
   std::map<int, int> original_position;         // List of original positions for items for swap back. Map {itemID, Slot}
 
   void tick();
   bool check_player_can_swap(Zeal::GameStructures::GAMECHARINFO *char_info);
-  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::GAMEITEMINFO *item);
+  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::GAMEITEMINFO *item, std::vector<int> reserved_slots);
   int find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_info, int item_id);
 
   // File system storage of bandolier sets.

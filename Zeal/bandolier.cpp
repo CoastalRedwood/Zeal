@@ -75,7 +75,9 @@ void Bandolier::load(const std::string &name) {
     return;
   }
 
-  steps.clear();
+  std::vector<int> reserved_slots;
+  std::vector<SetStep> unequip_steps;
+  std::vector<SetStep> equip_steps;
   for (size_t i = 0; i < BANDOLIER_SLOTS.size(); ++i) {
     int item_id = ini.getValue<int>(name, std::to_string(i));
     Zeal::GameStructures::GAMEITEMINFO *equipped = char_info->InventoryItem[BANDOLIER_SLOTS[i]];
@@ -86,15 +88,16 @@ void Bandolier::load(const std::string &name) {
       if (equipped) {
         
         // Find an empty slot
-        int dst_slot = find_empty_inventory_slot(char_info, equipped);
+        int dst_slot = find_empty_inventory_slot(char_info, equipped, reserved_slots);
         if (dst_slot == -1) {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "No empty inventory slot to unequip [%s], canceling set load.", equipped->Name);
           return;
         }
         if(dst_slot < GAME_EQUIPMENT_SLOTS_END) dst_slot++;  // Convert to global
+        reserved_slots.push_back(dst_slot);
 
         // Unequip steps should be perfmored first, so insert at the beginning of the list.
-        steps.insert(steps.begin(), {.itemID = equipped->ID, .first_slot = equip_slot, .second_slot = dst_slot, .action = Unequip});
+        unequip_steps.push_back({.itemID = equipped->ID, .first_slot = equip_slot, .second_slot = dst_slot});
       }
     } else {
       // If there is an already an item in the equipment slot, we need to swap it or unequip it first
@@ -110,7 +113,6 @@ void Bandolier::load(const std::string &name) {
         Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "Item with ID [%d] not found in inventory for bandolier set [%s], canceling set load.", item_id, name.c_str());
         return;
       }
-      if (src_slot < GAME_EQUIPMENT_SLOTS_END) src_slot++; // Convert to global
 
       // Store it's original position in case we need to swap it back later (Do not store slots from our bandolier set)
       if (std::find(BANDOLIER_SLOTS.begin(), BANDOLIER_SLOTS.end(), src_slot) == BANDOLIER_SLOTS.end()) {
@@ -119,36 +121,41 @@ void Bandolier::load(const std::string &name) {
 
       if (!equipped) {
         // If there is no item currently equiped, we can just equip the new item without needing to swap or unequip anything first.
-        steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot, .action = Equip});
+        equip_steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot});
         continue;
       }
 
       // Can we swap both items? Check if equipped item fits on source item container
-      if (Zeal::Game::can_go_in_inventory_slot_id(equipped, src_slot) && !original_position.contains(item_id)) {
+      if (Zeal::Game::can_go_in_inventory_slot_id(equipped, src_slot)) {
 
         // If we can swap, add it to the steps list as a single ste
         // Equip steps should be done last, so insert at the end of the list.
-        steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot, .action = Equip});
+        equip_steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot});
       } else {
         // Otherwise, we need to unequip the currently equipped item first, then equip the new item. Two different steps
       
         // Find an empty slot
-        int dst_slot = find_empty_inventory_slot(char_info, equipped);
+        int dst_slot = find_empty_inventory_slot(char_info, equipped, reserved_slots);
         if (dst_slot == -1) {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "No empty inventory slot to unequip [%s], canceling set load.", equipped->Name);
           return;
         }
-
-        steps.push_back({.itemID = equipped->ID, .first_slot = equip_slot, .second_slot = dst_slot, .action = Unequip});
-        steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot, .action = Equip});
+        reserved_slots.push_back(dst_slot);
+        unequip_steps.push_back({.itemID = equipped->ID, .first_slot = equip_slot, .second_slot = dst_slot});
+        equip_steps.push_back({.itemID = item_id, .first_slot = src_slot, .second_slot = equip_slot});
       }  
     }      
   }
 
-  if (steps.empty()) {
+  if (unequip_steps.empty() && equip_steps.empty()) {
     Zeal::Game::print_chat("Bandolier set [%s] is already equiped", name.c_str());
     return;
   }
+
+  // LIFO stack, equip steps first so they will be popped last on tick().
+  steps = {};
+  for (auto it = equip_steps.rbegin(); it != equip_steps.rend(); ++it) steps.push(*it);
+  for (auto it = unequip_steps.rbegin(); it != unequip_steps.rend(); ++it) steps.push(*it);
 
   // Set flags to start the equipping process in the tick function.
   is_swapping = true;
@@ -158,21 +165,15 @@ void Bandolier::tick() {
   if (!is_swapping) return;
   if (steps.empty()) return;
 
-  // Process unequip steps first to avoid locking items in the cursor (i.e. equipping a two hander on a dualweild setup)
-  auto it = std::find_if(steps.begin(), steps.end(), [](const SetStep &s) { return s.action == Unequip; });
-  if (it == steps.end()) {
-    it = steps.begin();
-  }
-
-  const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(it->first_slot, it->second_slot, true);
+  const SetStep &step = steps.top();
+  const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(step.first_slot, step.second_slot, true);
   if (error) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, error);
-    steps.clear();
     is_swapping = false;
     return;
   }
 
-  steps.erase(it);
+  steps.pop();
 
   if (steps.empty()) {
     is_swapping = false;
@@ -181,7 +182,7 @@ void Bandolier::tick() {
 }
 
 
-// Returns the inventory slot ID of the item if found in bags, otherwise returns -1
+// Returns the global slot ID of the item if found in bags, otherwise returns -1
 int Bandolier::find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_info, int item_id) {
   if (item_id <= 0) return -1;
 
@@ -209,8 +210,9 @@ int Bandolier::find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_i
 
   // Look through equipped inventory slots for the item
   // Equipped slot IDs are 1-22
-  for (int i = 0; i < GAME_NUM_INVENTORY_SLOTS; i++) {
-    if (char_info->InventoryItem[i] && char_info->InventoryItem[i]->ID == item_id) {
+  for (int i = GAME_EQUIPMENT_SLOTS_START; i < GAME_EQUIPMENT_SLOTS_END; i++) {
+    if (char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START] &&
+        char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START]->ID == item_id) {
       return i;
     }
   }
@@ -219,7 +221,8 @@ int Bandolier::find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_i
 }
 
 int Bandolier::find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info,
-                                         Zeal::GameStructures::GAMEITEMINFO *item) {
+                                         Zeal::GameStructures::GAMEITEMINFO *item,
+                                         std::vector<int> reserved_slots) {
 
   // Check first if we have items original position stored from previous bandolier set swaps
   if (original_position.contains(item->ID)) {
@@ -232,7 +235,6 @@ int Bandolier::find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *cha
   } 
 
   // Priorize finding an empty slot in bags first, if none found then look for empty regular slot
-
   // Look through each inventory pack slot for the item
   // Slot ID for bagged items is 250 + (bag_i*10) + (contents_i) = [250...329]
   for (int pack_slot = 0; pack_slot < GAME_NUM_INVENTORY_PACK_SLOTS; pack_slot++) {
@@ -243,14 +245,14 @@ int Bandolier::find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *cha
 
     // if the container can't fit the item, skip
     if (slot_info->Container.SizeCapacity < item->Size) continue;
-    
+
     for (int slot = 0; slot < slot_info->Container.Capacity; slot++) {
+      int global_slot_id = GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+
       // Check if slot is empty and is not reserved for a previously unequipped item
-      auto is_reserved = std::any_of(steps.begin(), steps.end(), [&](const SetStep &s) {
-          return s.second_slot == GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
-      });
+      auto is_reserved = std::find(reserved_slots.begin(), reserved_slots.end(), global_slot_id) != reserved_slots.end();
       if (!slot_info->Container.Item[slot] && !is_reserved) {
-        return GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+        return global_slot_id;
       }
     }
   }
@@ -327,9 +329,6 @@ Bandolier::Bandolier(ZealService *zeal) {
                                return true;
                              }
                              if (args.size() == 3 && Zeal::Game::get_self() && Zeal::Game::get_char_info()) {
-                               if (Zeal::String::compare_insensitive(args[1], "test")) {
-                                 return true;
-                               }
                                if (Zeal::String::compare_insensitive(args[1], "save")) {
                                  save(args[2]);
                                  return true;
