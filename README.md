@@ -1,4 +1,14 @@
-## [Download instructions](#installation)
+
+### Installation
+- Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest) zip
+  (not the repo source code zip, do not click on any green button labeled "Code")
+- Unzip into a folder and then copy the folder contents to root game directory
+  - The `zeal.asi` file should end up in the root game folder, not a uifiles/ subfolder
+- Test Zeal installation in game by typing "/zeal version" and "/help zeal".
+- Configure Zeal by assigning new key binds and using the new Zeal options window.
+- Optionally install a third party custom ui skin to take advantage of custom gauges and labels
+
+To disable Zeal, just delete the zeal.asi file.
 
 ### Description
 Zeal adds quality of life functionality to legacy TAKP game clients. It aims to make the experience
@@ -8,21 +18,12 @@ only be used when permitted by authorized servers.
 Zeal custom code is entirely open source. The releases are built by github servers directly
 from the repo source, providing full transparency on the release contents.
 
-### Installation
-- Download [latest official release](https://github.com/coastalredwood/Zeal/releases/latest) zip
-  (not the repo source code zip)
-- Unzip into a folder and then copy the folder contents to root game directory
-  - The `zeal.asi` file should end up in the root game folder, not a uifiles/ subfolder
-- Test Zeal installation in game by typing "/zeal version" and "/help zeal".
-- Configure Zeal by assigning new key binds and using the new Zeal options window.
-
-To disable Zeal, just delete the zeal.asi file.
 
 ### Features
 - Camera motion improvements (major improvements to third person view)
 - Additional key binds (tab targeting, corpse cycling, strafe, pet, map,
   autoinventory, autofire, buy/sell stacks, per character)
-- Additional commands (melody, autofire, useitem, autoinventory, autobank,
+- Additional commands (melody, autofire, useitem, bandolier, autoinventory, autobank,
   link all, loot all, raid survey, singleclick, show loot lockouts, etc)
 - Integrated map (see In-game Map section below)
 - Additional ui support (new gauges, bag control & locking, looting, spellsets, targetrings,
@@ -51,6 +52,8 @@ To disable Zeal, just delete the zeal.asi file.
 3. `UI_<name>_pq.ini`: Configuration of Zeal client windows (map, extra item display, options)
 4. `<name>_spellsets.ini`: Per character saved spell sets
 5. `<name>_protected.ini`: Per character saved /protect item list
+6. `<name>_bandolier.ini`: Per character saved /bandolier sets
+7. `<name>-Triggers.txt`: Manually created source for /triggers
 
 ### Chat % Replacements
 - %n or %mana for mana%
@@ -110,12 +113,18 @@ ___
   - **Description:** Drops whatever is on your cursor into your inventory.
 
 - `/bandolier`
-  - **Aliases:** `/ba`
-  - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
-  - **Example:** `/bandolier save agro`
-  - **Example:** `/bandolier load hh`
-  - **Example:** `/bandolier delete slow`
-  - **Description:** Allows you to save and load bandolier sets (Works for primary, secondary, range and ammo slots)
+  - **Aliases:** `/ba`, `/band`
+  - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`, `bag <bag_slot>`
+  - **Example:** `/bandolier save agro` saves the current primary, secondary, range, ammo items
+  - **Example:** `/bandolier load hh` swaps in the saved items and stores equipped gear in inventory
+  - **Example:** `/bandolier delete slow` deletes an exist saved set
+  - **Example:** `/bandolier bag 4` sets the bag in pack slot 4 (1 to 8, 0 to disable) as the preferred store spot
+  - **Description:** Allows you to save and load bandolier sets
+    - Works for primary, secondary, range and ammo slots
+    - Primary and secondary always swap but range and ammo will not change if you save a set with them empty
+    - The item getting swapped out first tries to store in the slot of the swap in item, then in the location
+      it was originally swapped in from (if available), then in the preferred bag if there is room, then in
+      any inventory bag (starting from last) if there is room, then in a pack slot
 
 - `/buffs`
   - **Description:** Outputs the players buff timers to the chat only if they are using OldUI.
