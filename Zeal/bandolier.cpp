@@ -93,7 +93,6 @@ void Bandolier::load(const std::string &name) {
           Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "No empty inventory slot to unequip [%s], canceling set load.", equipped->Name);
           return;
         }
-        if(dst_slot < GAME_EQUIPMENT_SLOTS_END) dst_slot++;  // Convert to global
         reserved_slots.push_back(dst_slot);
 
         // Unequip steps should be perfmored first, so insert at the beginning of the list.
@@ -166,6 +165,7 @@ void Bandolier::tick() {
   if (steps.empty()) return;
 
   const SetStep &step = steps.top();
+
   const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(step.first_slot, step.second_slot, true);
   if (error) {
     Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, error);
@@ -222,14 +222,27 @@ int Bandolier::find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_i
 
 int Bandolier::find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info,
                                          Zeal::GameStructures::GAMEITEMINFO *item,
-                                         std::vector<int> reserved_slots) {
+                                         std::vector<int> &reserved_slots) {
 
   // Check first if we have items original position stored from previous bandolier set swaps
   if (original_position.contains(item->ID)) {
     int slot = original_position[item->ID];
     original_position.erase(item->ID);
 
-    if (Zeal::Game::can_go_in_inventory_slot_id(item, slot)) {
+    bool is_reserved = std::find(reserved_slots.begin(), reserved_slots.end(), slot) != reserved_slots.end();
+    bool is_empty = true;
+    if (GAME_EQUIPMENT_SLOTS_START <= slot && slot <= GAME_EQUIPMENT_SLOTS_END) {
+      is_empty = char_info->InventoryItem[slot - GAME_EQUIPMENT_SLOTS_START] == nullptr;  
+    } else if (GAME_PACKS_SLOTS_START <= slot && slot <= GAME_PACKS_SLOTS_END) {
+      is_empty = char_info->InventoryPackItem[slot - GAME_PACKS_SLOTS_START] == nullptr;
+    } else {
+      int bag_slot = (slot - GAME_CONTAINER_SLOTS_START) / GAME_NUM_CONTAINER_SLOTS;
+      int bag_index = (slot - GAME_CONTAINER_SLOTS_START) % GAME_NUM_CONTAINER_SLOTS;
+      auto *bag = char_info->InventoryPackItem[bag_slot];
+      is_empty = !bag || bag->Container.Item[bag_index] == nullptr;
+    }
+
+    if (Zeal::Game::can_go_in_inventory_slot_id(item, slot) && is_empty && !is_reserved) {
       return slot;
     }
   } 

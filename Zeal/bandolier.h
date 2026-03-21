@@ -38,7 +38,7 @@ class Bandolier {
 
   void tick();
   bool check_player_can_swap(Zeal::GameStructures::GAMECHARINFO *char_info);
-  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::GAMEITEMINFO *item, std::vector<int> reserved_slots);
+  int find_empty_inventory_slot(Zeal::GameStructures::GAMECHARINFO *char_info, Zeal::GameStructures::GAMEITEMINFO *item, std::vector<int> &reserved_slots);
   int find_item_in_inventory(Zeal::GameStructures::GAMECHARINFO *char_info, int item_id);
 
   // File system storage of bandolier sets.
