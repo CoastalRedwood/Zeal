@@ -154,7 +154,7 @@ const char *swap_inventory_slot_items_through_cursor(int from_slot_id, int to_sl
 bool is_global_slot_id_an_inventory_slot(int slot_id);
 bool can_go_in_bag(Zeal::GameStructures::GAMEITEMINFO *item, Zeal::GameStructures::GAMEITEMINFO *container,
                    int print_error);
-bool can_go_in_inventory_slot_id(Zeal::GameStructures::GAMEITEMINFO *item, int slot_id);
+bool can_go_in_inventory_slot_id(Zeal::GameStructures::GAMEITEMINFO *item, int slot_id, bool check_if_empty = false);
 bool can_inventory_item(Zeal::GameStructures::GAMEITEMINFO *item);
 // Checks if the race/class/deity etc can equip this item
 bool can_use_item(Zeal::GameStructures::GAMECHARINFO *c, Zeal::GameStructures::GAMEITEMINFO *item);
@@ -291,10 +291,11 @@ void print_raid_ungrouped();
 void dump_raid_state();
 std::string generateTimestamp();
 int get_effect_required_level(const Zeal::GameStructures::GAMEITEMINFO *item);
+int find_item_in_inventory(int item_id, bool check_equipped);  // Returns global_slot_id or -1 if not found
 int find_use_item_by_name(const std::string &partial_name, bool check_bags);
 bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool is_equipped, bool print_error = false);
 bool use_item(int item_index, bool quiet = false, Zeal::GameStructures::GAMEITEMINFO **out_item = nullptr);
-Zeal::GameStructures::GAMEITEMINFO *get_inventory_item_from_global_slot_id(int slot_id, bool print_error);
+Zeal::GameStructures::GAMEITEMINFO *get_inventory_item_from_global_slot_id(int slot_id, bool print_error = false);
 enum class SortType { Ascending, Descending, Toggle };
 void sort_list_wnd(Zeal::GameUI::ListWnd *list_wnd, int sort_column, SortType sort_type = SortType::Ascending);
 short total_spell_affects(Zeal::GameStructures::GAMECHARINFO *char_info, BYTE affect_type, BYTE a3,

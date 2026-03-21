@@ -234,24 +234,28 @@ bool can_go_in_bag(Zeal::GameStructures::GAMEITEMINFO *item, Zeal::GameStructure
   return result;
 }
 
-// Helper method that reports true if the item can be moved to slot_id. Does not check if it is empty.
-bool can_go_in_inventory_slot_id(Zeal::GameStructures::GAMEITEMINFO *item, int slot_id) {
+// Helper method that reports true if the item can be moved to slot_id and also if the flag is set whether
+// the slot is empty.
+bool can_go_in_inventory_slot_id(Zeal::GameStructures::GAMEITEMINFO *item, int slot_id, bool check_if_empty) {
   auto char_info = get_char_info();
   if (!char_info) return false;
 
   if (GAME_EQUIPMENT_SLOTS_START <= slot_id && slot_id <= GAME_EQUIPMENT_SLOTS_END) {
     if (!can_item_equip_in_slot(char_info, item, slot_id)) return false;
-    return can_use_item(char_info, item);
+    return can_use_item(char_info, item) &&
+           (!check_if_empty || !char_info->InventoryItem[slot_id - GAME_EQUIPMENT_SLOTS_START]);
   }
 
+  // No can equip, size, or capacity checks needed for pack slots but do the empty check if requested.
   if (GAME_PACKS_SLOTS_START <= slot_id && slot_id <= GAME_PACKS_SLOTS_END)
-    return true;  // No can equip, size, or capacity checks needed.
+    return !check_if_empty || !char_info->InventoryPackItem[slot_id - GAME_PACKS_SLOTS_START];
 
   if (GAME_CONTAINER_SLOTS_START <= slot_id && slot_id <= GAME_CONTAINER_SLOTS_END) {
     int bag_slot = (slot_id - GAME_CONTAINER_SLOTS_START) / GAME_NUM_CONTAINER_SLOTS;
     int bag_index = (slot_id - GAME_CONTAINER_SLOTS_START) % GAME_NUM_CONTAINER_SLOTS;
     auto bag = char_info->InventoryPackItem[bag_slot];
-    if (bag && bag->Type == 1 && (bag_index < bag->Container.Capacity)) return can_go_in_bag(item, bag, 0);
+    if (bag && bag->Type == 1 && (bag_index < bag->Container.Capacity))
+      return can_go_in_bag(item, bag, 0) && (!check_if_empty || !bag->Container.Item[bag_index]);
   }
 
   return false;
@@ -286,13 +290,16 @@ static bool pickup_item(int item_slot, Zeal::GameStructures::GAMEITEMINFO *item)
   bool result = move_item(from_slot, to_slot, print_error, swap_combine);
 
   if (from_slot == 0) {
-    if (Windows->InvSlotMgr) {
-      auto inv_slot = Windows->InvSlotMgr->FindInvSlot(to_slot);
-      if (inv_slot && inv_slot->invSlotWnd) {
-        int *ptr = reinterpret_cast<int *>(&inv_slot->invSlotWnd);
-        ptr[0x110 / 4] = 0xffffffff;
-      }
-    }
+    // TODO: The client code was setting that 0x110/4 field to -1, but I saw one
+    //      crash while banging on swapping where the ptr was invalid so that
+    //      field might become stale / or uninitialized at some point. Skip for now.
+    // if (Windows->InvSlotMgr) {
+    //  auto inv_slot = Windows->InvSlotMgr->FindInvSlot(to_slot);
+    //  if (inv_slot && inv_slot->invSlotWnd) {
+    //    int *ptr = reinterpret_cast<int *>(&inv_slot->invSlotWnd);
+    //    ptr[0x110 / 4] = 0xffffffff;
+    //  }
+    //}
     if (Windows->CursorAttachment) Windows->CursorAttachment->Deactivate();
   }
 
@@ -2033,9 +2040,51 @@ bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool i
   return false;
 }
 
+// Returns the global slot ID of the item if found in bags, otherwise returns -1
+int find_item_in_inventory(int item_id, bool check_equipped) {
+  if (item_id <= 0) return -1;
+  auto *char_info = get_char_info();
+  if (!char_info) return -1;
+
+  // Look through each inventory pack slot for the item
+  // Slot ID for bagged items is 250 + (bag_i*10) + (contents_i) = [250...329]
+  for (int pack_slot = 0; pack_slot < GAME_NUM_INVENTORY_PACK_SLOTS; pack_slot++) {
+    auto *slot_info = char_info->InventoryPackItem[pack_slot];
+
+    if (!slot_info) continue;
+
+    // Check if the item is directly in the pack slot (not inside a bag)
+    if (slot_info->ID == item_id) {
+      return GAME_PACKS_SLOTS_START + pack_slot;
+    }
+
+    if (slot_info->Type != 1) continue;
+    // if it's a container, check inside it for the item
+    for (int slot = 0; slot < slot_info->Container.Capacity; slot++) {
+      Zeal::GameStructures::GAMEITEMINFO *item = slot_info->Container.Item[slot];
+      if (item && item->ID == item_id) {
+        return GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+      }
+    }
+  }
+
+  if (check_equipped) {
+    // Look through equipped inventory slots for the item
+    // Equipped slot IDs are 1-22
+    for (int i = GAME_EQUIPMENT_SLOTS_START; i < GAME_EQUIPMENT_SLOTS_END; i++) {
+      if (char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START] &&
+          char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START]->ID == item_id) {
+        return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
 int find_use_item_by_name(const std::string &partial_name, bool check_bags) {
   auto char_info = get_char_info();
-  ;
+
   auto name = partial_name.c_str();
   size_t len = partial_name.length();
   if (!char_info || len == 0) return -1;

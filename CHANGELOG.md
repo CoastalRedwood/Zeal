@@ -2,6 +2,73 @@
 
 Summarizes notable changes to Zeal
 
+
+## [1.3.8] - 2026/03/05
+
+### New features
+* `/useitem` upgrades to use items from inventory and name matching
+  - `/useitem <bag#> <slot#>` will activate eligible items in bag inventory
+  - `/useitem <partial_name>` will activate the first item in inventory
+    that starts with partial_name (case sensitive)
+  - Unlike the eqgame.dll /use command, these will queue into melody
+
+* Added Zeal native support for click from bag with option to select
+  to use Alt for right click activation or for right click to equip
+  - Requires Zeal Click from inventory setting to be enabled (default)
+  - Can select Alt functionality with 'Click requires alt' setting
+  - Right click activation will go into melody queue if active
+
+* Added new `/raidbars manage <on | off>` mode that supports organizing raid
+  groups using Quarm specific # server commands
+  - Supports clicking on group members with alt / shift / ctrl 
+  - Alt+Click: Kicks player to ungrouped (#raidmove 0).
+  - Shift+Click: Promotes to group leader (#raidpromote), or moves ungrouped player to first empty group.
+  - Ctrl+Click (two-step): First click selects a player, second click moves them to the destination group.
+
+* Added new commands `/raidmove` and `/raidpromote` that simplify the use of the new # commands by using the current target
+
+* Added `/autoraidinvite` (`/ari`) to autoinvite players from tells using a password parameter
+  - Players who send a tell with the exact match to the password will get an raid invite
+
+* Added command `/replyraidinvite` (`/rri` alias) to send a `#raidinvite <last_tell_person>`
+
+* Added  command `/cancelbuff <spellid>` that will remove a beneficial spell effect
+
+* Added invite dialog support for the cross-raid invite command
+
+### Fixes
+* Melody fixes for silence bug and bard insta-clicks
+  - Fixes a bug where Bard spell/song casting could get bugged if
+    the melody was terminated abnormally (like silence) and then
+    the player used an insta-cast clicky like jboots
+
+  - Fixes handling of melody /useitem queuing of items with instant
+    cast bard songs (Breath of Harmony, Lute of Flowing Waters) so
+    they do not cause a handshaking error
+
+  - Fixes handling of melody /useitem queuing of items with non-instant
+    cast bard songs (Denon's drums) so they do not cause an act timeout
+
+  - Added more explicit logic to handle the differences between click effects
+    and normal melody bard songs along with some general handshaking cleanups
+
+
+## [1.3.7] - 2026/02/03
+
+### New features
+
+* Added new /raidbars arguments:
+  - toggle option that toggles /raidbars on and off
+  - groups on/off/toggle: switches to a new by group display mode
+  - never <class_list>: list of classes to never show (class mode)
+  - filter <class_list>: list of classes to use threshold value (class mode)
+  - threshold <value>: optional value to filter with
+  - background <alpha>: set opacity of a background rectangle
+  - grid <num_rows> <num_cols> option to make
+    it easier to set the right and bottom edges of the drawing
+    rectangle (versus the manual positions option)
+
+
 ## [1.3.6] - 2026/01/27
 
 ### New features
