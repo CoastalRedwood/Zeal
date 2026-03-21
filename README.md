@@ -109,6 +109,14 @@ ___
   - **Aliases:** `/autoinv`, `/ai`
   - **Description:** Drops whatever is on your cursor into your inventory.
 
+- `/bandolier`
+  - **Aliases:** `/ba`
+  - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
+  - **Example:** `/bandolier save agro`
+  - **Example:** `/bandolier load hh`
+  - **Example:** `/bandolier delete slow`
+  - **Description:** Allows you to save and load bandolier sets (Works for primary, secondary, range and ammo slots)
+
 - `/buffs`
   - **Description:** Outputs the players buff timers to the chat only if they are using OldUI.
 
