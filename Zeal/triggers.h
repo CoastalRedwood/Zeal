@@ -28,7 +28,7 @@ class Triggers {
                                                    [this](std::string val) { bitmap_font.reset(); }};
 
  private:
-  enum class Action { Clear = 0, Add = 1 };
+  enum class Action { Clear = 0, Add = 1, Refresh = 2 };
 
   struct Trigger {
     Action action;            // Action to perform when there is a match.
