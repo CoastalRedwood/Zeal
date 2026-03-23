@@ -642,7 +642,7 @@ Manual editing of the ini file is required to copy from old section to the new s
   - `/triggers font <fontname>`: Sets the font to use for events list (default is `arial_12`)
   - `/triggers position <x> <y>`: Sets the upper left offset of the events list on screen.
 - Triggers file format: Five columns delimited by four `^` symbol
-  - Column 1: "Arm" or "Clear" actions
+  - Column 1: "Arm", "Clear", or "Refresh" (arms a trigger that clears any active with same label)
   - Column 2: Label for event in display (also used by Clear to Clear an event)
   - Column 3: Pattern matching expression (c++ std::regex, don't get fancy, no sanitization)
   - Column 4: Duration in seconds

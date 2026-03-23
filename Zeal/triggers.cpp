@@ -63,7 +63,7 @@ bool Triggers::LoadTriggers(const std::string &load_filename, bool verbose) {
 
   std::ifstream input_file(file_path);
   if (!input_file.is_open()) {
-    if (verbose) Zeal::Game::print_chat("Error opening protect file: %s", file_path.string().c_str());
+    if (verbose) Zeal::Game::print_chat("Error opening trigger file: %s", file_path.string().c_str());
     return false;
   }
 
@@ -87,6 +87,8 @@ bool Triggers::AddTrigger(const std::string &line) {
   Action action = Action::Clear;
   if (fields[0] == "Add")
     action = Action::Add;
+  else if (fields[0] == "Refresh")
+    action = Action::Refresh;
   else if (fields[0] != "Clear")
     return false;
 
@@ -117,6 +119,9 @@ std::string Triggers::GetTriggerDescription(const Trigger &trigger) const {
       return std::format("Clear {}", trigger.label);
     case Action::Add:
       return std::format("Add {}: \"{}\" {} secs, Color: {:#08x}", trigger.label, trigger.pattern_str,
+                         trigger.duration_sec, trigger.color);
+    case Action::Refresh:
+      return std::format("Refresh {}: \"{}\" {} secs, Color: {:#08x}", trigger.label, trigger.pattern_str,
                          trigger.duration_sec, trigger.color);
   }
   return "Unrecognized trigger";
@@ -214,10 +219,14 @@ void Triggers::ActivateTrigger(const Trigger &trigger) {
     return;
   }
 
-  if (trigger.action != Action::Add) return;  // Unknown, ignore.
+  if (trigger.action != Action::Add && trigger.action != Action::Refresh) return;  // Unknown, ignore.
 
   auto display = Zeal::Game::get_display();
   if (!display) return;  // Unlikely but protect against.
+
+  // Refresh actions erase any existing triggered events with the same label.
+  if (trigger.action == Action::Refresh)
+    std::erase_if(trigger_events, [&](const TriggerEvent &event) { return event.label == trigger.label; });
 
   DWORD end_timestamp_ms = display->GameTimeMs + trigger.duration_sec * 1000;
   TriggerEvent event = {.label = trigger.label, .color = trigger.color, .end_timestamp_ms = end_timestamp_ms};
