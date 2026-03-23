@@ -1114,6 +1114,8 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
       tag_text = (prefix_end_index == tag_text.length()) ? "" : tag_text.substr(prefix_end_index + 1);
   }
 
+  tag_text = Zeal::String::trim_and_reduce_spaces(tag_text);  // Cleanup leading/trailing/multiple internal spaces.
+
   // If empty now it was a prefix only command which were handled above (append  / flush are no-ops).
   // We also only allow text tag content on NPCs's.
   if (tag_text.empty() || entity->Type != Zeal::GameEnums::NPC) return true;

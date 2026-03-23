@@ -424,6 +424,14 @@ void CameraMods::update_fps_sensitivity() {
   lastTime = currentTime;
 }
 
+static void set_mount_lev(Zeal::GameStructures::Entity *mount, bool dampen) {
+  const WORD kHorse = 0xd8;  // Horse race = 216
+  if (mount && mount->Race == kHorse && mount->ActorInfo) {
+    mount->ActorInfo->LevitationSize = dampen ? 0x02 : 0x10;
+    mount->ActorInfo->LevitationMovementModifier = dampen ? 0.01f : 0.1f;
+  }
+}
+
 void CameraMods::synchronize_lev() {
   auto self = Zeal::Game::get_self();
   auto actor_info = self ? self->ActorInfo : nullptr;
@@ -432,6 +440,20 @@ void CameraMods::synchronize_lev() {
   // If enabled reduce frequency by 8x and amplitude by 10x else set defaults.
   actor_info->LevitationSize = setting_dampen_levitation.get() ? 0x02 : 0x10;
   actor_info->LevitationMovementModifier = setting_dampen_levitation.get() ? 0.01f : 0.1f;
+
+  set_mount_lev(actor_info->Mount, setting_dampen_levitation.get());
+}
+
+void __fastcall MountEQPlayer(Zeal::GameStructures::Entity *this_ptr, int unused_edx,
+                              Zeal::GameStructures::Entity *horse) {
+  ZealService::get_instance()->hooks->hook_map["MountEQPlayer"]->original(MountEQPlayer)(this_ptr, unused_edx, horse);
+
+  auto self = Zeal::Game::get_self();
+  auto actor_info = self ? self->ActorInfo : nullptr;
+  auto mount = actor_info ? actor_info->Mount : nullptr;
+  if (self != this_ptr || horse != mount) return;  // Only apply to self mounting of horses.
+
+  set_mount_lev(mount, ZealService::get_instance()->camera_mods->setting_dampen_levitation.get());
 }
 
 void CameraMods::callback_zone() {
@@ -697,6 +719,7 @@ CameraMods::CameraMods(ZealService *zeal) {
   zeal->hooks->Add("GetClickedActor", 0x004b008a, GetClickedActor, hook_type_detour);
   zeal->hooks->Add("EQ3DView_MouseUp", 0x0043c8af, EQ3DView_MouseUp, hook_type_detour);
   zeal->hooks->Add("LeftClickedOnPlayer", 0x0053271e, LeftClickedOnPlayer, hook_type_detour);
+  zeal->hooks->Add("MountEQPlayer", 0x0051fd83, MountEQPlayer, hook_type_detour);
 
   FARPROC gfx_dx8 = GetProcAddress(GetModuleHandleA("eqgfx_dx8.dll"), "t3dSetCameraLens");
   if (gfx_dx8 != NULL) zeal->hooks->Add("SetCameraLens", (int)gfx_dx8, SetCameraLens, hook_type_detour);
