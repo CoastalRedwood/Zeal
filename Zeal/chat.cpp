@@ -800,26 +800,52 @@ std::string GetAutoRaidInviteName(const std::string &data) {
   return "";
 }
 
+// ASCII case-insensitive char compare
+static bool iequals_char(unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); }
+
+// ASCII case-insensitive ends_with for string_view
+static bool iends_with(std::string_view text, std::string_view suffix) {
+  if (suffix.size() > text.size()) {
+    return false;
+  }
+
+  auto start = text.end() - static_cast<std::ptrdiff_t>(suffix.size());
+  return std::equal(start, text.end(), suffix.begin(), suffix.end(),
+                    [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
+}
+
 // Returns a player name if the tell matches the expected /tc format.
 std::string GetConsentMeTellName(const std::string &data) {
-  static const char consent_ending_regular[] = " tells you, 'Consent me'";
-  static const char consent_ending_abbreviated[] = "]: Consent me";
-  char name_prefix;
-  int consent_ending_len;
-  if (data.ends_with(consent_ending_regular)) {
+  static constexpr std::string_view consent_ending_regular = " tells you, 'Consent me'";
+  static constexpr std::string_view consent_ending_abbreviated = "]: Consent me";
+
+  char name_prefix = '\0';
+  std::size_t consent_ending_len = 0;
+
+  if (iends_with(data, consent_ending_regular)) {
     name_prefix = ' ';
-    consent_ending_len = strlen(consent_ending_regular);
-  } else if (data.ends_with(consent_ending_abbreviated)) {
+    consent_ending_len = consent_ending_regular.size();
+  } else if (iends_with(data, consent_ending_abbreviated)) {
     name_prefix = '[';
-    consent_ending_len = strlen(consent_ending_abbreviated);
+    consent_ending_len = consent_ending_abbreviated.size();
+  } else {
+    return "";
   }
-  else return "";
+
+  // Strip the matched suffix, but preserve original case in the extracted name.
+  std::string_view truncated(data.data(), data.size() - consent_ending_len);
 
   // Extract the name. Normally it is the first word but we go backwards just in case.
-  std::string truncated = data.substr(0, data.length() - consent_ending_len);
-  size_t name_prefix_pos = truncated.find_last_of(name_prefix);
-  std::string name = (name_prefix_pos == std::string::npos) ? truncated : truncated.substr(name_prefix_pos + 1);
-  return name;
+  std::size_t name_prefix_pos = truncated.find_last_of(name_prefix);
+  std::string_view name =
+      (name_prefix_pos == std::string_view::npos) ? truncated : truncated.substr(name_prefix_pos + 1);
+
+  // Optional: reject empty names
+  if (name.empty()) {
+    return "";
+  }
+
+  return std::string(name);
 }
 
 // Checks if the character name is eligible to grant immediate consent permission.
