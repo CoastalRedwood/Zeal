@@ -291,7 +291,7 @@ void print_raid_ungrouped();
 void dump_raid_state();
 std::string generateTimestamp();
 int get_effect_required_level(const Zeal::GameStructures::GAMEITEMINFO *item);
-int find_item_in_inventory(int item_id, bool check_equipped);  // Returns global_slot_id or -1 if not found
+int find_item_in_inventory(int item_id, bool check_equipped, const std::vector<int>& ignore_slots = std::vector<int>());
 int find_use_item_by_name(const std::string &partial_name, bool check_bags);
 bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool is_equipped, bool print_error = false);
 bool use_item(int item_index, bool quiet = false, Zeal::GameStructures::GAMEITEMINFO **out_item = nullptr);

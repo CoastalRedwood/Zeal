@@ -2041,7 +2041,7 @@ bool is_valid_item_to_use(const Zeal::GameStructures::GAMEITEMINFO *item, bool i
 }
 
 // Returns the global slot ID of the item if found in bags, otherwise returns -1
-int find_item_in_inventory(int item_id, bool check_equipped) {
+int find_item_in_inventory(int item_id, bool check_equipped, const std::vector<int> &ignore_slots) {
   if (item_id <= 0) return -1;
   auto *char_info = get_char_info();
   if (!char_info) return -1;
@@ -2055,7 +2055,9 @@ int find_item_in_inventory(int item_id, bool check_equipped) {
 
     // Check if the item is directly in the pack slot (not inside a bag)
     if (slot_info->ID == item_id) {
-      return GAME_PACKS_SLOTS_START + pack_slot;
+      int global_slot_id = GAME_PACKS_SLOTS_START + pack_slot;
+      if (std::find(ignore_slots.begin(), ignore_slots.end(), global_slot_id) == ignore_slots.end())
+        return global_slot_id;
     }
 
     if (slot_info->Type != 1) continue;
@@ -2063,7 +2065,9 @@ int find_item_in_inventory(int item_id, bool check_equipped) {
     for (int slot = 0; slot < slot_info->Container.Capacity; slot++) {
       Zeal::GameStructures::GAMEITEMINFO *item = slot_info->Container.Item[slot];
       if (item && item->ID == item_id) {
-        return GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+        int global_slot_id = GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+        if (std::find(ignore_slots.begin(), ignore_slots.end(), global_slot_id) == ignore_slots.end())
+          return global_slot_id;
       }
     }
   }
@@ -2074,7 +2078,7 @@ int find_item_in_inventory(int item_id, bool check_equipped) {
     for (int i = GAME_EQUIPMENT_SLOTS_START; i < GAME_EQUIPMENT_SLOTS_END; i++) {
       if (char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START] &&
           char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START]->ID == item_id) {
-        return i;
+        if (std::find(ignore_slots.begin(), ignore_slots.end(), i) == ignore_slots.end()) return i;
       }
     }
   }
