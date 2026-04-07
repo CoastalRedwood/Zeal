@@ -103,10 +103,17 @@ bool Triggers::AddTrigger(const std::string &line) {
     return false;
   }
 
+  std::regex pattern;
+  try {
+    pattern = std::regex(fields[2]);
+  } catch (const std::regex_error &e) {
+    return false;
+  }
+
   Trigger trigger = {.action = action,
                      .label = fields[1],
                      .pattern_str = fields[2],
-                     .pattern = std::regex(fields[2]),
+                     .pattern = pattern,
                      .duration_sec = static_cast<DWORD>(duration_sec),
                      .color = color};
   triggers.push_back(trigger);

@@ -117,6 +117,7 @@ void Bandolier::load(const std::string &name) {
   }
 
   // We go in reverse order so the final appearance update is typically the primary weapon
+  std::vector<int> used_slots;  // Keep track of items pulled from inventory so only used once.
   for (auto i = BANDOLIER_SLOTS.size(); i-- > 0; /*comparison post-dec*/) {
     int item_id = item_ids[i];
 
@@ -147,10 +148,13 @@ void Bandolier::load(const std::string &name) {
 
       // And if still not found then try to find the source item in the non-equipped inventory
       if (load_slot < 0) {
-        load_slot = Zeal::Game::find_item_in_inventory(item_id, false);
+        load_slot = Zeal::Game::find_item_in_inventory(item_id, false, used_slots);
 
         // Store it's original position (if in inventory) in case we want to swap it back later
-        if (load_slot > 0) original_position[item_id] = load_slot;
+        if (load_slot > 0) {
+          original_position[item_id] = load_slot;
+          used_slots.push_back(load_slot);
+        }
       }
       if (load_slot == -1) {
         Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
