@@ -223,7 +223,7 @@ static int get_recast_time_gauge(int index, Zeal::GameUI::CXSTR *str) {
   int game_time = display->GameTimeMs;
   int spell_id = char_info->MemorizedSpell[index];
   if (!Zeal::Game::Spells::IsValidSpellIndex(spell_id) || actor_info->CastingSpellId == spell_id ||
-      actor_info->RecastTimeout[index] <= game_time || actor_info->RecastTimeout[index] <= actor_info->FizzleTimeout) {
+      actor_info->RecastTimeout[index] <= game_time) {
     if (str) str->Set("0");
     return 0;
   }
