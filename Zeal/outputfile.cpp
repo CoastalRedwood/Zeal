@@ -4,6 +4,7 @@
 
 #include "commands.h"
 #include "game_functions.h"
+#include "miniz.h"
 #include "game_structures.h"
 #include "hook_wrapper.h"
 #include "string_util.h"
@@ -201,6 +202,170 @@ void OutputFile::export_inventory(const std::vector<std::string> &args) {
   write_to_file(oss.str(), "Inventory", optional_name, new_format);
 }
 
+void OutputFile::export_quarmy(const std::vector<std::string> &args) {
+  Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
+
+  bool new_format = (setting_export_format.get() != 0);
+  std::ostringstream oss;
+  std::string t = "\t";  // output spacer
+
+  // Section 1: Character Info Header
+  oss << "Character" << t << "Name" << t << "LastName" << t << "Level" << t << "Class" << t << "Race" << t << "Gender"
+      << t << "Deity" << t << "Guild" << t << "GuildRank" << t << "BaseSTR" << t << "BaseSTA" << t << "BaseCHA" << t
+      << "BaseDEX" << t << "BaseINT" << t << "BaseAGI" << t << "BaseWIS" << std::endl;
+
+  std::string guild_name = Zeal::Game::get_player_guild_name(self->GuildId);
+  if (guild_name.empty()) guild_name = "None";
+
+  oss << "Character" << t << self->CharInfo->Name << t << self->CharInfo->LastName << t << self->CharInfo->Level << t
+      << static_cast<int>(self->CharInfo->Class) << t << self->CharInfo->Race << t << self->CharInfo->Gender << t
+      << self->CharInfo->Deity << t << guild_name << t << static_cast<int>(self->CharInfo->GuildStatus) << t
+      << self->CharInfo->BaseSTR << t << self->CharInfo->BaseSTA << t << self->CharInfo->BaseCHA << t
+      << self->CharInfo->BaseDEX << t << self->CharInfo->BaseINT << t << self->CharInfo->BaseAGI << t
+      << self->CharInfo->BaseWIS << std::endl;
+
+  // Section 2: Inventory (same as export_inventory)
+  const char *count_col_title = new_format ? "Count/Charges" : "Count";
+  oss << "Location" << t << "Name" << t << "ID" << t << count_col_title << t << "Slots" << std::endl;
+
+  // Processing Equipment
+  for (size_t i = 0; i < GAME_NUM_INVENTORY_SLOTS; ++i) {
+    Zeal::GameStructures::GAMEITEMINFO *item = self->CharInfo->InventoryItem[i];
+    if (item) {
+      int count = item->Common.StackCount;
+      oss << IDToEquipSlot(i, new_format) << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
+    } else {
+      oss << IDToEquipSlot(i, new_format) << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+    }
+  }
+
+  {  // Processing Inventory Slots
+    for (size_t i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; ++i) {
+      Zeal::GameStructures::GAMEITEMINFO *item = self->CharInfo->InventoryPackItem[i];
+      if (item) {
+        if (ItemIsContainer(item)) {
+          int capacity = static_cast<int>(item->Container.Capacity);
+          oss << "General" << i + 1 << t << item->Name << t << item->ID << t << 1 << t << capacity << std::endl;
+          for (int j = 0; j < capacity; ++j) {
+            Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[j];
+            if (bag_item) {
+              int count = bag_item->Common.StackCount;
+              oss << "General" << i + 1 << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count
+                  << t << 0 << std::endl;
+            } else {
+              oss << "General" << i + 1 << "-Slot" << j + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+            }
+          }
+        } else {
+          int count = item->Common.StackCount;
+          oss << "General" << i + 1 << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
+        }
+      } else {
+        oss << "General" << i + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+      }
+    }
+    ULONGLONG coin = 0;
+    coin += static_cast<ULONGLONG>(self->CharInfo->Platinum) * 1000;
+    coin += static_cast<ULONGLONG>(self->CharInfo->Gold) * 100;
+    coin += static_cast<ULONGLONG>(self->CharInfo->Silver) * 10;
+    coin += self->CharInfo->Copper;
+    oss << "General-Coin" << t << "Currency" << t << 0 << t << coin << t << 0 << std::endl;
+  }
+
+  {  // Process Cursor Item
+    Zeal::GameStructures::GAMEITEMINFO *item = self->CharInfo->CursorItem;
+    if (item) {
+      if (ItemIsContainer(item)) {
+        int capacity = static_cast<int>(item->Container.Capacity);
+        oss << "Held" << t << item->Name << t << item->ID << t << 1 << t << capacity << std::endl;
+        for (int i = 0; i < capacity; ++i) {
+          Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[i];
+          if (bag_item) {
+            int count = bag_item->Common.StackCount;
+            oss << "Held"
+                << "-Slot" << i + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t << 0 << std::endl;
+          } else {
+            oss << "Held"
+                << "-Slot" << i + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+          }
+        }
+      } else {
+        int count = item->Common.StackCount;
+        oss << "Held" << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
+      }
+    } else {
+      ULONGLONG coin = 0;
+      coin += static_cast<ULONGLONG>(self->CharInfo->CursorPlatinum) * 1000;
+      coin += static_cast<ULONGLONG>(self->CharInfo->CursorGold) * 100;
+      coin += static_cast<ULONGLONG>(self->CharInfo->CursorSilver) * 10;
+      coin += self->CharInfo->CursorCopper;
+
+      if (coin != 0)
+        oss << "Held" << t << "Currency" << t << 0 << t << coin << t << 0 << std::endl;
+      else
+        oss << "Held" << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+    }
+  }
+
+  {  // Process Bank Items
+    int num_bank_slots = Zeal::Game::get_num_personal_bank_slots();
+    for (int i = 0; i < Zeal::Game::get_num_total_bank_slots(); ++i) {
+      Zeal::GameStructures::GAMEITEMINFO *item = self->CharInfo->InventoryBankItem[i];
+      const char *label = (i < num_bank_slots) ? "Bank" : "SharedBank";
+      int slot = (i < num_bank_slots) ? (i + 1) : (i + 1 - num_bank_slots);
+      if (item) {
+        if (ItemIsContainer(item)) {
+          int capacity = static_cast<int>(item->Container.Capacity);
+          oss << label << slot << t << item->Name << t << item->ID << t << 1 << t << capacity << std::endl;
+          for (int j = 0; j < capacity; ++j) {
+            Zeal::GameStructures::GAMEITEMINFO *bag_item = item->Container.Item[j];
+            if (bag_item) {
+              int count = bag_item->Common.StackCount;
+              oss << label << slot << "-Slot" << j + 1 << t << bag_item->Name << t << bag_item->ID << t << count << t
+                  << 0 << std::endl;
+            } else {
+              oss << label << slot << "-Slot" << j + 1 << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+            }
+          }
+        } else {
+          int count = item->Common.StackCount;
+          oss << label << slot << t << item->Name << t << item->ID << t << count << t << 0 << std::endl;
+        }
+      } else {
+        oss << label << slot << t << "Empty" << t << 0 << t << 0 << t << 0 << std::endl;
+      }
+    }
+    ULONGLONG coin = 0;
+    coin += static_cast<ULONGLONG>(self->CharInfo->BankPlatinum) * 1000;
+    coin += static_cast<ULONGLONG>(self->CharInfo->BankGold) * 100;
+    coin += static_cast<ULONGLONG>(self->CharInfo->BankSilver) * 10;
+    coin += self->CharInfo->BankCopper;
+    oss << "Bank-Coin" << t << "Currency" << t << 0 << t << coin << t << 0 << std::endl;
+  }
+
+  // Section 3: AA Purchases (only non-zero entries)
+  oss << "AAIndex" << t << "Rank" << std::endl;
+  if (self->ActorInfo) {
+    for (int i = 0; i <= 227; ++i) {
+      BYTE rank = self->ActorInfo->AAAbilities[i];
+      if (rank > 0) {
+        oss << i << t << static_cast<int>(rank) << std::endl;
+      }
+    }
+  }
+
+  // Section 4: CRC32 checksum for tamper detection.
+  std::string content = oss.str();
+  mz_ulong crc = mz_crc32(MZ_CRC32_INIT, reinterpret_cast<const unsigned char *>(content.c_str()), content.size());
+  content += "Checksum\t" + std::to_string(crc) + "\n";
+
+  std::string optional_name = "";  // Blank optional_name results in "<char_name>-Quarmy.txt".
+  if (args.size() > 2) {
+    optional_name = args[2];
+  }
+  write_to_file(content, "Quarmy", optional_name, new_format);
+}
+
 void OutputFile::export_spellbook(const std::vector<std::string> &args) {
   Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
 
@@ -274,13 +439,14 @@ static void __fastcall GameCamp(void *this_game, int unused_edx) {
   if (ZealService::get_instance()->outputfile->setting_export_on_camp.get()) {
     ZealService::get_instance()->outputfile->export_inventory();
     ZealService::get_instance()->outputfile->export_spellbook();
+    ZealService::get_instance()->outputfile->export_quarmy();
   }
   ZealService::get_instance()->hooks->hook_map["GameCamp"]->original(GameCamp)(this_game, unused_edx);
 }
 
 OutputFile::OutputFile(ZealService *zeal) {
   zeal->commands_hook->Add(
-      "/outputfile", {"/output", "/out"}, "Outputs your inventory,spellbook, or raidlist to file.",
+      "/outputfile", {"/output", "/out"}, "Outputs your inventory, spellbook, quarmy, or raidlist to file.",
       [this](std::vector<std::string> &args) {
         if (args.size() == 2 || args.size() == 3) {
           if (Zeal::String::compare_insensitive(args[1], "inventory")) {
@@ -290,6 +456,10 @@ OutputFile::OutputFile(ZealService *zeal) {
           } else if (Zeal::String::compare_insensitive(args[1], "spellbook")) {
             Zeal::Game::print_chat("Outputting spellbook...");
             export_spellbook(args);
+            return true;
+          } else if (Zeal::String::compare_insensitive(args[1], "quarmy")) {
+            Zeal::Game::print_chat("Outputting quarmy...");
+            export_quarmy(args);
             return true;
           } else if (Zeal::String::compare_insensitive(args[1], "raidlist")) {
             export_raidlist(args);
@@ -305,7 +475,7 @@ OutputFile::OutputFile(ZealService *zeal) {
             return true;
           }
         }
-        Zeal::Game::print_chat("usage: /outputfile [inventory | spellbook | raidlist] [optional filename]");
+        Zeal::Game::print_chat("usage: /outputfile [inventory | spellbook | quarmy | raidlist] [optional filename]");
         Zeal::Game::print_chat("usage: /outputfile format [0 | 1]");
         return true;
       });

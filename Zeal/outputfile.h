@@ -9,6 +9,7 @@ class OutputFile {
   OutputFile(class ZealService *zeal);
   ~OutputFile(){};
   void export_inventory(const std::vector<std::string> &args = {});
+  void export_quarmy(const std::vector<std::string> &args = {});
   void export_spellbook(const std::vector<std::string> &args = {});
 
   ZealSetting<bool> setting_export_on_camp = {false, "Zeal", "ExportOnCamp", false};
