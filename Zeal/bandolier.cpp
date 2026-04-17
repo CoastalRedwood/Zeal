@@ -116,14 +116,18 @@ void Bandolier::load(const std::string &name) {
     }
   }
 
+  // Support not swapping/loading range and ammo only if both are empty in the bandolier set.
+  bool bBothEmpty =
+      (BANDOLIER_SLOTS[2] == kRangeSlot && !item_ids[2]) && (BANDOLIER_SLOTS[3] == kAmmoSlot && !item_ids[3]);
+
   // We go in reverse order so the final appearance update is typically the primary weapon
   std::vector<int> used_slots;  // Keep track of items pulled from inventory so only used once.
   for (auto i = BANDOLIER_SLOTS.size(); i-- > 0; /*comparison post-dec*/) {
     int item_id = item_ids[i];
 
     // Do nothing for this slot if no items, item already loaded, or a no-load for ammo or range.
-    if ((item_id == 0) && (BANDOLIER_SLOTS[i] == kRangeSlot || BANDOLIER_SLOTS[i] == kAmmoSlot) ||
-        (item_id == 0 && !equipped[i]) || (equipped[i] && equipped[i]->ID == item_id)) {
+    bool bNoLoadEligible = bBothEmpty && (BANDOLIER_SLOTS[i] == kRangeSlot || BANDOLIER_SLOTS[i] == kAmmoSlot);
+    if ((item_id == 0 && (bNoLoadEligible || !equipped[i])) || (equipped[i] && equipped[i]->ID == item_id)) {
       continue;
     }
 
