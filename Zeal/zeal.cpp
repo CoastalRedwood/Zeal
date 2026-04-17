@@ -324,16 +324,27 @@ static bool handle_useitem(const std::vector<std::string> &args, bool check_bags
 static const char *handle_swap(const std::vector<std::string> &args) {
   static constexpr char kUsage[] =
       "Usage: /swap <first_bag> <first_slot> <second_bag> <second_slot> "
+      "Usage: /swap <bag> <slot> <item_name_in_inventory>"
       " where bag = 0 to use inventory slots 0 to 29 or bag = 1 to 8 to use bag slots 1 to 10";
 
   int first_bag = 0;
   int first_index = 0;
   int second_bag = 0;
   int second_index = 0;
+  int second_slot_id = -1;
+  // First check for purely numeric parameters.
   if (args.size() != 5 || !Zeal::String::tryParse(args[1], &first_bag, true) ||
       !Zeal::String::tryParse(args[2], &first_index, true) || !Zeal::String::tryParse(args[3], &second_bag, true) ||
       !Zeal::String::tryParse(args[4], &second_index, true)) {
-    return kUsage;
+    // Failed the numeric bag slots, check if item name match parameters work.
+    if (args.size() < 4 || !Zeal::String::tryParse(args[1], &first_bag, true) ||
+        !Zeal::String::tryParse(args[2], &first_index, true)) {
+      return kUsage;
+    }
+    std::string name = args[3];
+    for (auto i = 4; i < args.size(); ++i) name += " " + args[i];  // Re-create full name string with spaces.
+    second_slot_id = Zeal::Game::find_item_in_inventory(name, false);
+    if (second_slot_id < 0) return "Could not find that item in inventory";
   }
 
   int first_slot_id = (first_bag == 0)
@@ -341,10 +352,13 @@ static const char *handle_swap(const std::vector<std::string> &args) {
                           : (GAME_CONTAINER_SLOTS_START + (first_bag - 1) * GAME_NUM_CONTAINER_SLOTS + first_index - 1);
   if (first_slot_id < GAME_EQUIPMENT_SLOTS_END) first_slot_id++;  // Convert to global.
 
-  int second_slot_id =
-      (second_bag == 0) ? second_index
-                        : (GAME_CONTAINER_SLOTS_START + (second_bag - 1) * GAME_NUM_CONTAINER_SLOTS + second_index - 1);
-  if (second_slot_id < GAME_EQUIPMENT_SLOTS_END) second_slot_id++;  // Convert to global.
+  if (second_slot_id < 0) {
+    second_slot_id =
+        (second_bag == 0)
+            ? second_index
+            : (GAME_CONTAINER_SLOTS_START + (second_bag - 1) * GAME_NUM_CONTAINER_SLOTS + second_index - 1);
+    if (second_slot_id < GAME_EQUIPMENT_SLOTS_END) second_slot_id++;  // Convert to global.
+  }
 
   if (!Zeal::Game::is_global_slot_id_an_inventory_slot(first_slot_id) ||
       !Zeal::Game::is_global_slot_id_an_inventory_slot(second_slot_id))

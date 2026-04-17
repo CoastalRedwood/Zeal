@@ -2086,6 +2086,54 @@ int find_item_in_inventory(int item_id, bool check_equipped, const std::vector<i
   return -1;
 }
 
+// Returns the global slot ID of the item if found in bags, otherwise returns -1
+int find_item_in_inventory(const std::string &partial_name, bool check_equipped, const std::vector<int> &ignore_slots) {
+  auto char_info = get_char_info();
+
+  auto name = partial_name.c_str();
+  size_t len = partial_name.length();
+  if (!char_info || len == 0) return -1;
+
+  // Look through each inventory pack slot for the item
+  // Slot ID for bagged items is 250 + (bag_i*10) + (contents_i) = [250...329]
+  for (int pack_slot = 0; pack_slot < GAME_NUM_INVENTORY_PACK_SLOTS; pack_slot++) {
+    auto *slot_info = char_info->InventoryPackItem[pack_slot];
+
+    if (!slot_info) continue;
+
+    // Check if the item is directly in the pack slot (not inside a bag)
+    if (strncmp(slot_info->Name, name, len) == 0) {
+      int global_slot_id = GAME_PACKS_SLOTS_START + pack_slot;
+      if (std::find(ignore_slots.begin(), ignore_slots.end(), global_slot_id) == ignore_slots.end())
+        return global_slot_id;
+    }
+
+    if (slot_info->Type != 1) continue;
+    // if it's a container, check inside it for the item
+    for (int slot = 0; slot < slot_info->Container.Capacity; slot++) {
+      Zeal::GameStructures::GAMEITEMINFO *item = slot_info->Container.Item[slot];
+      if (item && strncmp(item->Name, name, len) == 0) {
+        int global_slot_id = GAME_CONTAINER_SLOTS_START + (pack_slot * GAME_NUM_CONTAINER_SLOTS) + slot;
+        if (std::find(ignore_slots.begin(), ignore_slots.end(), global_slot_id) == ignore_slots.end())
+          return global_slot_id;
+      }
+    }
+  }
+
+  if (check_equipped) {
+    // Look through equipped inventory slots for the item
+    // Equipped slot IDs are 1-22
+    for (int i = GAME_EQUIPMENT_SLOTS_START; i < GAME_EQUIPMENT_SLOTS_END; i++) {
+      auto item = char_info->InventoryItem[i - GAME_EQUIPMENT_SLOTS_START];
+      if (item && strncmp(item->Name, name, len) == 0) {
+        if (std::find(ignore_slots.begin(), ignore_slots.end(), i) == ignore_slots.end()) return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
 int find_use_item_by_name(const std::string &partial_name, bool check_bags) {
   auto char_info = get_char_info();
 

@@ -121,7 +121,7 @@ ___
   - **Example:** `/bandolier bag 4` sets the bag in pack slot 4 (1 to 8, 0 to disable) as the preferred store spot
   - **Description:** Allows you to save and load bandolier sets
     - Works for primary, secondary, range and ammo slots
-    - Primary and secondary always swap but range and ammo will not change if you save a set with them empty
+    - Primary and secondary always swap but range and ammo will not change if you save a set with both of them empty
     - The item getting swapped out first tries to store in the slot of the swap in item, then in the location
       it was originally swapped in from (if available), then in the preferred bag if there is room, then in
       any inventory bag (starting from last) if there is room, then in a pack slot
@@ -445,10 +445,12 @@ ___
 
 - `/swap`
   - **Arguments:** `<first_bag> <first slot> <second_bag> <second_slot>`
+  - **Arguments:** `<first_bag> <first slot> <item_name_in_inventory_>`
   - **Description:** Swaps items between the two slots where bag = 0 to use inventory slots
        0 to 29 or bag = 1 to 8 to use bag slots 1 to 10. See /useitem for inventory slots.
        The cursor must be empty and the character not busy casting, banking, trading, etc.
   - **Example:** `/swap 0 12 4 1`: Swaps the primary weapon slot with bag 4 slot 1.
+  - **Example:** `/swap 0 7 Cloak of Flames`: Swaps back slot with Cloak of Flames from inventory.
 
 - `/tag`
   - **Description:** adds an optional text tag to the top of a target NPC's nameplate
