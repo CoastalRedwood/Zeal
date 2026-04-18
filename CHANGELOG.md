@@ -2,6 +2,39 @@
 
 Summarizes notable changes to Zeal
 
+## [1.4.0] - 2026/04/18
+
+### New features
+
+* New command line `/bandolier` to load gear to primary, secondary, range, ammo
+  - `/bandolier save` - Saves the currently equipped primary, secondary, range, and ammo items as a per character named set.
+  - `/bandolier load` - Loads a previously saved set, automatically moving items in and out of inventory bags.
+  - `/bandolier delete` - Removes a saved bandolier set from the ini file.
+  - `/bandolier list` - Lists all saved bandolier sets.
+  - `/bandolier bag <bag#>` - Sets preferred storage spot when unequipping (if not swapping)
+  - Any bandolier set stored with both range and ammo blank will not touch those slots when loaded
+
+* New command line `/swap` 
+  - Allows swapping two equip/inventory slots (items must be able to fit in their destination)
+  - Alternative to bandolier when a macro will work
+
+* `/dampenlev` is now functional when mounted
+
+* The `/triggers` command now supports a "Refresh" action
+  - New "Refresh" action acts like an arm but it will erase any existing active trigger with the same label to "refresh" it
+  - Useful for AOE's that hit multiple people or any casts that are typically one at a time and get refreshed early
+
+* Added `/outputfile quarmy` export with base stats, guild, and AAs
+
+## Fixes
+* Additional formatting support (`/abc`, timestamps) for cross-zone invite dialogs and auto consent 
+
+* Nameplate `/tag` text is now whitespace stripped (leading, trailing, extra internal spaces)
+
+* 'consent me' should now ignore case for /autoconsent messages
+
+* Removed the gating of the cast recovery gauge value by the gcd (fizzle timeout)
+
 
 ## [1.3.8] - 2026/03/05
 
