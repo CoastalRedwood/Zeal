@@ -1063,4 +1063,85 @@ void ZealService::AddBinds() {
                            }
                          }
                        });
+
+  // Hotbar page 10 keybinds: activate page 10 slots without switching the visible page.
+  for (int slot = 0; slot < GAME_NUM_HOTBUTTONS; ++slot) {
+    char label[32];
+    snprintf(label, sizeof(label), "Hotbar Page 10 Slot %d", slot + 1);
+    binds_hook->add_bind(131 + slot, label, label,
+                         key_category::Macros, [slot](int key_down) {
+                           if (!key_down || Zeal::Game::GameInternal::UI_ChatInputCheck())
+                             return;
+                           if (!Zeal::Game::Windows || !Zeal::Game::Windows->HotButton)
+                             return;
+                           int *hotbar_page_ptr = reinterpret_cast<int *>(0x7f69f6);
+                           int saved_page = *hotbar_page_ptr;
+                           *hotbar_page_ptr = 9;  // Page 10 (0-indexed).
+                           Zeal::Game::execute_cmd(31 + slot, 1, 0);  // 31 = native HOT1 command ID.
+                           Zeal::Game::execute_cmd(31 + slot, 0, 0);
+                           *hotbar_page_ptr = saved_page;
+                         });
+  }
+
+  // Socials page 10 keybinds: read macro lines from the character INI and execute them
+  // with proper /pause timing. Queued commands are processed in the MainLoop callback.
+  struct SocialQueueEntry {
+    std::string cmd;
+    ULONGLONG execute_at;
+  };
+  static std::vector<SocialQueueEntry> social_queue;
+
+  // Register a MainLoop callback to process queued social commands.
+  ZealService::get_instance()->callbacks->AddGeneric([]() {
+    if (social_queue.empty()) return;
+    ULONGLONG now = GetTickCount64();
+    while (!social_queue.empty() && social_queue.front().execute_at <= now) {
+      std::string cmd = social_queue.front().cmd;
+      social_queue.erase(social_queue.begin());
+      reinterpret_cast<void(__fastcall *)(int, int,
+          Zeal::GameStructures::Entity *, const char *)>(0x54572f)(
+          (int)Zeal::Game::get_game(), 0,
+          Zeal::Game::get_self(), cmd.c_str());
+    }
+  });
+
+  for (int slot = 0; slot < 12; ++slot) {
+    char label[32];
+    snprintf(label, sizeof(label), "Social Page 10 Slot %d", slot + 1);
+    binds_hook->add_bind(141 + slot, label, label,
+                         key_category::Macros, [slot](int key_down) {
+                           if (!key_down || Zeal::Game::GameInternal::UI_ChatInputCheck())
+                             return;
+                           auto *char_info = Zeal::Game::get_char_info();
+                           if (!char_info) return;
+                           social_queue.clear();  // New social replaces any pending one.
+                           std::string ini_path =
+                               std::string(".\\") + char_info->Name + "_pq.proj.ini";
+                           IO_ini ini(ini_path);
+                           int button = slot + 1;
+                           ULONGLONG run_at = GetTickCount64();
+                           for (int line = 1; line <= 5; ++line) {
+                             char key[32];
+                             snprintf(key, sizeof(key), "Page10Button%dLine%d", button, line);
+                             std::string cmd = ini.getValue<std::string>("Socials", key);
+                             if (cmd.empty()) continue;
+                             int pause_ticks = 0;
+                             // Parse "/pause N, /command" or standalone "/pause N".
+                             if (cmd.size() > 6 && _strnicmp(cmd.c_str(), "/pause", 6) == 0) {
+                               int n = atoi(cmd.c_str() + 7);
+                               if (n > 0) pause_ticks = n;
+                               auto comma = cmd.find(',');
+                               if (comma != std::string::npos) {
+                                 cmd = cmd.substr(comma + 1);
+                                 while (!cmd.empty() && cmd[0] == ' ') cmd.erase(0, 1);
+                               } else {
+                                 cmd.clear();  // Standalone /pause — no command to run.
+                               }
+                             }
+                             if (!cmd.empty())
+                               social_queue.push_back({cmd, run_at});
+                             run_at += pause_ticks * 100;  // /pause units are tenths of a second.
+                           }
+                         });
+  }
 }
