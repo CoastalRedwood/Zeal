@@ -38,7 +38,7 @@ std::map<std::string, std::string> channelPrefixes = {
     {"raid", "R"},              // Raid
 };
 
-std::string autoInvitePassword; // Non-persistent
+std::string autoInvitePassword;  // Non-persistent
 std::string playerRolling;
 
 std::string ReadFromClipboard() {
@@ -965,7 +965,17 @@ void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &ch
 
   if (channel == USERCOLOR_TELL && !autoInvitePassword.empty()) {
     std::string name = GetAutoRaidInviteName(msg);
-    if (!name.empty()) Zeal::Game::do_say(true, "#raidinvite %s", name.c_str());
+    if (!name.empty()) {
+      const Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+      if (raid_info->is_in_raid() && raid_info->IsLeader) {
+        Zeal::Game::do_say(true, "#raidinvite %s", name.c_str());
+        channel = CHATCOLOR_DEFAULT;  // Keep the invites from cluttering tell windows.
+        msg = name + " sent a tell that triggered a #raidinvite.";
+      } else {
+        channel = CHATCOLOR_YELLOW;  // Make the message more prominent but still not tell window clutter.
+        msg = name + " sent a tell with the raid invite password (but you aren't the leader).";
+      }
+    }
   }
 
   if (UseClassChatColors.get() && !msg.empty()) {
@@ -1047,8 +1057,8 @@ Chat::Chat(ZealService *zeal) {
   //
   //    if (opcode == 0x4058 || opcode == 0x404A)
   //    {
-  //        Zeal::Game::print_chat("Opcode: 0x%x Size: %i Buffer: %s", opcode, size, Zeal::String::bytes_to_hex(buffer,
-  //        size).c_str());
+  //        Zeal::Game::print_chat("Opcode: 0x%x Size: %i Buffer: %s", opcode, size,
+  //        Zeal::String::bytes_to_hex(buffer, size).c_str());
   //    }
   // if (opcode == 0x4236)
   //{
@@ -1080,7 +1090,8 @@ Chat::Chat(ZealService *zeal) {
                       // false if you want to just add features to an existing cmd
       });
   zeal->commands_hook->Add(
-      "/autoraidinvite", {"/ari"}, "Will raid-invite anyone who sends you a tell with a matching password.", [this](std::vector<std::string> &args) {
+      "/autoraidinvite", {"/ari"}, "Will raid-invite anyone who sends you a tell with a matching password.",
+      [this](std::vector<std::string> &args) {
         if (args.size() == 2) {
           if (args[1] == "off")
             autoInvitePassword.clear();
@@ -1122,8 +1133,8 @@ Chat::Chat(ZealService *zeal) {
                              } else {
                                Zeal::Game::print_chat("Class Chat Colors disabled");
                              }
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
+                             return true;  // return true to stop the game from processing any further on this
+                                           // command, false if you want to just add features to an existing cmd
                            });
   zeal->commands_hook->Add("/classicclasses", {"/cc"},
                            "Toggles classic classes only (no longer showing vicar for a 50+ cleric for example).",
@@ -1134,14 +1145,14 @@ Chat::Chat(ZealService *zeal) {
                              } else {
                                Zeal::Game::print_chat("Classic Class Names disabled");
                              }
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
+                             return true;  // return true to stop the game from processing any further on this
+                                           // command, false if you want to just add features to an existing cmd
                            });
   zeal->commands_hook->Add("/bluecon", {}, "Toggles the custom color for blue con that you can adjust in options.",
                            [this](std::vector<std::string> &args) {
                              UseBlueCon.toggle();
-                             return true;  // return true to stop the game from processing any further on this command,
-                                           // false if you want to just add features to an existing cmd
+                             return true;  // return true to stop the game from processing any further on this
+                                           // command, false if you want to just add features to an existing cmd
                            });
   zeal->commands_hook->Add("/loc", {}, "Adds noprint arguments to /loc to not log the location to your chat.",
                            [this](std::vector<std::string> &args) {
@@ -1191,8 +1202,8 @@ Chat::Chat(ZealService *zeal) {
                              return true;
                            });
 
-  /*  zeal->commands_hook->Add("/uniquenaming", {}, "Toggles off the stripping of mob id and other identifiers from name
-     of npc's (log only)", [this, ini](std::vector<std::string>& args) { uniquenames = !uniquenames;
+  /*  zeal->commands_hook->Add("/uniquenaming", {}, "Toggles off the stripping of mob id and other identifiers from
+     name of npc's (log only)", [this, ini](std::vector<std::string>& args) { uniquenames = !uniquenames;
             Zeal::Game::print_chat("Unique naming is %s", uniquenames ? "Enabled" : "Disabled");
             return true;
         });*/
@@ -1250,8 +1261,8 @@ Chat::Chat(ZealService *zeal) {
 
 void Chat::set_classes() {
   if (UseClassicClassNames.get()) {
-    mem::write<BYTE>(0x4bc090, 66);  // this just changes the if statement to check if the player is > 65 rather than >
-                                     // 50
+    mem::write<BYTE>(0x4bc090, 66);  // this just changes the if statement to check if the player is > 65 rather than
+                                     // > 50
   } else {
     mem::write<BYTE>(0x4bc090, 51);
   }
