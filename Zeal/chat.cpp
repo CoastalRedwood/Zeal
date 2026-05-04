@@ -966,8 +966,9 @@ void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &ch
   if (channel == USERCOLOR_TELL && !autoInvitePassword.empty()) {
     std::string name = GetAutoRaidInviteName(msg);
     if (!name.empty()) {
+      const bool bEnableRaidLeaderCheck = false;  // Maybe make this an option someday if someone cares.
       const Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
-      if (raid_info->is_in_raid() && raid_info->IsLeader) {
+      if (!bEnableRaidLeaderCheck || (raid_info->is_in_raid() && raid_info->IsLeader)) {
         Zeal::Game::do_say(true, "#raidinvite %s", name.c_str());
         channel = CHATCOLOR_DEFAULT;  // Keep the invites from cluttering tell windows.
         msg = name + " sent a tell that triggered a #raidinvite.";
