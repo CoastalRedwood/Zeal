@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "lmb_pan.h"
 #include "zeal.h"
 
 // Layer 0 addresses ported from 2002 client to RoF2 (Session 9 Ghidra work,
@@ -50,6 +51,18 @@ static const int load_options_call_jump_value_unpatched = 0x0000e9c1;
 // MouseSensitivity slider, the 8-bucket formula, and every other consumer of
 // DAT_009c7328 stay untouched. See memory/feedback_player_benefit_first.md.
 #define ZEAL_ROF2_R3_HV_PARITY 1
+
+// R3 Stage 2: LMB-pan on the vanilla 3rd-person camera. Session 14 empirical
+// mode probe identified mode 6 (S13 called it "overhead/TotalCameras",
+// disproven) as the actual vanilla scroll-out 3rd-person camera. This patch
+// installs a wrapper on mode 6's class vtable slot 0x08 that applies
+// g_yaw_offset to the camera's heading-delta math via "Approach E" (see
+// lmb_pan.cpp header). With g_yaw_offset = 0 the wrapper is byte-pass-through
+// to vanilla; non-zero offsets orbit the camera around the player anchor
+// without touching player heading. Follow-up commit wires the per-frame
+// LMB-no-RMB input poll + state machine + snap-back lerp that drives the
+// offset. See PHASE1_CAMERA.md.
+#define ZEAL_ROF2_R3_LMB_PAN 1
 
 // Our replacement constant. The linker places this in Zeal.asi's .rdata and
 // gives it a stable runtime address; the DLL is pinned for the process
@@ -189,6 +202,12 @@ static void handle_process_attach() {
     // Signature mismatch: silently skip. Y axis stays vanilla 2:1. Better
     // than risking a patch on an unexpected eqgame.exe build.
   }
+#endif
+
+#if ZEAL_ROF2_R3_LMB_PAN
+  // R3 Stage 2 MVP: patch chase camera vtable slot 0x08. Signature-gated
+  // inside lmb_pan::install — silently no-ops on mismatch.
+  lmb_pan::install(aslr_delta);
 #endif
 }
 
