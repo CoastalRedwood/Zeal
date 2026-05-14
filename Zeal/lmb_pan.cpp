@@ -140,6 +140,23 @@ static float read_sens_mult() {
   return (static_cast<float>(bucket - 1) / 7.0f) * 1.5f + 0.5f;
 }
 
+// True when EQ's main window (any window in our process) currently has
+// Windows foreground focus. Used to gate input polling so that when EQ is
+// in the background (e.g. user alt-tabbed to another app), we don't:
+//   - read GetAsyncKeyState(VK_LBUTTON) — it's a GLOBAL state, so clicks in
+//     other windows would otherwise drive us into PENDING/PANNING.
+//   - leave ClipCursor active — it would trap the cursor inside the EQ
+//     window even while the user is interacting with other applications
+//     (breaks text selection, screenshot tools, etc. — user-reported bug
+//     after v1.2.0 shipped).
+static bool eq_has_foreground_focus() {
+  const HWND fg = GetForegroundWindow();
+  if (!fg) return false;
+  DWORD fg_pid = 0;
+  GetWindowThreadProcessId(fg, &fg_pid);
+  return fg_pid == GetCurrentProcessId();
+}
+
 // Input state machine. Click-vs-pan disambiguation + persistent offset
 // (Session 15 r2). Offsets reset ONLY on RMB-triggered snap-back; LMB
 // release after a pan transitions to HELD (offset persists).
@@ -411,6 +428,35 @@ static void exit_to_idle_snapping_back() {
 }
 
 static void poll_input() {
+  // Focus gate: if EQ is in the background, do nothing — GetAsyncKeyState
+  // reads global key state, so clicks in other apps would otherwise enter
+  // our state machine. Also release any lingering ClipCursor so the user's
+  // other apps work normally.
+  if (!eq_has_foreground_focus()) {
+    // Always release ClipCursor on background — cheap idempotent call,
+    // ensures we never leave the clip lingering across alt-tab.
+    ClipCursor(nullptr);
+    if (g_state == lmb_state::PANNING) {
+      // Restore cursor visibility (it was hidden in enter_panning). DON'T
+      // SetCursorPos — the user is in another window now, snapping their
+      // cursor would be more disruptive than leaving it where they put it.
+      while (g_hides_applied > 0) {
+        ShowCursor(TRUE);
+        g_hides_applied--;
+      }
+      // Demote to HELD so the camera angle persists. Re-engaging the pan
+      // when the user comes back requires a fresh LMB release+click (the
+      // HELD → PENDING transition fires only on a new LMB-down edge).
+      g_recenter_pending = false;
+      g_state = lmb_state::HELD;
+    } else if (g_state == lmb_state::PENDING) {
+      // No pan committed yet — drop back to IDLE so we don't auto-engage
+      // when focus returns.
+      g_state = lmb_state::IDLE;
+    }
+    return;
+  }
+
   const bool lmb = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
   const bool rmb = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
 
