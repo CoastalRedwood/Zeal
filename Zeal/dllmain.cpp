@@ -64,11 +64,22 @@ static const int load_options_call_jump_value_unpatched = 0x0000e9c1;
 // offset. See PHASE1_CAMERA.md.
 #define ZEAL_ROF2_R3_LMB_PAN 1
 
-// Our replacement constant. The linker places this in Zeal.asi's .rdata and
-// gives it a stable runtime address; the DLL is pinned for the process
-// lifetime (initialize_zeal calls GetModuleHandleExA with FLAG_PIN), so the
-// address is valid forever after handle_process_attach() runs.
-static const float k_r3_y_scale = 512.0f;
+// Our replacement constant. The linker places this in Zeal.asi's writable
+// data segment (the const-ness is dropped so handle_process_attach can write
+// to it at install time without VirtualProtect), and gives it a stable
+// runtime address; the DLL is pinned for the process lifetime
+// (initialize_zeal calls GetModuleHandleExA with FLAG_PIN), so the address
+// is valid forever after handle_process_attach() runs.
+//
+// Default 512.0 = the value Session 12 chose to match the X-axis FMUL's
+// hardcoded 512.0. handle_process_attach() rewrites this at install time to
+// the aspect-correct value based on the user's screen dimensions — the
+// procMouse formula  Y = mult * (dy / y_span) * y_scale  has a built-in
+// y_span/x_span asymmetry on non-square viewports (1.78× for 16:9), so
+// matching X's 512.0 actually *overshoots* parity. The corrected formula is
+//   y_scale = 512.0 * (screen_height / screen_width)
+// → 288 for 16:9, 320 for 16:10, 384 for 4:3.
+static float k_r3_y_scale = 512.0f;
 
 // Y-axis FMUL instruction inside FUN_00516d40. Expected bytes:
 //   D8 0D 28 73 9c 00   FMUL dword ptr [DAT_009c7328]
@@ -176,7 +187,21 @@ static void handle_process_attach() {
 
 #if ZEAL_ROF2_R3_HV_PARITY
   // R3 Stage 1: redirect FUN_00516d40's Y-axis FMUL from [DAT_009c7328] (256.0,
-  // shared) to [&k_r3_y_scale] (our 512.0). Single 4-byte write to the
+  // shared) to [&k_r3_y_scale] (our aspect-corrected scale). Calibrate the
+  // scale FIRST so the patched instruction sees the right value on its first
+  // read. procMouse's formula  Y = mult * (dy / y_span) * y_scale  has a
+  // built-in y_span/x_span asymmetry on non-square viewports — Session 12's
+  // 512.0 (matching X) overcorrected; the aspect-correct value compensates.
+  {
+    const int sw = GetSystemMetrics(SM_CXSCREEN);
+    const int sh = GetSystemMetrics(SM_CYSCREEN);
+    if (sw > 0 && sh > 0) {
+      k_r3_y_scale = 512.0f * (static_cast<float>(sh) / static_cast<float>(sw));
+    }
+    // else: leave at 512.0f default (no metrics available — unlikely).
+  }
+
+  // Now install the FMUL displacement patch. Single 4-byte write to the
   // instruction's displacement field at runtime address (0x00516ff8 + delta).
   {
     const uintptr_t y_fmul_runtime = r3_y_fmul_addr_ghidra + aslr_delta;
