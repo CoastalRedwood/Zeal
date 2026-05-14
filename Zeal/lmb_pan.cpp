@@ -358,16 +358,15 @@ static void enter_panning() {
     g_hides_applied++;
     if (new_count < 0) break;
   }
-  // Multi-monitor safety: trap the (hidden) cursor inside the game window
-  // so it can't wander onto a second monitor mid-pan. Released on PANNING
-  // exit (enter_held_keeping_offset / exit_to_idle_snapping_back).
-  {
-    HWND fg = GetForegroundWindow();
-    RECT wr;
-    if (fg && GetWindowRect(fg, &wr)) {
-      ClipCursor(&wr);
-    }
-  }
+  // Multi-monitor safety is handled by the 100px edge-recenter guard in
+  // poll_input (PANNING branch), which warps the cursor back to window center
+  // before it reaches any edge. We deliberately do NOT call ClipCursor here:
+  // EQ's WM_RBUTTONDOWN handler activates camera-turn mode (and likely sets
+  // its own ClipCursor) — if Zeal's clip is already active when that message
+  // arrives, EQ's camera-turn setup fails silently, which prevents the
+  // "both buttons held = move forward" mechanic from firing (the RMB-during-
+  // pan → autorun bug reported after v1.2.1).
+  //
   // Persistence: do NOT reset g_pitch_offset or g_pitch_snapshotted here.
   // They carry over from any prior HELD state, so re-engaging a pan stacks
   // on top of the previously-held angle. Offsets only reset via RMB
@@ -382,7 +381,6 @@ static void enter_panning() {
 // writes cam[0x30] = g_pitch_base + g_pitch_offset; g_pitch_snapshotted
 // stays true, base stays valid).
 static void enter_held_keeping_offset() {
-  ClipCursor(nullptr);  // release multi-monitor trap from enter_panning()
   SetCursorPos(g_lmb_down_cursor.x, g_lmb_down_cursor.y);
   while (g_hides_applied > 0) {
     ShowCursor(TRUE);
@@ -407,11 +405,6 @@ static void exit_to_idle_snapping_back() {
   diag_logf("[pan-snap-back] RMB triggered; was %s, yaw=%+.3f pitch=%+.3f → 0,0\n",
             from, g_yaw_offset, g_pitch_offset);
 #endif
-  // Release the multi-monitor cursor trap if it was set (only PANNING set it;
-  // HELD already released it). Safe to call even if no clip is active.
-  if (g_state == lmb_state::PANNING) {
-    ClipCursor(nullptr);
-  }
   if (g_hides_applied > 0) {
     SetCursorPos(g_lmb_down_cursor.x, g_lmb_down_cursor.y);
     while (g_hides_applied > 0) {
@@ -433,8 +426,9 @@ static void poll_input() {
   // our state machine. Also release any lingering ClipCursor so the user's
   // other apps work normally.
   if (!eq_has_foreground_focus()) {
-    // Always release ClipCursor on background — cheap idempotent call,
-    // ensures we never leave the clip lingering across alt-tab.
+    // Safety net: release any cursor clip on background (cheap no-op if none
+    // is active; guards against EQ's own camera-turn ClipCursor lingering
+    // across alt-tab). Zeal itself no longer calls ClipCursor during panning.
     ClipCursor(nullptr);
     if (g_state == lmb_state::PANNING) {
       // Restore cursor visibility (it was hidden in enter_panning). DON'T
