@@ -18,21 +18,42 @@ static int __fastcall InvSlotWnd_HandleLButtonUp(Zeal::GameUI::InvSlotWnd *wnd,
   int result = next_HandleLButtonUp(wnd, mouse_x, mouse_y, flags);
 
   auto *zeal = ZealService::get_instance();
-  if (!zeal->ui_hide_fake_slots || !zeal->ui_hide_fake_slots->Enabled.get()) return result;
+  if (!zeal->ui_hide_fake_slots->Enabled.get()) return result;
 
   int slot_id = wnd->SlotID;
 
   // Only run if a valid bag slot was clicked
   if (slot_id >= GAME_PACKS_SLOTS_START && slot_id <= GAME_PACKS_SLOTS_END) {
-    // Call with delay so that game has time to update
-    ZealService::get_instance()->callbacks->AddDelayed([]() {
-      auto zeal = ZealService::get_instance();
-      if (zeal->ui_hide_fake_slots)
-        zeal->ui_hide_fake_slots->update_slot_visibility();
-    }, 50);
+    zeal->callbacks->AddDelayed([]() {
+      auto *z = ZealService::get_instance();
+      if (z->ui_hide_fake_slots)
+        z->ui_hide_fake_slots->check_and_update();
+    }, 50); // Call with delay so that game has time to update
   }
 
   return result;
+}
+
+void UI_HideFakeSlots::check_and_update() {
+  // Call an update if the bag slots have changed
+  
+  if (!Enabled.get()) return;
+
+  auto *char_info = Zeal::Game::get_char_info();
+  if (!char_info) return;
+
+  bool changed = false;
+  for (int i = 0; i < GAME_NUM_INVENTORY_PACK_SLOTS; ++i) {
+    auto *bag = char_info->InventoryPackItem[i];
+    int id = (bag && bag->Type == 1) ? bag->ID : 0;
+    if (id != cached_pack_slot_ids[i]) {
+      cached_pack_slot_ids[i] = id;
+      changed = true;
+    }
+  }
+
+  if (changed)
+    update_slot_visibility();
 }
 
 void UI_HideFakeSlots::update_slot_visibility() {
@@ -55,6 +76,7 @@ void UI_HideFakeSlots::update_slot_visibility() {
     int slot_id = inv_slot->invSlotWnd->SlotID;
     if (slot_id < GAME_CONTAINER_SLOTS_START || slot_id > GAME_CONTAINER_SLOTS_END) continue;
 
+    // Determine the index of the bag that contains this item
     int offset    = slot_id - GAME_CONTAINER_SLOTS_START;
     int bag_slot  = offset / GAME_NUM_CONTAINER_SLOTS;
     int bag_index = offset % GAME_NUM_CONTAINER_SLOTS;
@@ -79,19 +101,13 @@ UI_HideFakeSlots::UI_HideFakeSlots(ZealService *zeal)
   vtable->HandleLButtonUp = InvSlotWnd_HandleLButtonUp;
   mem::reset_memory_protection(vtable);
 
-  // Update slot visibility on a timer as a fallback
-  zeal->callbacks->AddGeneric([this]() {
-    if (!Enabled.get()) return;
-
-    static DWORD last_check = 0;
-    DWORD now = GetTickCount();
-    if (now - last_check > 2000) {
-      last_check = now;
-      update_slot_visibility();
-    }
-  }, callback_type::MainLoop);
+  // Trigger update when an item is received from the server (purchase/quest/loot/etc)
+  zeal->callbacks->AddPacket([this](UINT opcode, char *buffer, UINT len) -> bool {
+    if (opcode == 0x4031 && this->Enabled.get())
+      check_and_update();
+    return false;
+  }, callback_type::WorldMessagePost);
 }
-
 
 UI_HideFakeSlots::~UI_HideFakeSlots() {
   auto *vtable = Zeal::GameUI::InvSlotWnd::default_vtable;
