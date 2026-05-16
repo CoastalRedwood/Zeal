@@ -77,6 +77,7 @@ class ZealService {
   std::unique_ptr<class EquipItem> equip_item_hook = nullptr;
   std::unique_ptr<class chatfilter> chatfilter_hook = nullptr;
   std::unique_ptr<class Chat> chat_hook = nullptr;
+  std::unique_ptr<class UI_HideFakeSlots> ui_hide_fake_slots = nullptr;
   std::unique_ptr<class NamePlate> nameplate = nullptr;
   std::unique_ptr<class TellWindows> tells = nullptr;
   std::unique_ptr<class Looting> looting_hook = nullptr;

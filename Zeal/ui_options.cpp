@@ -30,6 +30,7 @@
 #include "target_ring.h"
 #include "tellwindows.h"
 #include "tooltip.h"
+#include "ui_hide_fake_slots.h"
 #include "ui_manager.h"
 #include "ui_skin.h"
 #include "utils.h"
@@ -514,6 +515,9 @@ void ui_options::InitGeneral() {
   });
   ui->AddCheckboxCallback(wnd, "Zeal_LeftClickCon", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->camera_mods->setting_leftclickcon.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_HideFakeSlots", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->ui_hide_fake_slots->Enabled.set(wnd->Checked);
   });
   ui->AddComboCallback(wnd, "Zeal_Timestamps_Combobox", [](Zeal::GameUI::BasicWnd *wnd, int value) {
     ZealService::get_instance()->chat_hook->TimeStampsStyle.set(value);
@@ -1027,6 +1031,7 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_ExportOnCamp", ZealService::get_instance()->outputfile->setting_export_on_camp.get());
   ui->SetChecked("Zeal_SelfClickThru", ZealService::get_instance()->camera_mods->setting_selfclickthru.get());
   ui->SetChecked("Zeal_LeftClickCon", ZealService::get_instance()->camera_mods->setting_leftclickcon.get());
+  ui->SetChecked("Zeal_HideFakeSlots", ZealService::get_instance()->ui_hide_fake_slots->Enabled.get());
   ui->SetChecked("Zeal_ClassicClasses", ZealService::get_instance()->chat_hook->UseClassicClassNames.get());
   ui->SetLabelValue("Zeal_VersionValue", "%s (%s)", ZEAL_VERSION, ZEAL_BUILD_VERSION);
   ui->SetChecked("Zeal_BlueCon", ZealService::get_instance()->chat_hook->UseBlueCon.get());
