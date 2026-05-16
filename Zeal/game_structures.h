@@ -164,6 +164,28 @@ enum ClassTypes {
   Merchant = 32
 };
 
+enum DeityTypes {
+  DeityUnknown = 0,
+  Agnostic1 = 140,
+  Bertoxxulous = 201,
+  BrellSirilis = 202,
+  CazicThule = 203,
+  ErollisiMarr = 204,
+  Bristlebane = 205,
+  Innoruuk = 206,
+  Karana = 207,
+  MithanielMarr = 208,
+  Prexus = 209,
+  Quellious = 210,
+  RallosZek = 211,
+  RodcetNife = 212,
+  SolusekRo = 213,
+  TheTribunal = 214,
+  Tunare = 215,
+  Veeshan = 216,
+  Agnostic2 = 396,
+};
+
 enum PetCommand {
   None = 0,
   Back = 1,
@@ -182,6 +204,23 @@ enum PetCommand {
   PetTarget = 15,
   WhoLeader = 16,
   Buy = 17,
+};
+
+enum RaceTypes {
+  Human = 1,
+  Barbarian = 2,
+  Erudite = 3,
+  WoodElf = 4,
+  HighElf = 5,
+  DarkElf = 6,
+  HalfElf = 7,
+  Dwarf = 8,
+  Troll = 9,
+  Ogre = 10,
+  Halfling = 11,
+  Gnome = 12,
+  Iksar = 128,
+  VahShir = 130
 };
 
 enum SpellTargetType {

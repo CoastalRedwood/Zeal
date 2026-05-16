@@ -2679,6 +2679,86 @@ std::string class_name_short(int class_id) {
   return class_string;
 }
 
+std::string deity_name(int deity_id) {
+  std::string deity_string = "";
+  switch (deity_id) {
+    case Zeal::GameEnums::DeityTypes::Agnostic1:
+      return "Agnostic";
+    case Zeal::GameEnums::DeityTypes::Bertoxxulous:
+      return "Bertoxxulous";
+    case Zeal::GameEnums::DeityTypes::BrellSirilis:
+      return "Brell Serilis";
+    case Zeal::GameEnums::DeityTypes::CazicThule:
+      return "Cazic-Thule";
+    case Zeal::GameEnums::DeityTypes::ErollisiMarr:
+      return "Erollisi Marr";
+    case Zeal::GameEnums::DeityTypes::Bristlebane:
+      return "Bristlebane";
+    case Zeal::GameEnums::DeityTypes::Innoruuk:
+      return "Innoruuk";
+    case Zeal::GameEnums::DeityTypes::Karana:
+      return "Karana";
+    case Zeal::GameEnums::DeityTypes::MithanielMarr:
+      return "Mithaniel Marr";
+    case Zeal::GameEnums::DeityTypes::Prexus:
+      return "Prexus";
+    case Zeal::GameEnums::DeityTypes::Quellious:
+      return "Quellious ";
+    case Zeal::GameEnums::DeityTypes::RallosZek:
+      return "Rallos Zek";
+    case Zeal::GameEnums::DeityTypes::RodcetNife:
+      return "Rodcet Nife";
+    case Zeal::GameEnums::DeityTypes::SolusekRo:
+      return "Solusek Ro";
+    case Zeal::GameEnums::DeityTypes::TheTribunal:
+      return "The Tribunal";
+    case Zeal::GameEnums::DeityTypes::Tunare:
+      return "Tunare";
+    case Zeal::GameEnums::DeityTypes::Veeshan:
+      return "Veeshan";
+    case Zeal::GameEnums::DeityTypes::Agnostic2:
+      return "Agnostic";
+    default:
+      return "UNK";
+  }
+}
+
+std::string race_name_short(int race_id) {
+  std::string race_string = "";
+  switch (race_id) {
+    case Zeal::GameEnums::RaceTypes::Human:
+      return "HUM";
+    case Zeal::GameEnums::RaceTypes::Barbarian:
+      return "BAR";
+    case Zeal::GameEnums::RaceTypes::Erudite:
+      return "ERU";
+    case Zeal::GameEnums::RaceTypes::WoodElf:
+      return "ELF";
+    case Zeal::GameEnums::RaceTypes::HighElf:
+      return "HIE";
+    case Zeal::GameEnums::RaceTypes::DarkElf:
+      return "DEF";
+    case Zeal::GameEnums::RaceTypes::HalfElf:
+      return "HEF";
+    case Zeal::GameEnums::RaceTypes::Dwarf:
+      return "DWF";
+    case Zeal::GameEnums::RaceTypes::Troll:
+      return "TRL";
+    case Zeal::GameEnums::RaceTypes::Ogre:
+      return "OGR";
+    case Zeal::GameEnums::RaceTypes::Halfling:
+      return "HFL";
+    case Zeal::GameEnums::RaceTypes::Gnome:
+      return "GNM";
+    case Zeal::GameEnums::RaceTypes::Iksar:
+      return "IKS";
+    case Zeal::GameEnums::RaceTypes::VahShir:
+      return "VAH";
+    default:
+      return "UNK";
+  }
+}
+
 int get_showname() {
   // Holds value of /showname command.
   //  1 = first names, 2 = first/last names, 3 = first/last/guild names, 4 = everything

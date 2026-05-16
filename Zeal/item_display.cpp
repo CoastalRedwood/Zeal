@@ -186,6 +186,35 @@ static std::string GetSpellClassLevels(const Zeal::GameStructures::_GAMEITEMINFO
   return result;
 }
 
+static void ApplyRestictionHighlight(Zeal::GameStructures::_GAMEITEMINFO *item, std::string &s) {
+  // Highlights the section in green/red based on if the player passes the restriction
+
+  std::string lineSearchString;
+
+  if (s.starts_with("Class: "))
+    lineSearchString = Zeal::Game::class_name_short(Zeal::Game::get_char_info()->Class);
+  else if (s.starts_with("Race: "))
+    lineSearchString = Zeal::Game::race_name_short(Zeal::Game::get_char_info()->Race);
+  else if (s.starts_with("Deity: "))
+    lineSearchString = Zeal::Game::deity_name(Zeal::Game::get_char_info()->Deity);
+  else return;
+
+  // Add the closing color tag before the ':'
+  s = s.insert(s.find(":"), "</c>");
+
+  std::string highlight_color;
+
+  if (s.find(lineSearchString) != std::string::npos ||
+      s.find("ALL") != std::string::npos) {
+    highlight_color = "#00FF00";
+  } else {
+    highlight_color = "#FF4040";
+  }
+
+  // Add the starting color tag
+  s = std::format("<c \"{}\">", highlight_color) + s;
+}
+
 static void ApplySpellInfo(Zeal::GameStructures::_GAMEITEMINFO *item, std::string &s) {
   if (item->Type == 0 && item->Common.Skill != Zeal::GameEnums::ItemTypeSpell && item->Common.IsStackable > 1 &&
       item->Common.IsStackable < 5) {
@@ -606,6 +635,7 @@ static void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStruc
     ApplyInstrumentModifiers(item, s);
     ApplyWeaponRatio(item, s);
     ApplyMealTime(item, s);
+    ApplyRestictionHighlight(item, s);
     s += stml_line_break;
     wnd->DisplayText.Append(s.c_str());
   }
