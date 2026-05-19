@@ -99,7 +99,9 @@ UI_HideFakeSlots::UI_HideFakeSlots(ZealService *zeal)
   mem::reset_memory_protection(vtable);
 
   // Initial update when entring world
-  zeal->callbacks->AddGeneric([this]() { check_and_update(); }, callback_type::InitUI);
+  zeal->callbacks->AddGeneric([this]() {
+    if (this->Enabled.get()) update_slot_visibility();
+  }, callback_type::InitUI);
 
   // Trigger update when an item is received from the server (purchase/quest/loot/etc)
   zeal->callbacks->AddPacket([this](UINT opcode, char *buffer, UINT len) -> bool {
