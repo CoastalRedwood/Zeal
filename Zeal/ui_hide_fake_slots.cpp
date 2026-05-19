@@ -68,10 +68,7 @@ void UI_HideFakeSlots::update_slot_visibility() {
   for (int i = 0; i < 450; ++i) {  // 450 as per struct CInvSlotMgr
     auto *inv_slot = inv_slot_mgr->InvSlots[i];
 
-    // Skip non-relevant slots
-    if ((DWORD)inv_slot < 0x10000) continue;
-    if (IsBadReadPtr(inv_slot, sizeof(Zeal::GameUI::InvSlot))) continue;
-    if (IsBadReadPtr(inv_slot->invSlotWnd, sizeof(Zeal::GameUI::InvSlotWnd))) continue;
+    if ( !inv_slot || !inv_slot->invSlotWnd ) continue;
 
     int slot_id = inv_slot->invSlotWnd->SlotID;
     if (slot_id < GAME_CONTAINER_SLOTS_START || slot_id > GAME_CONTAINER_SLOTS_END) continue;
