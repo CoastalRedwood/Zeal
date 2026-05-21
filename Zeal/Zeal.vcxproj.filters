@@ -168,6 +168,9 @@
     <ClInclude Include="ui_guild.h">
       <Filter>Header Files\ui</Filter>
     </ClInclude>
+    <ClInclude Include="ui_hide_fake_slots.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
     <ClInclude Include="named_pipe.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
@@ -405,6 +408,9 @@
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="ui_guild.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+        <ClCompile Include="ui_hide_fake_slots.cpp">
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="named_pipe.cpp">
