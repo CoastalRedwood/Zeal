@@ -89,6 +89,13 @@
 // the install popup would otherwise fire every DLL load, and the log file
 // would grow unbounded across play sessions.
 #define ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE 0
+// Sub-flag: the [pan-frame N] per-wrapper-call log fires from inside the
+// camera wrapper, which runs multiple times per visual frame. With the
+// per-call fflush in diag_logf this caused enough synchronous disk I/O to
+// visibly throttle the renderer ("camera feels wild / spins erratically").
+// Default OFF so the lighter state-transition logs can stay enabled. Flip to
+// 1 only when investigating per-frame yaw/pitch math.
+#define ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE_PER_FRAME 0
 
 namespace lmb_pan {
 
@@ -217,6 +224,16 @@ static bool g_pitch_restore_pending = false; // Set on exit; wrapper restores on
 static POINT g_pre_set_cursor = {0, 0};
 static bool g_recenter_pending = false;
 
+// Post-snap-back diagnostic: after RMB triggers a snap-back out of PANNING
+// or PENDING-with-offsets, log the next N wrapper frames. We want to confirm
+// whether EQ's "both buttons held = autorun forward" engages while the user
+// is still physically holding LMB+RMB. If autorun engaged we'll see cam[1..3]
+// (position) drift forward across frames; if not, position stays steady.
+// Also captures the raw GetAsyncKeyState(VK_LBUTTON/VK_RBUTTON) bits so we
+// can confirm Windows still reports both as held post-snap-back.
+static int g_post_snap_log_remaining = 0;
+static const int k_post_snap_log_frames = 90;  // ~1.5s at 60fps
+
 // Pixel-distance threshold before LMB-down commits to a pan (vs being a
 // click). WoW uses a "tiny hidden distance" — just enough to filter hand
 // tremor on a deliberate click, not a deliberate intent gate. Starting at
@@ -266,19 +283,28 @@ static const float k_pitch_offset_max =  60.0f;
 // (before any cursor hide), so it's still safely clickable.
 static FILE *g_diag_log = nullptr;
 
+// NOTE: no per-call fflush. Calling fflush on every line caused a
+// synchronous disk write per call — and the wrapper runs multiple times per
+// visual frame, so when this fires from the per-frame log it visibly
+// throttles the renderer (Bitdefender scanning the appended bytes makes it
+// worse). The stdio default line/full buffering is fine here. Call
+// diag_flush() at meaningful boundaries (install end, snap-back, post-snap
+// finish) if you want the on-disk file caught up immediately.
 static void diag_logf(const char *fmt, ...) {
   if (!g_diag_log) {
     g_diag_log = fopen("D:\\EQEmu\\Full_RoF2\\lmb_pan_diag.log", "a");
     if (!g_diag_log) return;
     const time_t now = time(nullptr);
     fprintf(g_diag_log, "\n=== Zeal.asi load: %s", ctime(&now));
-    fflush(g_diag_log);
   }
   va_list ap;
   va_start(ap, fmt);
   vfprintf(g_diag_log, fmt, ap);
   va_end(ap);
-  fflush(g_diag_log);
+}
+
+static void diag_flush() {
+  if (g_diag_log) fflush(g_diag_log);
 }
 
 // UI hit-test (Session 15). Returns true when the LMB-down event should NOT
@@ -358,15 +384,16 @@ static void enter_panning() {
     g_hides_applied++;
     if (new_count < 0) break;
   }
-  // Multi-monitor safety is handled by the 100px edge-recenter guard in
-  // poll_input (PANNING branch), which warps the cursor back to window center
-  // before it reaches any edge. We deliberately do NOT call ClipCursor here:
-  // EQ's WM_RBUTTONDOWN handler activates camera-turn mode (and likely sets
-  // its own ClipCursor) — if Zeal's clip is already active when that message
-  // arrives, EQ's camera-turn setup fails silently, which prevents the
-  // "both buttons held = move forward" mechanic from firing (the RMB-during-
-  // pan → autorun bug reported after v1.2.1).
-  //
+  // Multi-monitor safety: trap the (hidden) cursor inside the game window
+  // so it can't wander onto a second monitor mid-pan. Released on PANNING
+  // exit (enter_held_keeping_offset / exit_to_idle_snapping_back).
+  {
+    HWND fg = GetForegroundWindow();
+    RECT wr;
+    if (fg && GetWindowRect(fg, &wr)) {
+      ClipCursor(&wr);
+    }
+  }
   // Persistence: do NOT reset g_pitch_offset or g_pitch_snapshotted here.
   // They carry over from any prior HELD state, so re-engaging a pan stacks
   // on top of the previously-held angle. Offsets only reset via RMB
@@ -381,6 +408,7 @@ static void enter_panning() {
 // writes cam[0x30] = g_pitch_base + g_pitch_offset; g_pitch_snapshotted
 // stays true, base stays valid).
 static void enter_held_keeping_offset() {
+  ClipCursor(nullptr);  // release multi-monitor trap from enter_panning()
   SetCursorPos(g_lmb_down_cursor.x, g_lmb_down_cursor.y);
   while (g_hides_applied > 0) {
     ShowCursor(TRUE);
@@ -405,6 +433,26 @@ static void exit_to_idle_snapping_back() {
   diag_logf("[pan-snap-back] RMB triggered; was %s, yaw=%+.3f pitch=%+.3f → 0,0\n",
             from, g_yaw_offset, g_pitch_offset);
 #endif
+  // Release the multi-monitor cursor trap if it was set (only PANNING set it;
+  // HELD already released it). Safe to call even if no clip is active.
+  if (g_state == lmb_state::PANNING) {
+    ClipCursor(nullptr);
+  }
+#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE
+  // Arm post-snap diagnostic so the next ~90 wrapper frames capture button
+  // state + camera position. Useful for diagnosing the "RMB-during-pan does
+  // not engage EQ's both-buttons-held autorun" bug.
+  //
+  // CRITICAL: no diag_flush() here. This function runs on the renderer/
+  // message-pump thread inside the camera wrapper. A synchronous fflush
+  // here stalls Windows message processing for the duration of the disk
+  // write — EQ's WM_RBUTTONDOWN handler can't run until the flush returns,
+  // and a queue of WM_MOUSEMOVE events piles up. When the renderer
+  // catches up, EQ's RMB-look processes the entire batch in one frame and
+  // the camera spins wildly. Let the OS buffer the writes; the log is
+  // flushed at process exit or when stdio's internal buffer fills.
+  g_post_snap_log_remaining = k_post_snap_log_frames;
+#endif
   if (g_hides_applied > 0) {
     SetCursorPos(g_lmb_down_cursor.x, g_lmb_down_cursor.y);
     while (g_hides_applied > 0) {
@@ -426,9 +474,8 @@ static void poll_input() {
   // our state machine. Also release any lingering ClipCursor so the user's
   // other apps work normally.
   if (!eq_has_foreground_focus()) {
-    // Safety net: release any cursor clip on background (cheap no-op if none
-    // is active; guards against EQ's own camera-turn ClipCursor lingering
-    // across alt-tab). Zeal itself no longer calls ClipCursor during panning.
+    // Always release ClipCursor on background — cheap idempotent call,
+    // ensures we never leave the clip lingering across alt-tab.
     ClipCursor(nullptr);
     if (g_state == lmb_state::PANNING) {
       // Restore cursor visibility (it was hidden in enter_panning). DON'T
@@ -589,6 +636,34 @@ static void __fastcall mode_6_wrapper(void *cam, int /*edx_unused*/, int *entity
 
   char *const cam_bytes = reinterpret_cast<char *>(cam);
 
+#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE
+  // Post-snap-back diagnostic. Logs button state + camera position for the
+  // first k_post_snap_log_frames frames after each RMB-triggered snap-back.
+  // If EQ's "both buttons = autorun" engaged, cam position will drift forward
+  // across these frames (because the player is actually moving). If it
+  // didn't engage, position will be steady. We also log lmb/rmb raw bits so
+  // we can confirm Windows still reports both as physically held.
+  if (g_post_snap_log_remaining > 0) {
+    const int frame_idx = k_post_snap_log_frames - g_post_snap_log_remaining;
+    const bool lmb_now = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+    const bool rmb_now = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+    const float px = *reinterpret_cast<float *>(cam_bytes + k_cam_pos_x_offset);
+    const float py = *reinterpret_cast<float *>(cam_bytes + k_cam_pos_y_offset);
+    const float pz = *reinterpret_cast<float *>(cam_bytes + k_cam_pos_z_offset);
+    const char *state_name = (g_state == lmb_state::IDLE)    ? "IDLE"
+                           : (g_state == lmb_state::PENDING) ? "PENDING"
+                           : (g_state == lmb_state::PANNING) ? "PANNING"
+                                                              : "HELD";
+    diag_logf("[post-snap %3d] state=%s lmb=%d rmb=%d  "
+              "cam=(%.3f, %.3f, %.3f)\n",
+              frame_idx, state_name, lmb_now ? 1 : 0, rmb_now ? 1 : 0,
+              px, py, pz);
+    g_post_snap_log_remaining--;
+    // Intentionally no diag_flush here — same renderer-thread-stall reason
+    // as in exit_to_idle_snapping_back. Rely on stdio buffer flush at exit.
+  }
+#endif
+
   // PITCH state machine (Session 15, "Approach A", revised r2 for persistence):
   //   On first PANNING frame:   snapshot cam[0x30] → g_pitch_base.
   //   While PANNING or HELD:    write cam[0x30] = g_pitch_base + g_pitch_offset.
@@ -641,7 +716,7 @@ static void __fastcall mode_6_wrapper(void *cam, int /*edx_unused*/, int *entity
   // Pre-original capture for the per-frame pitch diagnostic. Captures the
   // first k_max_pan_frames_to_log PANNING frames of every pan; counter resets
   // when the pan ends so each pan starts fresh.
-#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE
+#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE_PER_FRAME
   static int s_pan_frame_log_count = 0;
   static const int k_max_pan_frames_to_log = 200;
   float diag_pre_x = 0.0f, diag_pre_y = 0.0f, diag_pre_z = 0.0f;
@@ -681,7 +756,7 @@ static void __fastcall mode_6_wrapper(void *cam, int /*edx_unused*/, int *entity
     *dat_703_ptr = saved_dat_703;
   }
 
-#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE
+#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE_PER_FRAME
   if (diag_log_this_frame) {
     const float post_x = *reinterpret_cast<float *>(cam_bytes + k_cam_pos_x_offset);
     const float post_y = *reinterpret_cast<float *>(cam_bytes + k_cam_pos_y_offset);
@@ -746,6 +821,7 @@ bool install(uintptr_t aslr_delta) {
             match ? "YES" : "NO", match ? "INSTALL" : "SKIP (silent no-op)");
   MessageBoxA(NULL, msg, "Zeal-RoF2 R3 / LMB-pan install diagnostic",
               MB_OK | MB_ICONINFORMATION);
+  diag_flush();
 #endif
 
   if (!match) return false;
