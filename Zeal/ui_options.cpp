@@ -67,7 +67,7 @@ std::string GetCrossZoneInviteName(const std::string &data) {
   } else {
     // Handle normal messages
     first_space = data.find_first_of(" ", start_pos);
-    inviter = data.substr(start_pos, first_space);
+    inviter = data.substr(start_pos, first_space - start_pos);
   }
 
   std::string invite_msg = data.substr(first_space + 1);
