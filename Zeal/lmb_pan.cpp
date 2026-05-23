@@ -265,11 +265,16 @@ static const float k_mouse_to_pitch_units = 0.09f;
 
 // Pitch clamp range. cam[0x2c] (a sibling field, not the one we use) is
 // clamped to [0, 30] in mode 5 — circumstantial evidence that EQ pitches
-// live in roughly the [0, 30] range. We allow ±60 here (wider than circum-
-// stantial guess) so first empirical test can see whether cam[0x30] reaches
-// position compute at all; narrow once we know the working range.
-static const float k_pitch_offset_min = -60.0f;
-static const float k_pitch_offset_max =  60.0f;
+// live in roughly the [0, 30] range. We initially allowed ±60 in S15 to
+// confirm cam[0x30] reaches position compute at all; Alex S44 reported
+// hitting the clamp in normal play (vertical pan stall), so bumped to
+// ±90 to give a full quarter-turn each direction. cam[0x30]'s unit is
+// still empirically unconfirmed (FUN_00799140 reads it through a trig
+// vtable so could be radians or degrees); the DIAGNOSE_PER_FRAME log
+// records cam[0x30]_written each frame so we can narrow further once the
+// unit is nailed down.
+static const float k_pitch_offset_min = -90.0f;
+static const float k_pitch_offset_max =  90.0f;
 
 // --- File-log diagnostics ---
 // Why a file log instead of MessageBox: the wrapper hides the cursor on
@@ -469,11 +474,34 @@ static void exit_to_idle_snapping_back() {
 }
 
 static void poll_input() {
+  const bool has_focus = eq_has_foreground_focus();
+
+#if ZEAL_ROF2_R3_LMB_PAN_DIAGNOSE
+  // S44 Bug #2 investigation: log every focus-state transition with full
+  // state context. Helps confirm on an alt-tab cycle whether (a) the
+  // focus-loss demotion to HELD (PANNING path) actually fires, and (b) the
+  // first-RMB-after-regain is being seen by poll_input. If RMB-snap-back
+  // is broken post-regain (bug #2), the log will show whether RMB was
+  // even observed. Pair with the existing [post-snap N] log to capture
+  // the full alt-tab → RMB-snap-back → 90-frame-drift sequence.
+  static bool s_prev_has_focus = true;
+  if (has_focus != s_prev_has_focus) {
+    const char *state_name = (g_state == lmb_state::IDLE)    ? "IDLE"
+                           : (g_state == lmb_state::PENDING) ? "PENDING"
+                           : (g_state == lmb_state::PANNING) ? "PANNING"
+                                                              : "HELD";
+    diag_logf("[focus] EQ -> %s (state=%s yaw=%+.3f pitch=%+.3f hides=%d)\n",
+              has_focus ? "FOREGROUND" : "background",
+              state_name, g_yaw_offset, g_pitch_offset, g_hides_applied);
+    s_prev_has_focus = has_focus;
+  }
+#endif
+
   // Focus gate: if EQ is in the background, do nothing — GetAsyncKeyState
   // reads global key state, so clicks in other apps would otherwise enter
   // our state machine. Also release any lingering ClipCursor so the user's
   // other apps work normally.
-  if (!eq_has_foreground_focus()) {
+  if (!has_focus) {
     // Always release ClipCursor on background — cheap idempotent call,
     // ensures we never leave the clip lingering across alt-tab.
     ClipCursor(nullptr);
