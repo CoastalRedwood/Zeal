@@ -217,6 +217,8 @@ int __fastcall WndNotification(Zeal::GameUI::BasicWnd *wnd, int unused, Zeal::Ga
     if (message == 0x1E && ui->clicked_button) {
       ui->clicked_button->TextColor.ARGB = data | 0xff000000;  // Ensure alpha = 0xff.
       ui->options->SaveColors();
+      ui->options->SaveRingColors();
+      ui->options->SaveHeadingColor();
     }
   }
   return reinterpret_cast<int(__thiscall *)(Zeal::GameUI::BasicWnd * wnd, Zeal::GameUI::BasicWnd * sender, int message,
@@ -274,6 +276,14 @@ static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_de
     {"MyBitHits", D3DCOLOR_XRGB(0xf9, 0x9b, 0xff)},      // 40: Pink
 }};
 
+static constexpr int num_ring_buttons = 4;
+static constexpr std::array<ColorButtonEntry, num_ring_buttons> ring_button_defaults = {{
+    {"Ring0", D3DCOLOR_XRGB(183, 225, 161)}, // Ring 1, grey-green
+    {"Ring1", D3DCOLOR_XRGB(183, 225, 161)},
+    {"Ring2", D3DCOLOR_XRGB(183, 225, 161)},
+    {"Ring3", D3DCOLOR_XRGB(183, 225, 161)}, // Ring 4
+}};
+
 void ui_options::SaveColors() const {
   IO_ini *ini = ZealService::get_instance()->ini.get();
   for (auto i = 0; i < color_buttons.size(); ++i) {
@@ -298,6 +308,52 @@ void ui_options::LoadColors() {
     color_buttons[i]->TextColor.ARGB =
         ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : color_button_defaults[i].color;
   }
+}
+
+void ui_options::SaveRingColors() const {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  for (auto i = 0; i < ring_buttons.size(); ++i) {
+    if (!ring_buttons[i]) continue;
+    ini->setValue("ZealColors", "Ring" + std::to_string(i), std::to_string(ring_buttons[i]->TextColor.ARGB));
+  }
+}
+
+DWORD ui_options::GetRingColor(int index) const {
+  if (index >= 0 && index < ring_buttons.size()) {
+    return ring_buttons[index] ? ring_buttons[index]->TextColor.ARGB : ring_button_defaults[index].color;
+  }
+
+  return D3DCOLOR_XRGB(183, 225, 161);
+}
+
+void ui_options::LoadRingColors() {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  const std::string section = "ZealColors";
+  for (int i = 0; i < ring_buttons.size(); ++i) {
+    if (!ring_buttons[i]) continue;
+    std::string name = "Ring" + std::to_string(i);
+    ring_buttons[i]->TextColor.ARGB =
+        ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : ring_button_defaults[i].color;
+  }
+}
+
+void ui_options::SaveHeadingColor() const {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  ini->setValue("ZealColors", "HeadingColor", std::to_string(heading_button->TextColor.ARGB));
+}
+
+DWORD ui_options::GetHeadingColor() const { 
+  if (heading_button) return heading_button->TextColor.ARGB;
+
+  return D3DCOLOR_XRGB(183, 255, 161);
+}
+
+void ui_options::LoadHeadingColor() {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  const std::string section = "ZealColors";
+  const std::string name = "HeadingColor";
+  if (!heading_button) return;
+  heading_button->TextColor.ARGB = ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : D3DCOLOR_XRGB(183, 255, 161);
 }
 
 void ui_options::InitUI() {
@@ -678,6 +734,7 @@ void ui_options::InitCamera() {
 
 void ui_options::InitMap() {
   if (!wnd) return;
+
   ui->AddCheckboxCallback(wnd, "Zeal_Map", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->set_enabled(wnd->Checked, true);
   });
@@ -705,6 +762,13 @@ void ui_options::InitMap() {
   ui->AddCheckboxCallback(wnd, "Zeal_MapShowPlayerHeadings", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->setting_show_all_player_headings.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_MapUseFarRing", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->zone_map->setting_heading_use_far_ring.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_MapHeadingUsesRingColor", [](Zeal::GameUI::BasicWnd *wnd) { 
+    ZealService::get_instance()->zone_map->setting_heading_use_ring_color.set(wnd->Checked);
+  });
+
   ui->AddComboCallback(wnd, "Zeal_MapShowGroup_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
     ZealService::get_instance()->zone_map->set_show_group_mode(value);
   });
@@ -752,6 +816,29 @@ void ui_options::InitMap() {
   ui->AddSliderCallback(wnd, "Zeal_MapGridPitch_Slider", [this](Zeal::GameUI::SliderWnd *wnd, int value) {
     ZealService::get_instance()->zone_map->set_grid_pitch(value * ZoneMap::kMaxGridPitch / 100);
   });
+
+  // Like the color buttons, the ring buttons is loaded here with the max number of buttons (nullptr if not present)
+  ring_buttons.clear();
+  for (int i = 0; i < num_ring_buttons; i++) {
+    if (!ring_button_defaults[i].name) {
+      ring_buttons.push_back(nullptr);
+    } else {
+      ring_buttons.push_back(ui->AddButtonCallback(
+          wnd, "Zeal_Ring" + std::to_string(i),
+          [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); },
+          false));
+    }
+  }
+
+  LoadRingColors();
+
+  heading_button = ui->AddButtonCallback(
+      wnd, "Zeal_MapHeadingColor",
+      [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); },
+      false);
+
+  LoadHeadingColor();
+
   ui->AddLabel(wnd, "Zeal_MapZoom_Value");
   ui->AddLabel(wnd, "Zeal_MapPositionSize_Value");
   ui->AddLabel(wnd, "Zeal_MapMarkerSize_Value");
@@ -1240,6 +1327,9 @@ void ui_options::UpdateOptionsMap() {
   ui->SetChecked("Zeal_MapAddSpeedText", ZealService::get_instance()->zone_map->setting_add_speed_text.get());
   ui->SetChecked("Zeal_MapShowPlayerHeadings",
                  ZealService::get_instance()->zone_map->setting_show_all_player_headings.get());
+  ui->SetChecked("Zeal_MapUseFarRing", ZealService::get_instance()->zone_map->setting_heading_use_far_ring.get());
+  ui->SetChecked("Zeal_MapHeadingUsesRingColor",
+                 ZealService::get_instance()->zone_map->setting_heading_use_ring_color.get());
   ui->SetComboValue("Zeal_MapShowGroup_Combobox", ZealService::get_instance()->zone_map->get_show_group_mode());
   ui->SetComboValue("Zeal_MapBackground_Combobox", ZealService::get_instance()->zone_map->get_background());
   ui->SetComboValue("Zeal_MapAlignment_Combobox", ZealService::get_instance()->zone_map->get_alignment());

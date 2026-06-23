@@ -20,6 +20,12 @@ class ui_options {
   void SaveColors() const;
   void LoadColors();
   DWORD GetColor(int index) const;
+  void SaveRingColors() const;
+  void LoadRingColors();
+  void SaveHeadingColor() const;
+  DWORD GetHeadingColor() const;
+  void LoadHeadingColor();
+  DWORD GetRingColor(int index) const;
   void ShowInviteDialog(const char *raid_invite_name = nullptr, bool cross_zone = false) const;
   void HideInviteDialog() const;
   void PlayInviteSound() const;
@@ -69,6 +75,8 @@ class ui_options {
 
   Zeal::GameUI::SidlWnd *wnd = nullptr;
   std::vector<Zeal::GameUI::BasicWnd *> color_buttons;
+  std::vector<Zeal::GameUI::BasicWnd *> ring_buttons;
+  Zeal::GameUI::BasicWnd*  heading_button;
   UIManager *const ui;
   std::vector<std::pair<int, std::string>> sound_list;  // WavePlay index table.
   char ini_autojoin_name[16 + 30 + 2];                  // Space for "ChannelAutoJoin_" + self->name + null.
