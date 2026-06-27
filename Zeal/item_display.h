@@ -18,6 +18,8 @@ class ItemDisplay {
   void add_to_cache(const Zeal::GameStructures::GAMEITEMINFO *item);
   const Zeal::GameStructures::GAMEITEMINFO *get_cached_item(int item_id) const;
   ZealSetting<bool> setting_enhanced_spell_info = {true, "Zeal", "EnhancedSpellInfo", false};
+  ZealSetting<bool> setting_mouseover_tooltips = {true, "Zeal", "MouseoverTooltips", false};
+  void set_mouseover_tooltips(bool enabled);
 
  private:
   void InitUI();
