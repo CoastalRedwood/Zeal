@@ -232,6 +232,7 @@ ChatCommands::ChatCommands(ZealService *zeal) {
         auto char_info = Zeal::Game::get_char_info();
         if (!spell_mgr || !char_info) return true;
 
+        std::string not_found;
         for (size_t arg_index = 1; arg_index < args.size(); arg_index++) {
           int spell_id = 0;
           if (!Zeal::String::tryParse(args[arg_index], &spell_id)) continue;
@@ -255,8 +256,9 @@ ChatCommands::ChatCommands(ZealService *zeal) {
               break;
             }
           }
-          if (!found) Zeal::Game::print_chat("No matching spell found: %d", spell_id);
+          if (!found) not_found += (not_found.empty() ? "" : ", ") + std::to_string(spell_id);
         }
+        if (!not_found.empty()) Zeal::Game::print_chat("No matching spell found: %s", not_found.c_str());
         return true;
       });
   Add("/clienthptick", {"/cht"}, "Toggle client health tick (disabled by default in this client).",
