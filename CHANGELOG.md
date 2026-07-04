@@ -2,6 +2,29 @@
 
 Summarizes notable changes to Zeal
 
+## [1.4.3] - 2026/07/03
+
+### New features
+
+* Item display window: Highlight item Class/Race/Deity in green/red based on player
+* Add ability to hide fake inventory slots for All-Bags-In-One UIs (new general options setting)
+* Add tradeskill section to `/outputfile quarmy` export
+* Updated `/cancelbuff` to support up to 5 spell ids in a single command
+
+## Fixes
+
+* Fix cross-zone raid invites when timestamps are enabled
+
+
+## [1.4.2] - 2026/05/03
+
+### New features
+
+* Suppressed the raid invite password spam sent to raid leaders (routes to default chat instead of a tell window) (1.4.1)
+  - Per popular request, removed the raid leader check for /ari responses (trivial change for 1.4.2)
+  - If you aren't a raid leader, 1.4.0, 1.4.1, 1.4.2 are all equivalent
+
+
 ## [1.4.0] - 2026/04/18
 
 ### New features
