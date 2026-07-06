@@ -595,6 +595,8 @@ Manual editing of the ini file is required to copy from old section to the new s
 - Toggle target nameplate color on and off
 - Toggle target nameplate marker on and off
 - Toggle target nameplate health on and off
+- Hotbar Page 10 Slot 1 through Slot 10 (presses a page 10 hotbutton without changing the visible page)
+- Social Page 10 Slot 1 through Slot 12 (runs a page 10 social macro without changing the visible page)
 
 ---
 ### Advanced input (/zealinput) including tab completion

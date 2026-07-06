@@ -59,6 +59,7 @@ class ZealService {
   std::unique_ptr<class MusicManager> music = nullptr;
   std::unique_ptr<class Alarm> alarm = nullptr;
   std::unique_ptr<class Melody> melody = nullptr;
+  std::unique_ptr<class Page10Binds> page10_binds = nullptr;
   std::unique_ptr<class AutoFire> autofire = nullptr;
   std::unique_ptr<class Netstat> netstat = nullptr;
   std::unique_ptr<class Tick> tick = nullptr;
