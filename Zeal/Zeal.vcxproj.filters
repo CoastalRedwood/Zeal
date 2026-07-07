@@ -138,6 +138,9 @@
     <ClInclude Include="melody.h">
       <Filter>Header Files\hooks</Filter>
     </ClInclude>
+    <ClInclude Include="page10_binds.h">
+      <Filter>Header Files\hooks</Filter>
+    </ClInclude>
     <ClInclude Include="camera_math.h">
       <Filter>Header Files\helpers</Filter>
     </ClInclude>
@@ -384,6 +387,9 @@
       <Filter>Source Files\hooks</Filter>
     </ClCompile>
     <ClCompile Include="melody.cpp">
+      <Filter>Source Files\hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="page10_binds.cpp">
       <Filter>Source Files\hooks</Filter>
     </ClCompile>
     <ClCompile Include="string_util.cpp">

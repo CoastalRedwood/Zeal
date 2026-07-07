@@ -486,6 +486,7 @@ struct RaidWnd : SidlWnd {
 
 struct HotButton : SidlWnd {
   int GetPage() { return *(int *)0x7f69f6; }
+  void SetPage(int page) { *(int *)0x7f69f6 = page; }
 
   BYTE GetType(int button_index) { return *(BYTE *)(0x7f6862 + (button_index + (GetPage() * 0xA))); }
 };
