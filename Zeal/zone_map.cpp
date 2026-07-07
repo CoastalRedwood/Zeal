@@ -88,6 +88,8 @@ static constexpr int kPositionVertices = kPositionCount * 3;            // Fixed
 static constexpr int kRaidMaxMembers = Zeal::GameStructures::RaidInfo::kRaidMaxMembers;
 static constexpr int kRaidPositionVertices = 3;  // Simple single triangle default option.
 static constexpr int kMaxDynamicLabels = 10;
+static constexpr int kMaxRadiusSize = 10000;                     // Maximum ring radius
+static constexpr int kMinRadiusSize = 10;                        // Minimum ring radius
 static constexpr int kRingLineSegments = 72;                     // Every 5 degrees.
 static constexpr int kRingVertices = kRingLineSegments + 1 + 2;  // N + 1 for D3DPT_LINESTRIP and optional heading line.
 static constexpr int kMaxNonAllyTriangles = 500;                 // Markers use 1 or 2 triangles each.
@@ -1360,25 +1362,42 @@ void ZoneMap::add_non_ally_position_vertices(std::vector<MapVertex> &vertices,
 }
 
 void ZoneMap::add_ring_vertices(std::vector<MapVertex> &vertices) const {
-  if (map_ring_radius <= 0 || !Zeal::Game::get_self()) return;
+  if (map_ring_radius.size() == 0 || !Zeal::Game::get_self()) return;
 
   Vec3 position = Zeal::Game::get_self()->Position;
 
   // Note: The vertices below are not getting clipped to the map area and
   // are simply disappearing when out of the viewport.
   // Generate kRingLineSegments + 1 vertices.
-  auto color = D3DCOLOR_XRGB(183, 225, 161);  // Light grey green.
   const float angle_increment = static_cast<float>(2 * M_PI / kRingLineSegments);
-  float angle_rad = 0;
-  for (int i = 0; i <= kRingLineSegments; ++i) {
-    if (i == kRingLineSegments) angle_rad = 0;  // Ensure it closes precisely with final line point.
-    float x0 = map_ring_radius * cosf(angle_rad);
-    float y0 = map_ring_radius * sinf(angle_rad);
-    vertices.push_back(MapVertex{.x = x0 + -position.y,  // Note y,x,z and negation.
-                                 .y = y0 + -position.x,
-                                 .z = 0.5f,
-                                 .color = color});
-    angle_rad += angle_increment;  // Advance to next point.
+  int heading_radius = (setting_heading_use_far_ring.get()) ? kMinRadiusSize : kMaxRadiusSize;
+  auto heading_color = ZealService::get_instance()->ui->options->GetRingColor(0);
+  for (int j = 0; j < map_ring_radius.size(); ++j) {
+    auto color = ZealService::get_instance()->ui->options->GetRingColor(j);
+    float angle_rad = 0;
+    int radius = map_ring_radius[j];
+    if (setting_heading_use_far_ring.get() && radius > heading_radius) {
+      heading_radius = radius;
+      heading_color = color;
+    } else if (!setting_heading_use_far_ring.get() && radius < heading_radius) {
+      heading_radius = radius;
+      heading_color = color;
+    }
+
+    for (int i = 0; i <= kRingLineSegments; ++i) {
+      if (i == kRingLineSegments) angle_rad = 0;  // Ensure it closes precisely with final line point.
+      float x0 = radius * cosf(angle_rad);
+      float y0 = radius * sinf(angle_rad);
+      vertices.push_back(MapVertex{.x = x0 + -position.y,  // Note y,x,z and negation.
+                                   .y = y0 + -position.x,
+                                   .z = 0.5f,
+                                   .color = color});
+      angle_rad += angle_increment;  // Advance to next point.
+    }
+  }
+
+  if (!setting_heading_use_ring_color.get()) {
+    heading_color = ZealService::get_instance()->ui->options->GetHeadingColor();
   }
 
   // Support a special extra line that projects out from your heading. This isn't drawn as a strip.
@@ -1386,16 +1405,16 @@ void ZoneMap::add_ring_vertices(std::vector<MapVertex> &vertices) const {
     // Heading: 0 = N = -y, 128 = W = -x, 256 = S = +y, 384 = E = +x.
     // So: Screen x tracks -sin(heading) and y tracks -cos(heading).
     float direction = static_cast<float>(Zeal::Game::get_self()->Heading * M_PI / 256);  // In radians.
-    float x0 = -map_ring_radius * sinf(direction);
-    float y0 = -map_ring_radius * cosf(direction);
+    float x0 = -heading_radius * sinf(direction);
+    float y0 = -heading_radius * cosf(direction);
     vertices.push_back(MapVertex{.x = x0 + -position.y,  // Note y,x,z and negation.
                                  .y = y0 + -position.x,
                                  .z = 0.5f,
-                                 .color = color});
+                                 .color = heading_color});
     vertices.push_back(MapVertex{.x = -position.y,  // Note y,x,z and negation.
                                  .y = -position.x,
                                  .z = 0.5f,
-                                 .color = color});
+                                 .color = heading_color});
   }
 }
 
@@ -1453,7 +1472,11 @@ void ZoneMap::render_positions(IDirect3DDevice8 &device) {
   if (ring_vertex_count) {
     // An optional single heading line is appended to the end of the vertex list.
     int ring_lines = ring_vertex_count - 1 - (setting_show_ring_heading.get() ? 2 : 0);
-    device.DrawPrimitive(D3DPT_LINESTRIP, 0, ring_lines);  // N - 1 strip lines.
+    for (int i = 0; i < map_ring_radius.size(); ++i) {
+      // each ring is kRingLineSegments long
+      int startIdx = (kRingLineSegments + 1) * i;
+      device.DrawPrimitive(D3DPT_LINESTRIP, startIdx, kRingLineSegments);
+    }
     if (setting_show_ring_heading.get()) device.DrawPrimitive(D3DPT_LINELIST, ring_vertex_count - 2, 1);
   }
 
@@ -2026,8 +2049,8 @@ static int get_tracking_distance() {
 }
 
 bool ZoneMap::set_ring_radius(int new_radius, bool update_default) {
-  if (new_radius) new_radius = max(10, min(10000, new_radius));  // Just clamp non-zero.
-  map_ring_radius = new_radius;
+  if (new_radius) new_radius = max(kMinRadiusSize, min(kMaxRadiusSize, new_radius));  // Just clamp non-zero.
+  map_ring_radius.push_back(new_radius);
 
   // Skip storing preferences for now.
   // if (update_default && ZealService::get_instance() && ZealService::get_instance()->ini)
@@ -2342,7 +2365,7 @@ void ZoneMap::load_ini(IO_ini *ini) {
   position_size = ini->getValue<float>("Zeal", "MapPositionSize");
   marker_size = ini->getValue<float>("Zeal", "MapMarkerSize");
   font_filename = ini->getValue<std::string>("Zeal", "MapFontFilename");
-
+  
   // Sanity clamp ini values.
   map_grid_pitch = max(100, min(kMaxGridPitch, map_grid_pitch));
   map_name_length = max(3, min(kMaxNameLength, map_name_length));
@@ -2830,9 +2853,11 @@ void ZoneMap::parse_grid(const std::vector<std::string> &args) {
 
 void ZoneMap::parse_ring(const std::vector<std::string> &args) {
   int ring_radius = 0;
-  if ((args.size() == 2 && map_ring_radius) || (args.size() == 3 && args[2] == "off")) {
-    set_ring_radius(0, false);  // Toggle or force off.
+  if ((args.size() == 2 && map_ring_radius.size() >= 1) || (args.size() == 3 && args[2] == "off")) {
+      // map ring & size > 1 || map ring off
+    map_ring_radius.clear();
   } else if (args.size() == 2 || (args.size() == 3 && args[2] == "on")) {
+    map_ring_radius.clear();
     int ring_radius = get_tracking_distance();  // Toggle / Enable with auto-range.
     if (ring_radius)
       set_ring_radius(ring_radius, false);
@@ -2840,7 +2865,17 @@ void ZoneMap::parse_ring(const std::vector<std::string> &args) {
       Zeal::Game::print_chat("Use /map ring <radius> to turn on with zero tracking skill");
   } else if (args.size() == 3 && args[2] == "heading") {
     setting_show_ring_heading.toggle();
-  } else if (args.size() != 3 || !Zeal::String::tryParse(args[2], &ring_radius) || !set_ring_radius(ring_radius, false))
+  } else if (args.size() > 2 && args.size() <= 6) {
+    map_ring_radius.clear();
+    for (int i = 2; i < args.size(); ++i) {
+      if (Zeal::String::tryParse(args[i], &ring_radius, true)) {
+        set_ring_radius(ring_radius, false);
+      } else if (args[i] == "track") {
+        ring_radius = get_tracking_distance();
+        set_ring_radius(ring_radius, false);
+      }
+    }
+  } else if (args.size() < 3 || args.size() > 6)
     Zeal::Game::print_chat(
         "Usage: /map ring [radius#, on, off, heading] (blank disables or uses calculated track range)");
 }
@@ -3098,7 +3133,7 @@ void ZoneMap::reset_zone_state() {
   dynamic_labels_list.clear();
   map_level_index = default_to_zlevel_autofade ? -1 : 0;
   zoom_factor = kDefaultZoomFactors[map_zoom_default_index];  // Reset for consistent behavior.
-  map_ring_radius = 0;                                        // Disable since skill-based range is zone dependent.
+  map_ring_radius.clear();                                    // Disable since skill-based range is zone dependent.
   manual_on_move_trigger = false;
   reset_mouse();
   enable_autocenter();

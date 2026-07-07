@@ -1043,7 +1043,11 @@ A simple distance ring around the current position is available. The distance ca
 based on the tracking skill for rangers, druids, and bards, so they can simply toggle the ring
 on and off with `/map ring` (or explicitly on or off with `ring on` or `ring off`). The
 `/map ring heading` command toggles on and off a setting to add a line from your position to
-the ring radius in the direction of your heading.
+the ring radius in the direction of your heading. Up to four radius values can be provided,
+to have multiple rings shown on the map at the same time. If you wish to mix radius numbers,
+with the automatic track range, use the word `track` for the value. Radius values cannot go
+below 10, or above 10000. Ring color settings are respective to the order in which the value
+is entered, not from innermost to outtermost rings.
 
 * Command examples:
   - `/map ring` if visible or a non-tracker, turns ring off
@@ -1051,6 +1055,8 @@ the ring radius in the direction of your heading.
   - `/map ring on` sets the ring at max tracking distance per skill level
   - `/map ring off` turns ring off
   - `/map ring 500` sets the ring around the player at a distance of 500 (all classes)
+  - `/map ring 250 track` sets the ring around the player at a distance of 250 AND sets another ring using tracking distance
+  - `/map ring 100 200 300 400` sets four rings around the player at the distances of 100, 200, 300 and 400
 
 #### Showing group and raid members
 The map supports showing the live position of other group and raid members. The group
