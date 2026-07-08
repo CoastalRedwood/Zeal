@@ -88,10 +88,11 @@ static constexpr int kPositionVertices = kPositionCount * 3;            // Fixed
 static constexpr int kRaidMaxMembers = Zeal::GameStructures::RaidInfo::kRaidMaxMembers;
 static constexpr int kRaidPositionVertices = 3;  // Simple single triangle default option.
 static constexpr int kMaxDynamicLabels = 10;
+static constexpr int kMaxNumberOfRings = 4;                      // Maximum number of allowed rings
 static constexpr int kMaxRadiusSize = 10000;                     // Maximum ring radius
 static constexpr int kMinRadiusSize = 10;                        // Minimum ring radius
 static constexpr int kRingLineSegments = 72;                     // Every 5 degrees.
-static constexpr int kRingVertices = kRingLineSegments + 1 + 2;  // N + 1 for D3DPT_LINESTRIP and optional heading line.
+static constexpr int kRingVertices = (kMaxNumberOfRings * kRingLineSegments) + 1 + 2;  // N + 1 for D3DPT_LINESTRIP and optional heading line.
 static constexpr int kMaxNonAllyTriangles = 500;                 // Markers use 1 or 2 triangles each.
 static constexpr int kPositionBufferSize =
     sizeof(ZoneMap::MapVertex) *
@@ -2865,7 +2866,7 @@ void ZoneMap::parse_ring(const std::vector<std::string> &args) {
       Zeal::Game::print_chat("Use /map ring <radius> to turn on with zero tracking skill");
   } else if (args.size() == 3 && args[2] == "heading") {
     setting_show_ring_heading.toggle();
-  } else if (args.size() > 2 && args.size() <= 6) {
+  } else if (args.size() > 2 && args.size() <= 2 + kMaxNumberOfRings) {
     map_ring_radius.clear();
     for (int i = 2; i < args.size(); ++i) {
       if (Zeal::String::tryParse(args[i], &ring_radius, true)) {
