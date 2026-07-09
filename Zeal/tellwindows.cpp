@@ -253,11 +253,21 @@ void TellWindows::AddOutputText(Zeal::GameUI::ChatWnd *&wnd, std::string &msg, s
   {
     std::string name = GetName(msg);
     if (name.length()) {
-      UpdateMostRecentList(name);
       name[0] = std::toupper(name[0]);
       Zeal::GameUI::ChatWnd *tell_window = ZealService::get_instance()->tells->FindTellWnd(name);
+
+      // Prevent autoconsent trigger tells from triggering new tell windows by routing to default chat.
+      const bool use_abc = (ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get() != 0);
+      if (!tell_window && channel == USERCOLOR_ECHO_TELL && 
+          ZealService::get_instance()->chat_hook->EnableAutoConsent.get() && msg.ends_with( use_abc ? "Consent me" : "'Consent me'") ) {
+        channel = CHATCOLOR_DEFAULT;
+        msg = "You sent an autoconsent trigger tell to " + name;
+        return;
+     }
+
+      UpdateMostRecentList(name);
       // Modify msg if abbreviated chat is enabled
-      if (ZealService::get_instance()->chat_hook->UseAbbreviatedChat.get()) msg = abbreviateTell(std::string(msg));
+      if (use_abc) msg = abbreviateTell(std::string(msg));
       replaceNameLinks(msg);
       if (!tell_window) {
         std::string WinName = TellWindowIdentifier + name;

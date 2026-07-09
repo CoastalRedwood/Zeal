@@ -9,6 +9,7 @@ enum opcodes {
   ZoneSpawns = 0x415f,
   DeathDamage = 0x404A,
   Damage = 0x4058,
+  ConsentResponse = 0x40D5,
   PrintNonMeleeDamage = 0x4236,
   CorpseDrag = 0x4114,
   CorpseDrop = 0x1337,
@@ -151,5 +152,13 @@ struct ItemViewRequest_Struct {
   /*000*/ short item_id;
   /*002*/ char item_name[64];
 };
+
+struct ConsentResponse_Struct {
+	char grantname[64];
+	char ownername[64];
+	UINT8 permission;
+	char zonename[32];
+};
+
 }  // namespace Packets
 }  // namespace Zeal
