@@ -942,10 +942,22 @@ static bool CheckForConsentWhoMatch(const std::string name, std::string &who, sh
 }
 
 void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel) {
+
+  // Add an auto-handler to fix when the /tellconsent toggles consent off instead of on.
+  if (channel == CHATCOLOR_WHITE && EnableAutoConsent.get() && !consented_name.empty()) {
+    if (msg.starts_with("You have given ") && msg.ends_with( consented_name + " permission to drag your corpse.") ) {
+      consented_name = ""; // Granted, clear so doesn't toggle off.
+    } else if (msg.starts_with("You have denied ") && msg.ends_with( consented_name + " permission to drag your corpse.") ) {
+      Zeal::Game::do_consent(consented_name.c_str());  // Retry to attempt to toggle back on.
+      consented_name = "";
+    }
+  }
+
   if (channel == USERCOLOR_TELL && EnableAutoConsent.get()) {
     std::string name = GetConsentMeTellName(msg);
     if (!name.empty()) {
       if (CheckForImmediateConsentPermission(name)) {
+        consented_name = name;
         Zeal::Game::do_consent(name.c_str());
         channel = CHATCOLOR_DEFAULT;
         msg = name + " sent a tell that triggered Zeal auto-consent.";
@@ -959,6 +971,7 @@ void Chat::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &ch
   if (channel == USERCOLOR_WHO && EnableAutoConsent.get() && IsConsentWhoPending()) {
     // Note: The call will modify the msg (suppress or update) and channel based on matching.
     if (CheckForConsentWhoMatch(pending_consent_name, msg, channel)) {
+      consented_name = pending_consent_name;
       Zeal::Game::do_consent(pending_consent_name.c_str());
     }
   }
