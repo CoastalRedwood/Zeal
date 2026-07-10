@@ -12,13 +12,13 @@ P -153.0000, 519.0000, 0.0000, 0, 0, 0, 2, Ogre_Shadowknight_(drops_Key)
 P -180.0000, 324.0000, 0.0000, 0, 0, 0, 2, Dark_Elf_Shadowknight_(drops_Splintered_Key)
 P 106.3150, 372.0897, -82.0533, 0, 0, 0, 2, Troll_Shadow_Knight_(key)
 P 58.8532, 559.7062, -41.9666, 0, 0, 0, 2, shadowknight_(drops_Charred_Bone_Key)
-P -96.0000, 370.0000, 0.0000, 0, 0, 0, 2, skeleton_L`rodd
+P -104.0000, 364.0000, -9.6000, 0, 0, 0, 2, skeleton_Lrodd
 P 95.0000, 368.0000, 0.0000, 0, 0, 0, 2, Shadowknight
 P 183.0000, 667.0000, 0.0000, 0, 0, 0, 2, Elf_Skeleton
 P 193.0000, 981.0000, 0.0000, 0, 0, 0, 2, Shadowknight
 P 202.0476, 978.6354, -71.6147, 0, 0, 0, 2, Dark_Elf_Female_Shadow_Knight
-P 208.8757, 809.5399, -69.9666, 0, 0, 0, 2, Boondin_Babbinsbort
-P -22.6080, 200.6916, -13.8416, 0, 0, 0, 2, Zeek
+P 205.0000, 813.0000, -68.0000, 0, 0, 0, 2, Boondin_Babbinsbort
+P -22.0000, 201.0000, -11.7500, 0, 0, 0, 2, Zeek
 P -94.0573, 490.0289, -78.4982, 127, 64, 0, 2, Priest_Amiaz_(Hunter)
 P -87.1626, 483.1426, -79.0863, 127, 64, 0, 2, the_thaumaturgist_(Hunter)
 P 43.8722, 330.0549, -13.9979, 0, 0, 0, 2, Sir_Ariam_Arcanum

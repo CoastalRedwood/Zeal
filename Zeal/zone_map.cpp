@@ -1858,7 +1858,7 @@ bool ZoneMap::add_map_data_from_file(const std::string &filename, CustomMapData 
                                   static_cast<int>(x1 + 0.5f), static_cast<int>(y1 + 0.5f), static_cast<int>(z1 + 0.5f),
                                   static_cast<uint8_t>(red), static_cast<uint8_t>(green), static_cast<uint8_t>(blue),
                                   0);
-    } else if (sscanf_s(line.c_str(), "P %f, %f, %f, %u, %u, %u, %i, %s", &x0, &y0, &z1, &red, &green, &blue, &dummy,
+    } else if (sscanf_s(line.c_str(), "P %f, %f, %f, %u, %u, %u, %i, %s", &x0, &y0, &z0, &red, &green, &blue, &dummy,
                         buffer, sizeof(buffer)) == 8) {
       buffer[sizeof(buffer) - 1] = 0;  // Guarantee null-termination.
       map_data.label_strings.emplace_back(std::string(buffer));

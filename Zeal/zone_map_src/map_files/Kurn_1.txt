@@ -8,7 +8,7 @@ P -63.6102, 52.4118, 101.5519, 0, 0, 0, 2, Shattered_Skeleton_(Roam)
 P -267.7582, 113.5238, -118.5940, 127, 64, 0, 2, Bargynn_(Hunter)
 P -37.3097, 127.1831, -41.7604, 127, 64, 0, 2, fingered_skeleton_(Hunter)
 P 48.4979, -79.9196, 128.4922, 127, 64, 0, 2, a_skeletal_cook_(Hunter)
-P -45.8288, -47.2000, -41.7604, 127, 64, 0, 2, thick_boned_skeleton_(Hunter,Roam)
+P -31.5000, 34.2500, -38.1300, 127, 64, 0, 2, thick_boned_skeleton
 P 50.2617, -76.0609, 127.5922, 127, 64, 0, 2, thick_skulled_skeleton_(Hunter)
 P -61.1112, -171.7227, -41.6541, 127, 64, 0, 2, thick_tailed_skeleton_(Hunter,Roam)
 P 112.5411, -30.1401, 100.2831, 127, 64, 0, 2, undead_crusader_(Hunter,Roam)

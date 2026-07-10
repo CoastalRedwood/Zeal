@@ -14,9 +14,9 @@ P -119.0000, 1770.0000, -47.0000, 240, 240, 240, 2, Grol_Baku_Camp
 P 1732.0000, 1708.0000, -49.0000, 240, 240, 240, 2, Grol_Baku_Camp
 P 1736.0000, 1472.0000, -51.0000, 240, 240, 240, 2, Vas_Ren_Camp
 P 1126.0000, -739.0000, 154.0000, 0, 0, 0, 2, Knight_of_the_Dread_Sun
-P -1464.0000, 1702.0000, -48.0000, 0, 0, 0, 2, Jimmic_Adle
+P -1468.0000, 1710.0000, -46.5000, 0, 0, 0, 2, Jimmic_Adle
 P -2157.0000, -2071.0000, -90.0000, 127, 64, 0, 2, Bloodtribe_Agitator_(Hunter)
-P -2032.1812, -1985.3234, -138.0799, 127, 64, 0, 2, Bloodtribe_Ancient_(Hunter)
+P -1962.0000, -2130.0000, -137.0000, 127, 64, 0, 2, Bloodtribe_Ancient
 P -706.0000, 1849.0000, -23.0000, 127, 64, 0, 2, Bloodtribe_Wiseman_(Hunter)
 P 95.0000, -1672.0000, -19.0000, 127, 64, 0, 2, a_grol_baku_keeper_(Hunter,Roam)
 P -1026.0000, -534.0000, -142.0000, 127, 64, 0, 2, Killer_Vine_(Hunter,Roam)
@@ -54,9 +54,9 @@ P -64.0000, 831.0000, -229.0000, 127, 64, 0, 2, scarlet_cheetah_hunter_(Hunter,R
 P -336.0000, 694.0000, -251.0000, 127, 64, 0, 2, scarlet_cheetah_huntress_(Hunter,Roam)
 P -1562.8277, -1293.6413, -28.7239, 127, 64, 0, 2, scarlet_cheetah_matriarch_(Hunter,Roam)
 P -1701.0000, -1127.0000, -366.0000, 127, 64, 0, 2, scarlet_cheetah_patriarch_(Hunter,Roam)
-P 966.0000, 725.0000, -348.0000, 127, 64, 0, 2, Sun_Revenant_Desecrator_(Hunter)
+P 575.0000, -1350.0000, -40.5000, 127, 64, 0, 2, Sun_Revenant_Desecrator
 P 1054.0000, -538.0000, -49.0000, 127, 64, 0, 2, Sun_Revenant_Magistrate_(Hunter)
-P -53.0000, -1388.0000, -49.0000, 127, 64, 0, 2, Sun_Revenant_Primatus_(Hunter,Roam)
+P 1688.8800, -1361.0000, -35.0000, 127, 64, 0, 2, Sun_Revenant_Primatus
 P 597.0000, -832.0000, 8.0000, 127, 64, 0, 2, Sun_Revenant_Smiter_(Hunter)
 P 678.0000, -657.0000, 94.0000, 127, 64, 0, 2, Sunlord_Wedazi_(Hunter)
 P -1850.0000, 1047.0000, -49.0000, 127, 64, 0, 2, a_tainted_lightcrawler_(Hunter,Roam)
@@ -72,10 +72,10 @@ P -2452.7316, -2292.6154, -185.6650, 127, 64, 0, 2, Bloodtribe_Bonecollector_(Hu
 P -654.0000, 1237.0000, -49.0000, 127, 64, 0, 2, a_gigantic_sunflower_(Hunter)
 P 64.0000, 1530.0000, -53.0000, 127, 64, 0, 2, Bloodtribe_Prophet_(Hunter)
 P -34.0000, 1412.0000, -50.0000, 127, 64, 0, 2, Bloodtribe_Seer_(Hunter)
-P -1812.0000, 2209.0000, -58.0000, 127, 64, 0, 2, Bloodtribe_Sneakster_(Hunter)
+P -1542.0000, 703.0000, -34.8800, 127, 64, 0, 2, Bloodtribe_Sneakster
 P -435.0000, 1979.0000, -45.0000, 127, 64, 0, 2, Bloodtribe_Sneakster_(Hunter)
 P 122.0000, -129.0000, -41.0000, 127, 64, 0, 2, Bloodtribe_Sneakster_(Hunter
-P -511.0000, 1348.0000, -42.0000, 127, 64, 0, 2, Bloodtribe_Surveryor_(Hunter)
+P -628.0000, 1810.0000, -35.0000, 127, 64, 0, 2, Bloodtribe_Surveryor
 P 1751.0000, 1710.0000, -48.0000, 127, 64, 0, 2, a_grol_baku_benefactor_(Hunter)
 P 510.0000, -1459.0000, -29.0000, 127, 64, 0, 2, a_grol_baku_bodyguard_(Hunter)
 P 110.0000, -1662.0000, -35.0000, 127, 64, 0, 2, a_grol_baku_retainer_(Hunter)

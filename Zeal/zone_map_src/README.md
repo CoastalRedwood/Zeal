@@ -4,8 +4,9 @@ Support scripts and data files for producing the auto-generated zone_map_data.h 
 
 ## Map data source:
 * The map data in the `map_files` directory was sourced from:
-  https://www.eqmaps.info/eq-map-files/ (Brewall's Maps 20240109)
-* The Brewall maps have greater detail and consistent layer color coding (useful for z-filtering).
+  - `https://www.eqmaps.info/eq-map-files/` (Brewall's Maps 20240109)
+  - `https://github.com/anotheregostar/projectmiragulmaps/releases/tag/Quarm_v1` (2026/07/09, label layers)
+* The Brewall maps have good detail and consistent layer color coding (useful for z-filtering).
 * The original unzipped download was 142 MB but included maps from eras past PoP.
 * The `extract_brewall_maps.py` used the zone names in the `zone_id_lut.csv` file described below
   to copy out only Quarm PoP related maps, which reduced the `map_files` down to 36 MB.
@@ -13,6 +14,8 @@ Support scripts and data files for producing the auto-generated zone_map_data.h 
   - Deleted them manually and copied over a correct `bazaar.txt` into the `map_files` folder
 * Note: The `arena.txt` and `arena_1.txt` were out of era maps without any `_original` versions
   - Deleted them manually and copied over a correct `arena.txt` into the `map_files` folder
+* Note: On 2026/07/09, downloaded the projectmiragulmaps and replaced the `_1.txt` label layers
+  - These are more accurate for Quarm / TAKP (PoP era, locations of priests of discord, npcs, etc)
 
 ## Integer zone_id to short zone name lookup (zone_id_lut.csv)
 * Zeal has access to the current zone with an integer zone_id
