@@ -8,9 +8,9 @@ P 664.1958, -45.9954, 41.9706, 0, 0, 240, 1, GS:_Rile_Shattered_Blade
 P 544.2094, 42.8600, 29.0019, 240, 240, 0, 2, One_Way_Wall_(to_South)
 P 372.3381, 100.5456, 0.0019, 240, 240, 0, 2, Locked_Door_(Picklock_212?)
 P 595.1162, 27.9417, 14.0019, 240, 240, 0, 2, Locked_Door_(Picklock_212?)
-P 554.7210, 76.9241, 14.0019, 0, 0, 0, 2, Venril_Sathir`s_remains
+P 559.0000, 77.0000, 19.6000, 0, 0, 0, 2, Venril_Sathirs_remains
 P 627.3266, -100.0937, 16.0019, 0, 0, 0, 2, Drolvarg_Warlord_(BRD:1.0)
-P 751.1614, 68.6582, 6.0019, 240, 127, 0, 2, Venril_Sathir_(Raid)
+P 778.0000, 91.0000, 11.6000, 240, 127, 0, 2, Venril_Sathir
 P 104.5902, -146.2768, 28.3144, 127, 64, 0, 2, a_drolvarg_captain_(Hunter)
 P 627.3266, -100.0937, 16.0019, 127, 64, 0, 2, a_drolvarg_warlord_(Hunter)
 P 408.4820, -59.3812, 42.2831, 127, 64, 0, 2, caller_of_Sathir_(Hunter)

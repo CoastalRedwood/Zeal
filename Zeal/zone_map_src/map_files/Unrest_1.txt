@@ -14,16 +14,16 @@ P 7.3098, -680.1237, -13.9980, 240, 240, 0, 2, Fake_Wall
 P -78.3792, -700.1453, -21.9980, 240, 240, 0, 2, TRAP:_Fake_Floor
 P -105.6373, -697.3951, -22.3123, 240, 240, 0, 2, TRAP:_Fake_Floor
 P -91.6442, -680.5703, -25.9970, 240, 240, 0, 2, TIP:_Run_through_blood
-P 280.4832, -690.7133, 0.0020, 0, 0, 0, 2, Serra
+P 282.0000, -688.0000, 2.5000, 0, 0, 0, 2, Serra
 P 291.0852, -692.3219, 0.0020, 0, 0, 0, 2, a_gnomish_spelunker
 P 61.7232, -677.4191, 36.0020, 0, 0, 0, 2, Zombie_of_Unrest_Noble
-P 65.8503, -605.2502, 2.0020, 0, 0, 0, 2, Torklar_Battlemaster
+P 61.0000, -612.0000, 7.7000, 0, 0, 0, 2, Torklar_Battlemaster
 P -34.8644, -524.2064, 16.0020, 0, 0, 0, 2, Chipped_Bone_Skeleton
-P -60.8005, -593.9470, 16.0020, 0, 0, 0, 2, Khrix_Fritchoff
+P -61.0000, -595.0000, 17.8000, 0, 0, 0, 2, Khrix_Fritchoff
 P -135.6313, -493.1879, -35.9980, 127, 64, 0, 2, Garanel_Rucksif_(Hunter)
 P 7.7799, -577.7361, 43.9707, 127, 64, 0, 2, a_reanimating_hand_(Hunter)
 P -33.8005, -701.7244, 32.0020, 127, 64, 0, 2, reclusive_ghoul_magnus_(Hunter)
 P 36.5626, -670.0192, 36.0020, 127, 64, 0, 2, an_undead_barkeep_(Hunter)
 P 72.1496, -694.7858, 51.9707, 127, 64, 0, 2, an_undead_knight_of_Unrest_(Hunter)
-P 35.2744, -700.6479, 4.0020, 127, 64, 0, 2, lesser_blade_fiend_(Hunter)
+P -90.0000, -699.0000, 6.0000, 127, 64, 0, 2, lesser_blade_fiend
 
