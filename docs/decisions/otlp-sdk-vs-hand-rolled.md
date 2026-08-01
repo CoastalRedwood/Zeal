@@ -1,8 +1,8 @@
 # Why Zeal's OTLP exporter is hand-rolled and not opentelemetry-cpp
 
 **Status:** decided (2026-08-01) — hand-rolled, with spec validation in CI.
-**Evaluated on:** branch `otlp-sdk` (a complete, working SDK implementation) and the
-`spike-otel-cpp` / `build-sdk` workflows.
+**Evaluated by:** building a complete, working SDK-backed implementation of this exporter and
+linking it into Zeal (kept at https://github.com/jensholdgaard/NewZeal, branch `otlp-sdk`).
 
 ## The question
 
@@ -65,13 +65,12 @@ Together these recover most of what the SDK offered, with no new dependencies.
 
 ## Secondary consideration
 
-This repo is a fork that stays mergeable with upstream `coastalredwood/Zeal`. A PR adding vcpkg,
-protobuf, abseil and libcurl to a lean injected `.asi` — roughly doubling the binary users download —
-is unlikely to be accepted, and reasonably so. ~600 self-contained lines using the already-vendored
-`json.hpp` is a plausible contribution.
+Adopting the SDK would introduce vcpkg, protobuf, abseil and libcurl to a lean injected `.asi` and
+roughly double the binary users download, for a feature that is off by default. The hand-rolled
+exporter is ~600 self-contained lines using the already-vendored `json.hpp` and WinHTTP.
 
 ## If this is ever revisited
 
-The SDK branch is preserved. Revisit if: histograms or exemplars are needed (hand-rolling those is
+The SDK implementation is preserved in the fork linked above. Revisit if: histograms or exemplars are needed (hand-rolling those is
 genuinely hairy), several more serialization bugs slip past the CI validation, or upstream adopts a
 package manager and the dependency tree stops being a fork-local cost.
