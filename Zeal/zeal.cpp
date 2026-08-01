@@ -42,6 +42,7 @@
 #include "nameplate.h"
 #include "netstat.h"
 #include "npc_give.h"
+#include "otlp_exporter.h"
 #include "outputfile.h"
 #include "page10_binds.h"
 #include "patches.h"
@@ -185,7 +186,8 @@ ZealService::ZealService() {
   AddBinds();     // Register custom keybinds.
 
   // Connect up the pipe last since it spawns another thread (paranoia).
-  pipe = MakeCheckedUnique(NamedPipe);  // Modify so it registers callbacks with labels, ticks, chat.
+  pipe = MakeCheckedUnique(NamedPipe);
+  otlp = MakeCheckedUnique(OtlpExporter);  // Native OTLP/HTTP export; opt-in via /otlp on.  // Modify so it registers callbacks with labels, ticks, chat.
 }
 
 ZealService::~ZealService() { ZealService::ptr_service = nullptr; }

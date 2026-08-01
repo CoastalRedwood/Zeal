@@ -177,6 +177,12 @@
     <ClInclude Include="named_pipe.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
+    <ClInclude Include="otlp_exporter.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
+    <ClInclude Include="everquest_semconv.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
     <ClInclude Include="instruction_length.h">
       <Filter>Header Files\memory</Filter>
     </ClInclude>
@@ -420,6 +426,9 @@
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="named_pipe.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="otlp_exporter.cpp">
       <Filter>Source Files\other</Filter>
     </ClCompile>
     <ClCompile Include="physics.cpp">
