@@ -1,15 +1,23 @@
 #include "mouseover_display.h"
 
+#include <cctype>
+#include <climits>
+#include <cmath>
 #include <format>
 #include <unordered_map>
+#include <vector>
 
 #include "callbacks.h"
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "game_ui.h"
 #include "hook_wrapper.h"
 #include "item_display.h"
 #include "memory.h"
+#include "string_util.h"
+#include "tooltip.h"
+#include "ui_skin.h"
 #include "zeal.h"
 
 // Provides mouseover tooltips by reusing the existing hold-right-click ItemDisplayWnd.
@@ -52,12 +60,27 @@ static constexpr int kOffscreenY = -10000;
 // CXWnd::HandleWheelMove stub
 static LPVOID const kDefaultHandleWheelMove = reinterpret_cast<LPVOID>(0x574ec0);
 
+// Placeholder for the native/ini size of the tooltip window
+static int s_native_max_width = 0;
+static int s_native_max_height = 0;
+
+// Minimum size for dynamically-sized tooltip
+static constexpr int kMinTooltipWidth = 80;
+static constexpr int kMinTooltipHeight = 40;
+
 // Whether the current SetItem call is populating the mouseover tooltip window (item_display.cpp).
 bool mouseover_in_set_item() { return s_in_mouseover_set_item; }
 
 // The window used to render mouseover tooltips, or nullptr if mouseover tooltips are
 // disabled/not yet initialized.
 Zeal::GameUI::ItemDisplayWnd *mouseover_get_wnd() { return s_mouseover_wnd; }
+
+// Suppresses/restores the native name-only hover tooltip. Suppression is global, so every
+// path that sets it must have a matching restore (see mouseover_process_frame)
+static void suppress_native_tooltip(bool suppressed) {
+  auto &tooltips = ZealService::get_instance()->tooltips;
+  if (tooltips) tooltips->set_native_tooltip_suppressed(suppressed);
+}
 
 // Moves s_mouseover_wnd off-screen without deactivating it, so it can be repositioned 
 // back under the cursor without the window creation performance hit
@@ -92,8 +115,8 @@ static void reposition_mouseover_window(int mouse_x, int mouse_y) {
   int y = mouse_y + kTooltipCursorOffset;
 
   // Alternate tooltip possitons to avoid extension off-screen
-  if (x + current_width > screen_w) x = mouse_x - current_width - kTooltipCursorOffset;
-  if (y + current_height > screen_h) y = mouse_y - current_height - kTooltipCursorOffset;
+  if (x + current_width > screen_w) x = mouse_x - current_width;
+  if (y + current_height > screen_h) y = mouse_y - current_height;
   if (y + current_height > screen_h) y = screen_h - current_height;
 
   // Move tooltip
@@ -104,6 +127,27 @@ static void reposition_mouseover_window(int mouse_x, int mouse_y) {
   s_mouseover_wnd->BringToFront();
 }
 
+// Remove the Close/Minimize buttons from the tooltip title bar via bitmasks
+static constexpr DWORD kWindowStyleCloseBoxBit = 0x08;
+static constexpr DWORD kWindowStyleMinimizeBoxBit = 0x20;
+static void hide_mouseover_titlebar_buttons() {
+  if (!s_mouseover_wnd) return;
+  s_mouseover_wnd->WindowStyleFlags &= ~(kWindowStyleCloseBoxBit | kWindowStyleMinimizeBoxBit);
+}
+
+// Commandeers an ItemDisplayWnd for mouseover tooltips: captures its native/INI size as the
+// default max, disables position persistence, and hides it off-screen ready for use
+static void acquire_mouseover_wnd(Zeal::GameUI::ItemDisplayWnd *wnd) {
+  s_mouseover_wnd = wnd;
+  // Capture the native/INI size before anything (e.g. dynamic resizing) touches it
+  s_native_max_width = wnd->Location.Right - wnd->Location.Left;
+  s_native_max_height = wnd->Location.Bottom - wnd->Location.Top;
+  wnd->EnableINIStorage &= ~0x1;
+  wnd->Activate();
+  hide_mouseover_titlebar_buttons();
+  hide_mouseover_window();
+}
+
 // Use mouse wheel to scroll tooltip
 static void forward_wheel_to_tooltip(int mouse_x, int mouse_y, int wheel_delta, int unknown) {
 
@@ -112,6 +156,227 @@ static void forward_wheel_to_tooltip(int mouse_x, int mouse_y, int wheel_delta, 
         s_mouseover_wnd->ItemDescription->vtbl->HandleWheelMove)(s_mouseover_wnd->ItemDescription, mouse_x, mouse_y,
                                                                  wheel_delta, unknown);
   }
+}
+
+// CItemDisplayWnd's internal text/layout refresh, also used after SetItem/SetSpell
+static void trigger_item_display_redraw(Zeal::GameUI::ItemDisplayWnd *wnd) {
+  reinterpret_cast<void(__thiscall *)(Zeal::GameUI::ItemDisplayWnd *)>(0x0042359a)(wnd);
+}
+
+static constexpr int kHeuristicFontIndex = 3;  // A representative default UI text font size, fallback only
+static constexpr int kFallbackLineHeight = 14;
+
+static const char *get_measurement_font_face() { return UISkin::is_big_fonts_mode() ? "Calibri" : "Arial"; }
+
+// Safety margins, mostly as ratios of line_height. Width margins cover measurement error
+// (face/weight guesses, kerning, rounding) plus right-side padding/scrollbar. Erring wide should be
+// safe since the longest line can never wrap against its own measured width
+static constexpr float kHorizontalPaddingRatio = 0.4f;
+static constexpr int kFixedChromeEstimate = 20;  // Title bar, doesn't scale with font size
+static constexpr float kHeightSafetyMarginRatio = 0.15f;
+static constexpr float kWidthSafetyMarginRatio = 1.0f;
+static constexpr int kMinWidthSafetyMarginPx = 18;  // Floor for small fonts, not additive
+
+// Lazily-created GDI measurement fonts keyed by (pixel height / weight / big-fonts), never deleted
+static std::unordered_map<int64_t, HFONT> s_measurement_font_cache;
+
+static constexpr int kMeasurementFontWeight = FW_NORMAL;
+
+static constexpr int kMaxFontMatchAttempts = 8;
+
+static HFONT create_font_matching_height(int line_height, int weight, int request_height, const char *face) {
+  // CreateFontA's lfHeight doesn't map directly to the resulting tmHeight, so hill-climb by
+  // 1px toward the target line_height, keeping the closest match seen
+  HFONT best_font = nullptr;
+  int best_diff = INT_MAX;
+  int height_to_try = request_height;
+  int tried_heights[kMaxFontMatchAttempts];
+  int tried_count = 0;
+
+  for (int attempt = 0; attempt < kMaxFontMatchAttempts; attempt++) {
+    if (height_to_try <= 0) break;
+    // Revisiting a height means the walk is oscillating around the target, close enough
+    bool already_tried = false;
+    for (int i = 0; i < tried_count; i++) {
+      if (tried_heights[i] == height_to_try) already_tried = true;
+    }
+    if (already_tried) break;
+    tried_heights[tried_count++] = height_to_try;
+
+    // Negative lfHeight requests character height, tmHeight adds internal leading on top
+    HFONT candidate = CreateFontA(-height_to_try, 0, 0, 0, weight, FALSE, FALSE, FALSE, ANSI_CHARSET,
+                                  OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                                  DEFAULT_PITCH | FF_DONTCARE, face);
+    if (!candidate) break;
+    HDC hdc = GetDC(nullptr);
+    TEXTMETRICA tm = {0};
+    if (hdc) {
+      HFONT old_font = static_cast<HFONT>(SelectObject(hdc, candidate));
+      GetTextMetricsA(hdc, &tm);
+      SelectObject(hdc, old_font);
+      ReleaseDC(nullptr, hdc);
+    }
+
+    // Keep the closest match seen so a near-miss is returned instead of nullptr
+    int diff = std::abs(tm.tmHeight - line_height);
+    if (diff < best_diff) {
+      if (best_font) DeleteObject(best_font);
+      best_font = candidate;
+      best_diff = diff;
+    } else {
+      DeleteObject(candidate);
+    }
+    // tmHeight <= 0 means metrics were never measured (GetDC failed), use current best_font
+    if (diff == 0 || tm.tmHeight <= 0) break;
+    height_to_try += (tm.tmHeight > line_height ? -1 : 1);
+  }
+  return best_font;
+}
+
+// Returns a (cached) GDI font matching the game font's line height, for measuring text widths
+static HFONT get_measurement_font(int line_height, int weight) {
+  bool big_fonts = UISkin::is_big_fonts_mode();
+  // Pack (line_height, weight, big-fonts flag) into one cache key
+  int64_t key =
+      (static_cast<int64_t>(line_height) << 33) | (static_cast<int64_t>(weight) << 1) | (big_fonts ? 1 : 0);
+  auto it = s_measurement_font_cache.find(key);
+  if (it != s_measurement_font_cache.end()) return it->second;
+  HFONT font = create_font_matching_height(line_height, weight, line_height, get_measurement_font_face());
+  s_measurement_font_cache[key] = font;  // Cached even on failure (nullptr) to avoid retrying every frame
+  return font;
+}
+
+// The real font weight isn't known from line_height alone, so lines are measured at both
+// weights and the wider result wins - extra space beats an unexpected wrap
+static constexpr int kAltMeasurementFontWeight = FW_BOLD;
+
+// Measures the on-screen pixel width of a plain (markup-free) string using GDI
+static float measure_text_width_px(const std::string &text, int line_height, int weight = kMeasurementFontWeight) {
+  if (text.empty()) return 0.0f;
+  HFONT font = get_measurement_font(line_height, weight);
+  if (!font) return 0.0f;
+  // GetDC(nullptr) borrows the shared screen DC; text extents don't need a window of our own
+  HDC hdc = GetDC(nullptr);
+  if (!hdc) return 0.0f;
+  // Select our font, measure, then restore the DC's previous font before releasing it
+  HFONT old_font = static_cast<HFONT>(SelectObject(hdc, font));
+  SIZE size = {0, 0};
+  GetTextExtentPoint32A(hdc, text.c_str(), static_cast<int>(text.length()), &size);
+  SelectObject(hdc, old_font);
+  ReleaseDC(nullptr, hdc);
+  // 0.0f returns above mean "unmeasurable" and are indistinguishable from genuinely empty text
+  return static_cast<float>(size.cx);
+}
+
+// Strips STML markup tags, treats &nbsp; as a (non-collapsing) space, combines multiple spaces into one
+static std::string strip_and_collapse_line(const std::string &line) {
+  std::string plain;
+  plain.reserve(line.size());
+  bool in_space_run = false;
+  for (size_t i = 0; i < line.size();) {
+    char c = line[i];
+    // Only treat '<' as markup if it looks like a tag
+    if (c == '<' && i + 1 < line.size() && (isalpha(static_cast<unsigned char>(line[i + 1])) || line[i + 1] == '/')) {
+      size_t close = line.find('>', i);
+      if (close != std::string::npos) {
+        i = close + 1;
+        continue;
+      }
+    }
+    if (line.compare(i, 6, "&nbsp;") == 0) {
+      plain += ' ';
+      in_space_run = false;
+      i += 6;
+      continue;
+    }
+    i++;
+    if (c == ' ') {
+      if (in_space_run) continue;
+      in_space_run = true;
+      plain += ' ';
+      continue;
+    }
+    in_space_run = false;
+    plain += c;
+  }
+  return plain;
+}
+
+// Estimates the on-screen pixel width of one line of STML content (max of normal/bold weights).
+static float estimate_line_width_px(const std::string &line, int line_height) {
+  std::string plain = strip_and_collapse_line(line);
+  float normal_px = measure_text_width_px(plain, line_height, kMeasurementFontWeight);
+  float bold_px = measure_text_width_px(plain, line_height, kAltMeasurementFontWeight);
+  return max(normal_px, bold_px);
+}
+
+// Shrinks/grows s_mouseover_wnd to fit the content in DisplayText, word-wrap aware, capped by
+// the effective max width/height (/mouseover width|height overrides, else the native size).
+// The engine never re-lays-out ItemDescription after resizing the parent, so content size is
+// estimated from the raw STML text using GDI font metrics (the client's fonts are real GDI
+// fonts). Height is exact via the live font's GetHeight(); width depends on the guessed face
+// (see get_measurement_font_face).
+static void fit_mouseover_window_to_content() {
+  auto &item_displays = ZealService::get_instance()->item_displays;
+  if (!s_mouseover_wnd || !s_mouseover_wnd->DisplayText.Data || !item_displays) return;
+
+  int max_w = item_displays->setting_mouseover_max_width.get();
+  max_w = max_w > 0 ? max_w : s_native_max_width;
+  int max_h = item_displays->setting_mouseover_max_height.get();
+  max_h = max_h > 0 ? max_h : s_native_max_height;
+  if (max_w <= 0 || max_h <= 0) return;  // Native size not yet captured.
+
+  max_w = max(max_w, kMinTooltipWidth);
+  max_h = max(max_h, kMinTooltipHeight);
+
+  // Prefer ItemDescription's own font so this adapts to custom skins/big-fonts mode. GAMEFONT*
+  // and CTextureFont* are the same underlying object (see CXWndManager::TextureFont in game_ui.h)
+  Zeal::GameUI::GAMEFONT *desc_font_ptr =
+      s_mouseover_wnd->ItemDescription ? s_mouseover_wnd->ItemDescription->FontPointer : s_mouseover_wnd->FontPointer;
+  auto *desc_font = reinterpret_cast<Zeal::GameUI::CTextureFont *>(desc_font_ptr);
+  int line_height = desc_font ? desc_font->GetHeight() : 0;
+  if (line_height <= 0) {
+    // Fall back to a representative default UI font if ItemDescription's own font isn't available.
+    auto *wnd_mgr = Zeal::Game::get_wnd_manager();
+    auto *fallback_font = wnd_mgr ? wnd_mgr->GetFont(kHeuristicFontIndex) : nullptr;
+    line_height = fallback_font ? fallback_font->GetHeight() : 0;
+  }
+  if (line_height <= 0) line_height = kFallbackLineHeight;
+
+  // Measure once per line up front; the wrap pass below reuses the results.
+  auto lines = Zeal::String::split_text(std::string(s_mouseover_wnd->DisplayText), "<BR>");
+  std::vector<float> line_widths_px;
+  line_widths_px.reserve(lines.size());
+  float longest_line_px = 0.0f;
+  for (auto &line : lines) {
+    float px = estimate_line_width_px(line, line_height);
+    line_widths_px.push_back(px);
+    longest_line_px = max(longest_line_px, px);
+  }
+
+  int horizontal_padding = static_cast<int>(line_height * kHorizontalPaddingRatio);
+  int width_safety_margin = max(static_cast<int>(line_height * kWidthSafetyMarginRatio), kMinWidthSafetyMarginPx);
+  int height_safety_margin = static_cast<int>(line_height * kHeightSafetyMarginRatio);
+
+  int natural_text_w = static_cast<int>(longest_line_px) + horizontal_padding + width_safety_margin;
+  int final_width = max(kMinTooltipWidth, min(max_w, natural_text_w));
+
+  float avail_width_px = static_cast<float>(max(1, final_width - horizontal_padding));
+
+  int total_lines = 0;
+  for (float line_px : line_widths_px) {
+    total_lines += max(1, static_cast<int>(std::ceil(line_px / avail_width_px)));
+  }
+  if (lines.empty()) total_lines = 1;
+
+  int content_h = total_lines * line_height;
+  int final_height = max(kMinTooltipHeight, min(max_h, content_h + kFixedChromeEstimate + height_safety_margin));
+
+  Zeal::Game::GameInternal::CXWndMoveAndInvalidate(s_mouseover_wnd, 0, s_mouseover_wnd->Location.Left,
+                                                   s_mouseover_wnd->Location.Top,
+                                                   s_mouseover_wnd->Location.Left + final_width,
+                                                   s_mouseover_wnd->Location.Top + final_height);
+  trigger_item_display_redraw(s_mouseover_wnd);
 }
 
 // Updates the mouseover window for the current spell/item slot
@@ -134,13 +399,16 @@ static void run_mouseover_update(int spell_or_slot, int mouse_x, int mouse_y, Po
 
   populate();
   // Trigger redraw after updated DisplayText.
-  reinterpret_cast<void(__thiscall *)(Zeal::GameUI::ItemDisplayWnd *)>(0x0042359a)(s_mouseover_wnd);
+  trigger_item_display_redraw(s_mouseover_wnd);
   // SetItem/SetSpell always re-show the icon; force it back off for the mouseover window
   // so the tooltip stays compact (the icon is already under the mouse anyway)
   if (s_mouseover_wnd->IconBtn) s_mouseover_wnd->IconBtn->IsVisible = false;
+  // Likewise re-hide the close/minimize title bar buttons in case Activate() re-drew them
+  hide_mouseover_titlebar_buttons();
 
   Zeal::Game::Windows->ItemWnd = default_wnd;
 
+  fit_mouseover_window_to_content();
   reposition_mouseover_window(mouse_x, mouse_y);
   s_mouseover_slot_index = spell_or_slot;
 }
@@ -180,10 +448,14 @@ static void show_mouseover_spell(int spell_id, int mouse_x, int mouse_y, bool is
 // closes the tooltip if the slot is empty.
 static int __fastcall InvSlotWnd_HandleMouseMove(Zeal::GameUI::InvSlotWnd *wnd, int unused_edx, int mouse_x,
                                                  int mouse_y, unsigned int flags) {
+  bool mouseover_enabled = ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get();
+  // Suppress before calling through: the original handler can trigger the native tooltip itself.
+  if (mouseover_enabled && s_mouseover_wnd) suppress_native_tooltip(true);
+
   int result = reinterpret_cast<int(__thiscall *)(Zeal::GameUI::InvSlotWnd *, int, int, unsigned int)>(
       s_original_inv_slot_mouse_move)(wnd, mouse_x, mouse_y, flags);
 
-  if (!ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get()) return result;
+  if (!mouseover_enabled) return result;
 
   if (wnd->invSlot && wnd->invSlot->Item) {
     auto *item = reinterpret_cast<Zeal::GameStructures::_GAMEITEMINFO *>(wnd->invSlot->Item);
@@ -210,10 +482,14 @@ static int __fastcall InvSlotWnd_HandleWheelMove(Zeal::GameUI::InvSlotWnd *wnd, 
 // Hooked HandleMouseMove for memorized-spell gems
 static int __fastcall SpellGemWnd_HandleMouseMove(Zeal::GameUI::SpellGemWnd *wnd, int unused_edx, int mouse_x,
                                                   int mouse_y, unsigned int flags) {
+  bool mouseover_enabled = ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get();
+  // Suppress before calling through: the original handler can trigger the native tooltip itself.
+  if (mouseover_enabled && s_mouseover_wnd) suppress_native_tooltip(true);
+
   int result = reinterpret_cast<int(__thiscall *)(Zeal::GameUI::SpellGemWnd *, int, int, unsigned int)>(
       s_original_spell_gem_wnd_mouse_move)(wnd, mouse_x, mouse_y, flags);
 
-  if (!ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get()) return result;
+  if (!mouseover_enabled) return result;
 
   auto *char_info = Zeal::Game::get_char_info();
   auto *cast_wnd = Zeal::Game::Windows->SpellGems;
@@ -251,6 +527,10 @@ static int __fastcall SpellGemWnd_HandleWheelMove(Zeal::GameUI::SpellGemWnd *wnd
 // Actions based on parent window
 static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int unused_edx, int mouse_x, int mouse_y,
                                                 unsigned int flags) {
+  bool mouseover_enabled = ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get();
+  // Suppress before calling through: the original handler can trigger the native tooltip itself.
+  if (mouseover_enabled && s_mouseover_wnd) suppress_native_tooltip(true);
+
   // Temporarily swap ItemWnd away before calling the original so the client's
   // hover handling doesn't activate/deactivate our mouseover window.
   auto *default_item_wnd = Zeal::Game::Windows->ItemWnd;
@@ -264,7 +544,7 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
 
   Zeal::Game::Windows->ItemWnd = default_item_wnd;
 
-  if (!ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get()) return result;
+  if (!mouseover_enabled) return result;
 
   auto *parent = reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd->ParentWnd);
   auto *buff_wnd = reinterpret_cast<Zeal::GameUI::BuffWindow *>(Zeal::Game::Windows->BuffWindowNORMAL);
@@ -402,19 +682,16 @@ static int __fastcall BuffWnd_WndNotification(Zeal::GameUI::BuffWindow *wnd, int
 // Per-frame check to close the tooltip when not needed. This catches the case where the mouse leaves a hooked button
 // without a final HandleMouseMove call landing on another hooked window.
 static void mouseover_process_frame() {
-  if (!s_mouseover_wnd || !s_mouseover_wnd->IsActivated) return;
-
   auto &item_displays = ZealService::get_instance()->item_displays;
-  if (!item_displays || !item_displays->setting_mouseover_tooltips.get()) {
-    hide_mouseover_window();
-    return;
-  }
+  bool active = s_mouseover_wnd && s_mouseover_wnd->IsActivated && item_displays &&
+                item_displays->setting_mouseover_tooltips.get();
 
-  auto *wnd_mgr = Zeal::Game::get_wnd_manager();
-  if (!wnd_mgr) return;
-
-  auto *hovered = reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd_mgr->Hovered);
+  // Every exit below restores the native tooltip, so suppression set by the mouse move hooks
+  // can never be left stuck on (e.g. hovering a slot while the window is released for zoning)
+  auto *wnd_mgr = active ? Zeal::Game::get_wnd_manager() : nullptr;
+  auto *hovered = wnd_mgr ? reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd_mgr->Hovered) : nullptr;
   if (!hovered) {
+    suppress_native_tooltip(false);
     hide_mouseover_window();
     return;
   }
@@ -436,12 +713,16 @@ static void mouseover_process_frame() {
 
   bool over_valid = is_inv_slot || is_spell_gem || is_spell_book_icon || is_buff_button;
 
+  // Suppress the native name-only hover tooltip on windows the mouseover tooltip already covers;
+  // its global hover timer would otherwise still pop it on top of/after ours.
+  suppress_native_tooltip(over_valid);
   if (!over_valid) hide_mouseover_window();
 }
 
 // Returns the mouseover window behavior to it's disabled state. Re-enables storage/position persistence,
 // reloads its saved position, and deactivates if currently shown.
 static void release_mouseover_wnd() {
+  suppress_native_tooltip(false);
   if (!s_mouseover_wnd) return;
   if (s_mouseover_wnd->IconBtn) s_mouseover_wnd->IconBtn->IsVisible = true;
   s_mouseover_wnd->EnableINIStorage |= 0x1;
@@ -458,12 +739,8 @@ static void release_mouseover_wnd() {
 void ItemDisplay::set_mouseover_tooltips(bool enabled) {
   setting_mouseover_tooltips.set(enabled);
   if (enabled) {
-    if (!s_mouseover_wnd && Zeal::Game::Windows && Zeal::Game::Windows->ItemWnd) {
-      s_mouseover_wnd = Zeal::Game::Windows->ItemWnd;
-      s_mouseover_wnd->EnableINIStorage &= ~0x1;
-      s_mouseover_wnd->Activate();
-      hide_mouseover_window();
-    }
+    if (!s_mouseover_wnd && Zeal::Game::Windows && Zeal::Game::Windows->ItemWnd)
+      acquire_mouseover_wnd(Zeal::Game::Windows->ItemWnd);
   } else {
     release_mouseover_wnd();
   }
@@ -492,12 +769,8 @@ void mouseover_init_ui() {
 
   // Take over the default ItemWnd if mouseover tooltips are enabled
   if (item_displays && item_displays->setting_mouseover_tooltips.get() && Zeal::Game::Windows &&
-      Zeal::Game::Windows->ItemWnd) {
-    s_mouseover_wnd = Zeal::Game::Windows->ItemWnd;
-    s_mouseover_wnd->EnableINIStorage &= ~0x1;
-    s_mouseover_wnd->Activate();
-    hide_mouseover_window();
-  }
+      Zeal::Game::Windows->ItemWnd)
+    acquire_mouseover_wnd(Zeal::Game::Windows->ItemWnd);
 
   // Patch the shared ButtonWnd vtable once from the first buff button.
   // Covers both buff buttons and spell book icons since they share a vtable.
@@ -602,10 +875,73 @@ void mouseover_clean_ui() {
 // Release when loading/zoning etc
 void mouseover_deactivate_ui() { release_mouseover_wnd(); }
 
+// Prints a brief overview of /mouseover, used for no-args and unrecognized subcommands
+static void print_mouseover_usage() {
+  Zeal::Game::print_chat("Mouseover tooltips dynamically resize to fit their content, up to a max width/height.");
+  Zeal::Game::print_chat("  /mouseover on|off - enables or disables mouseover tooltips.");
+  Zeal::Game::print_chat("  /mouseover width|height - shows the current maximum width or height");
+  Zeal::Game::print_chat("  /mouseover width <pixels> - sets the maximum width (0 to reset)");
+  Zeal::Game::print_chat("  /mouseover height <pixels> - sets the maximum height (0 to reset)");
+}
+
+// Shared handler for the /mouseover width and /mouseover height subcommands.
+static void handle_mouseover_size_command(std::vector<std::string> &args, const char *label,
+                                          ZealSetting<int> &setting, int native_default) {
+  if (args.size() >= 3) {
+    int value = 0;
+    if (Zeal::String::tryParse(args[2], &value, true) && value >= 0) {
+      setting.set(value);
+      if (value > 0)
+        Zeal::Game::print_chat("Mouseover max %s set to %d.", label, value);
+      else
+        Zeal::Game::print_chat("Mouseover max %s reset to the default (%d).", label, native_default);
+      return;
+    }
+    Zeal::Game::print_chat("Invalid value, usage: /mouseover %s <pixels>", label);
+    return;
+  }
+
+  int value = setting.get();
+  if (value > 0)
+    Zeal::Game::print_chat("Mouseover max %s: %d", label, value);
+  else
+    Zeal::Game::print_chat("Mouseover max %s: default (%d)", label, native_default);
+}
+
+static bool handle_mouseover_command(std::vector<std::string> &args) {
+  auto &item_displays = ZealService::get_instance()->item_displays;
+  if (!item_displays) return true;
+
+  if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "on")) {
+    item_displays->set_mouseover_tooltips(true);
+    Zeal::Game::print_chat("Mouseover tooltips: ON");
+    return true;
+  }
+  if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "off")) {
+    item_displays->set_mouseover_tooltips(false);
+    Zeal::Game::print_chat("Mouseover tooltips: OFF");
+    return true;
+  }
+  if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "width")) {
+    handle_mouseover_size_command(args, "width", item_displays->setting_mouseover_max_width, s_native_max_width);
+    return true;
+  }
+  if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "height")) {
+    handle_mouseover_size_command(args, "height", item_displays->setting_mouseover_max_height, s_native_max_height);
+    return true;
+  }
+
+  print_mouseover_usage();
+  return true;
+}
+
 // One-time setup from ItemDisplay's constructor. Hooks InvSlotWnd's vtable once (shared by
 // all inventory slots for the client's lifetime, unlike the buff/gem vtables) and registers
 // the per-frame validity check.
 void mouseover_init_hooks(ZealService *zeal) {
+  zeal->commands_hook->Add("/mouseover", {}, "Toggles mouseover tooltips and configures their max width/height.",
+                           [](std::vector<std::string> &args) { return handle_mouseover_command(args); });
+
   // Hook HandleMouseMove and HandleWheelMove on InvSlotWnd.
   auto *inv_slot_wnd_vtable = Zeal::GameUI::InvSlotWnd::default_vtable;
   s_original_inv_slot_mouse_move = inv_slot_wnd_vtable->HandleMouseMove;
