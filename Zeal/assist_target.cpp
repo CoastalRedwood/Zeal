@@ -136,11 +136,11 @@ void AssistTarget::CallbackRender() {
 
   const DWORD now = GetTickCount();
   auto target = Zeal::Game::get_target();
-  if (!target || target == Zeal::Game::get_self()) return;
+  const bool have_target = (target && target != Zeal::Game::get_self());
 
   // Auto-refresh: poll the server for an authoritative answer at a fixed interval. Responses are
-  // swallowed so this does not retarget you (unlike typing /assist).
-  if (setting_auto_refresh.get()) {
+  // swallowed so this does not retarget you (unlike typing /assist). Requires a real target.
+  if (have_target && setting_auto_refresh.get()) {
     const DWORD interval = std::max(5000, setting_refresh_interval_ms.get());
     if (now - last_poll_time >= interval) {
       last_poll_time = now;
@@ -149,12 +149,12 @@ void AssistTarget::CallbackRender() {
   }
 
   // Pick the freshest candidate from either source.
-  const DWORD window = static_cast<DWORD>(setting_window_ms.get());
   WORD candidate_id = 0;
   DWORD candidate_ts = 0;
+  if (have_target) {
+    const DWORD window = static_cast<DWORD>(setting_window_ms.get());
 
-  // Source A: damage inference (who my target last hit / who last hit my target).
-  {
+    // Source A: damage inference (who my target last hit / who last hit my target).
     auto &map = (setting_mode.get() == 1) ? hit_by : victim_of;
     auto it = map.find(target->SpawnId);
     if (it != map.end()) {
@@ -164,49 +164,63 @@ void AssistTarget::CallbackRender() {
         candidate_ts = it->second.timestamp_ms;
       }
     }
-  }
 
-  // Source B: authoritative OP_Assist response. Fresh for the damage window, or longer when
-  // auto-refresh is on so the bar stays up between polls.
-  if (assist_response_time != 0) {
-    const DWORD assist_window = setting_auto_refresh.get()
-                                    ? std::max(window, static_cast<DWORD>(setting_refresh_interval_ms.get()) + 5000)
-                                    : window;
-    const DWORD age = now - assist_response_time;
-    if (age <= assist_window && assist_response_time > candidate_ts) {
-      candidate_id = assist_response_id;
-      candidate_ts = assist_response_time;
+    // Source B: authoritative OP_Assist response. Fresh for the damage window, or longer when
+    // auto-refresh is on so the bar stays up between polls.
+    if (assist_response_time != 0) {
+      const DWORD assist_window = setting_auto_refresh.get()
+                                      ? std::max(window, static_cast<DWORD>(setting_refresh_interval_ms.get()) + 5000)
+                                      : window;
+      const DWORD age = now - assist_response_time;
+      if (age <= assist_window && assist_response_time > candidate_ts) {
+        candidate_id = assist_response_id;
+        candidate_ts = assist_response_time;
+      }
     }
   }
 
-  if (!candidate_id) return;
-
-  auto entity = Zeal::Game::get_entity_by_id(candidate_id);
-  if (!entity || entity->StructType != 0x03) return;
-  if (entity->Type == Zeal::GameEnums::NPCCorpse || entity->Type == Zeal::GameEnums::PlayerCorpse) return;
+  auto entity = (have_target && candidate_id) ? Zeal::Game::get_entity_by_id(candidate_id) : nullptr;
+  if (entity && (entity->StructType != 0x03 ||
+                 entity->Type == Zeal::GameEnums::NPCCorpse || entity->Type == Zeal::GameEnums::PlayerCorpse))
+    entity = nullptr;
 
   LoadBitmapFont();
   if (!bitmap_font || !bitmap_font->is_valid()) return;
 
-  int hp_percent = 0;
-  if (entity->HpMax > 0) hp_percent = static_cast<int>((float)entity->HpCurrent / entity->HpMax * 100.0f);
-  std::string full_text(entity->Name);
-  const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
-  full_text += healthbar;
+  // Always-visible bar: the label prefix tells the user what it is and where it lives. When no
+  // fresh candidate exists, a dim placeholder keeps the element in place (and still draggable).
+  const char *label = (setting_mode.get() == 1) ? "HitBy: " : "ToT: ";
+  std::string line1;
+  D3DCOLOR color = D3DCOLOR_XRGB(255, 255, 255);
+  if (entity) {
+    int hp_percent = 0;
+    if (entity->HpMax > 0) hp_percent = static_cast<int>((float)entity->HpCurrent / entity->HpMax * 100.0f);
+    bitmap_font->set_hp_percent(hp_percent);
+    line1 = std::string(label) + entity->Name;
+  } else {
+    color = D3DCOLOR_XRGB(160, 160, 160);  // Dim placeholder.
+    line1 = std::string(label) + "none";
+  }
 
-  bitmap_font->set_hp_percent(hp_percent);
+  const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
+  std::string full_text = line1;
+  if (entity) full_text += healthbar;  // Placeholder is a single text line.
+
   const float x = static_cast<float>(setting_position_left.get());
   const float y = static_cast<float>(setting_position_top.get());
-  bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, D3DCOLOR_XRGB(255, 255, 255));
+  bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
 
-  // Cache the drawn rect for click handling. measure_string() doesn't support multi-lines, so
-  // measure the name line only (same approach as raid_bars).
+  // Cache the drawn rect for click/drag handling. measure_string() doesn't support multi-lines,
+  // so measure line 1 only (same approach as raid_bars). The placeholder caches a rect too, so
+  // the empty bar can be dragged; clicking it does nothing (candidate_entity stays nullptr).
   candidate_entity = entity;
   candidate_x = x;
   candidate_y = y;
-  auto name_size = bitmap_font->measure_string(entity->Name);
-  candidate_width = std::max(name_size.x + 0.25f, stats_bar_width + 5.f);
-  candidate_height = std::max(bitmap_font->get_text_height(full_text) + 0.25f, stats_bar_height + 2.f);
+  auto line_size = bitmap_font->measure_string(line1.c_str());
+  const float bar_w = entity ? stats_bar_width + 5.f : 0.f;
+  const float bar_h = entity ? stats_bar_height + 2.f : 0.f;
+  candidate_width = std::max(line_size.x + 0.25f, bar_w);
+  candidate_height = std::max(bitmap_font->get_text_height(full_text) + 0.25f, bar_h);
 
   bitmap_font->flush_queue_to_screen();
 
