@@ -67,6 +67,7 @@ class ZealService {
   std::unique_ptr<class HelmManager> helm = nullptr;
 
   std::unique_ptr<class RaidBars> raid_bars = nullptr;
+  std::unique_ptr<class AssistTarget> assist_target = nullptr;  // Must construct after raid_bars (LMouseUp chain).
   std::unique_ptr<class Triggers> triggers = nullptr;
   std::unique_ptr<class TargetRing> target_ring = nullptr;
   std::unique_ptr<class FloatingDamage> floating_damage = nullptr;
