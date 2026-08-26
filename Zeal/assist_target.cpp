@@ -44,9 +44,9 @@ AssistTarget::AssistTarget(ZealService *zeal) {
             assist_response_id = pkt->entity_id;
             assist_response_time = now;
           }
-          if (now < suppress_until_ms) {
-            suppress_until_ms = 0;
-            return true;  // Swallow: skip the native retarget handling.
+          if (now < suppress_until_ms && pending_suppress_count > 0) {
+            --pending_suppress_count;
+            return true;  // Swallow: skip native retarget handling (bar already recorded above).
           }
         }
         return false;
@@ -78,7 +78,10 @@ void AssistTarget::Clean() {
   assist_response_id = 0;
   assist_response_time = 0;
   last_poll_time = 0;
+  pending_suppress_count = 0;
   suppress_until_ms = 0;
+  tracked_target_id = 0;
+  last_change_poll_time = 0;
   victim_of.clear();
   hit_by.clear();
   if (bitmap_font) {
@@ -119,13 +122,27 @@ void AssistTarget::FireAssistRequest(bool suppress_retarget) {
 
   const DWORD now = GetTickCount();
   if (suppress_retarget) {
-    suppress_until_ms = now + 5000;  // Swallow the next response silently.
+    ++pending_suppress_count;  // Each in-flight request owes us one swallowed response, so a
+    suppress_until_ms = now + 5000;  // double-pressed hotkey or poll+hotkey overlap can't leak
+                                    // through and retarget on the second answer.
   } else {
-    suppress_until_ms = 0;           // Manual refresh always behaves like typing /assist.
+    pending_suppress_count = 0;     // Manual refresh always behaves like typing /assist: its
+    suppress_until_ms = 0;          // response must reach native retarget handling.
   }
 
   auto do_assist_fn = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
   do_assist_fn(self, "");
+}
+
+// Display-only name cleanup: strip trailing digits (and any spaces left behind), so e.g.
+// "Ghorga123" or "Ghorga 123" draw as "Ghorga". Purely cosmetic - the click-to-target path
+// still uses the real entity pointer, and names made entirely of digits keep their original form.
+static std::string SanitizeDisplayName(const char *name) {
+  if (!name || !*name) return {};
+  std::string out(name);
+  while (!out.empty() && out.back() >= '0' && out.back() <= '9') out.pop_back();
+  while (!out.empty() && (out.back() == ' ')) out.pop_back();
+  return out.empty() ? std::string(name) : out;
 }
 
 void AssistTarget::CallbackRender() {
@@ -140,12 +157,35 @@ void AssistTarget::CallbackRender() {
 
   // Auto-refresh: poll the server for an authoritative answer at a fixed interval. Responses are
   // swallowed so this does not retarget you (unlike typing /assist). Requires a real target.
+  bool poll_fired_this_frame = false;
   if (have_target && setting_auto_refresh.get()) {
     const DWORD interval = std::max(5000, setting_refresh_interval_ms.get());
     if (now - last_poll_time >= interval) {
       last_poll_time = now;
       FireAssistRequest(true);
+      poll_fired_this_frame = true;
     }
+  }
+
+  // Target-change polling: retargeting invalidates Source B (that answer was about a DIFFERENT
+  // target), so clear it immediately - the bar shows "none" until a fresh response arrives rather
+  // than flashing a stale ToT. Then fire an immediate suppressed request for the new target so the
+  // ToT is authoritative within one server round-trip instead of waiting for damage or the next
+  // scheduled poll. A cooldown keeps rapid cycling (/ta, etc.) from spamming requests; skipped
+  // polls leave Source B cleared until something fresh arrives.
+  if (have_target) {
+    if (target->SpawnId != tracked_target_id) {
+      tracked_target_id = target->SpawnId;
+      assist_response_id = 0;
+      assist_response_time = 0;
+      if (!poll_fired_this_frame && now - last_change_poll_time >= kTargetChangePollCooldownMs) {
+        last_change_poll_time = now;
+        last_poll_time = now;  // Resync auto-refresh cadence so it does not double-poll.
+        FireAssistRequest(true);
+      }
+    }
+  } else {
+    tracked_target_id = 0;  // Self/no target: the next real retarget fires again from scratch.
   }
 
   // Pick the freshest candidate from either source.
@@ -196,7 +236,8 @@ void AssistTarget::CallbackRender() {
     int hp_percent = 0;
     if (entity->HpMax > 0) hp_percent = static_cast<int>((float)entity->HpCurrent / entity->HpMax * 100.0f);
     bitmap_font->set_hp_percent(hp_percent);
-    line1 = std::string(label) + entity->Name;
+    line1 = std::string(label) + SanitizeDisplayName(entity->Name);  // Cosmetic only: click-to-target
+                                                                     // uses the real entity pointer.
   } else {
     color = D3DCOLOR_XRGB(160, 160, 160);  // Dim placeholder.
     line1 = std::string(label) + "none";

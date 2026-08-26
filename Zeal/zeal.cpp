@@ -1058,7 +1058,8 @@ void ZealService::AddBinds() {
   binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target,
                        [this](int key_down) {
                          if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
-                           assist_target->FireAssistRequest(false);
+                           // Suppressed: updates the AssistBar ToT without switching your target.
+                           assist_target->FireAssistRequest(true);
                        });
 
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,

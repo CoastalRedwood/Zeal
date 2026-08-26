@@ -47,7 +47,8 @@ class AssistTarget {
 
   // Fires a synthetic /assist (client do_assist with empty name = current target).
   // suppress_retarget=true swallows the OP_Assist response so the client does not retarget you
-  // (used by auto-refresh polling). false behaves exactly like typing /assist.
+  // (used by auto-refresh polling and the AssistRefresh hotkey: bar updates, your target stays).
+  // false behaves exactly like typing /assist (the response retargets you to the assist entity).
   void FireAssistRequest(bool suppress_retarget);
 
  private:
@@ -78,7 +79,15 @@ class AssistTarget {
 
   // Auto-refresh polling state.
   DWORD last_poll_time = 0;
-  DWORD suppress_until_ms = 0;  // While now < this, swallow OP_Assist responses (silent poll).
+  DWORD suppress_until_ms = 0;    // While now < this AND pending count > 0, swallow OP_Assist responses.
+  int pending_suppress_count = 0; // In-flight suppressed requests still owed a swallowed response.
+
+  // Target-change polling: an immediate suppressed request fires whenever the target changes so
+  // the ToT is authoritative within one server round-trip of each retarget (see CallbackRender).
+  WORD tracked_target_id = 0;      // Spawn id last polled for (0 = none / not self).
+  DWORD last_change_poll_time = 0; // Timestamp of the last target-change poll.
+  static constexpr DWORD kTargetChangePollCooldownMs = 2000;  // Rate limit so rapid cycling
+                                                              // (e.g. /ta) does not spam requests.
 
   // Cached from the last render for click handling (nullptr when nothing is drawn).
   Zeal::GameStructures::Entity *candidate_entity = nullptr;
