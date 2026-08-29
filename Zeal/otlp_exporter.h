@@ -166,10 +166,15 @@ class OtlpExporter {
   };
 
   std::mutex metrics_mutex;
-  // {source, source_type, direction, type, zone, target, group_leader} -> running total.
+  // {source, source_type, direction, type, zone, target, group_leader, pet} -> running total.
   // The group is part of the key rather than stamped on at export time so damage stays attributed to
   // the group it was dealt in, even if the player regroups before the next flush.
-  std::map<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string>,
+  //
+  // So is the pet, and for a blunter reason: without it every pet's damage collapsed into its
+  // owner's row and the pet name was lost on export. An enchanter's whole output arrives through
+  // charmed pets, so the attribute that says which one is not decoration.
+  std::map<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string,
+                      std::string>,
            CombatTotal>
       combat_damage;
   // {source, direction(outgoing=done, incoming=received), zone, group_leader} -> total hitpoints.

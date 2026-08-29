@@ -255,9 +255,18 @@ OtlpExporter::OtlpExporter(ZealService *zeal) {
     std::string pet_name;  // kept alongside the owner rather than replaced by it
     if (attacker->PetOwnerSpawnId != 0) {  // credit a pet's damage to its owner (charmed or summoned)
       auto *owner = ZealService::get_instance()->entity_manager->Get(attacker->PetOwnerSpawnId);
+      Zeal::GameStructures::Entity *self = Zeal::Game::get_self();
       if (owner) {
         pet_name = attacker->Name;
         attacker = owner;
+      } else if (self && attacker->PetOwnerSpawnId == self->SpawnId) {
+        // The entity list did not resolve the owner, but the id says it is us, and that is enough.
+        // Depending on the lookup lost charm damage in exactly the moments an enchanter cares
+        // about: a pet whose owner has left the list, or a hit arriving as the charm breaks. The
+        // damage then kept the mob as its attacker, became source_type=npc, and was dropped
+        // wholesale by scope=self - so it went missing rather than being misattributed.
+        pet_name = attacker->Name;
+        attacker = self;
       }
     }
     std::string src = attacker->Name;
@@ -860,7 +869,7 @@ void OtlpExporter::record_combat_damage(const std::string &source, const std::st
   zeal::instrumentation::RecordDamage(source, source_type, direction, type, zone, target, group, pet, amount);
 #else
   std::lock_guard<std::mutex> lock(metrics_mutex);
-  CombatTotal &entry = combat_damage[{source, source_type, direction, type, zone, target, group}];
+  CombatTotal &entry = combat_damage[{source, source_type, direction, type, zone, target, group, pet}];
   entry.total += amount;
   entry.last_ms = GetTickCount64();
 #endif
@@ -1108,6 +1117,10 @@ std::string OtlpExporter::build_metrics_payload() {
       // Prometheus, which keeps solo play out of every group-scoped query.
       if (!std::get<6>(key).empty())
         attrs.push_back(string_attr(everquest_semconv::kEverquestGroupLeader, std::get<6>(key)));
+      // Same rule for the pet: present only when the damage came through one, so a query can ask
+      // for a player's total and get pet damage included, or split it out by this label.
+      if (!std::get<7>(key).empty())
+        attrs.push_back(string_attr(everquest_semconv::kEverquestCombatPetName, std::get<7>(key)));
       data_points.push_back({{"attributes", attrs},
                              {"startTimeUnixNano", start},
                              {"timeUnixNano", now},
