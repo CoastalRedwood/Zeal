@@ -180,6 +180,15 @@
     <ClInclude Include="otlp_exporter.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
+    <ClInclude Include="otlp_client.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
+    <ClInclude Include="telemetry.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
+    <ClInclude Include="instrumentation.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
     <ClInclude Include="everquest_semconv.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
@@ -429,6 +438,18 @@
       <Filter>Source Files\other</Filter>
     </ClCompile>
     <ClCompile Include="otlp_exporter.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="otlp_client.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="telemetry.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="instrumentation.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\spike\winhttp-client\winhttp_client.cpp">
       <Filter>Source Files\other</Filter>
     </ClCompile>
     <ClCompile Include="physics.cpp">

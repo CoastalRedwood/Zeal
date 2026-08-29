@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 // Declare a single function from game_functions.h to avoid pulling in too many headers.
 namespace Zeal::Game {
@@ -63,15 +64,27 @@ class IO_ini {
 
   template <typename T>
   T getValue(std::string section, std::string key) const {
-    char buffer[256];
-    DWORD bytesRead =
-        GetPrivateProfileStringA(section.c_str(), key.c_str(), "", buffer, sizeof(buffer), filename.c_str());
+    // Grows until the value fits. GetPrivateProfileStringA does not report that it truncated - it
+    // just returns nSize-1 and hands back a short string - so a fixed buffer silently corrupts any
+    // setting longer than it. The 256-byte one here turned a 300-character sealed OTLP token into
+    // 255 characters of unparseable base64, and the token read back as "not set" with nothing
+    // logged anywhere.
+    std::vector<char> buffer(256);
+    DWORD bytesRead = 0;
+    for (;;) {
+      bytesRead = GetPrivateProfileStringA(section.c_str(), key.c_str(), "", buffer.data(),
+                                           static_cast<DWORD>(buffer.size()), filename.c_str());
+      // Short of the cap means the whole value came back.
+      if (bytesRead < buffer.size() - 1) break;
+      if (buffer.size() >= (1u << 16)) break;  // 64 KB: no ini setting is this long, stop growing
+      buffer.resize(buffer.size() * 2);
+    }
 
     if (bytesRead == 0) {
       return T{};
     }
-    if constexpr (std::is_same_v<T, std::string>) return buffer;
-    return convertFromString<T>(std::string(buffer));
+    if constexpr (std::is_same_v<T, std::string>) return std::string(buffer.data(), bytesRead);
+    return convertFromString<T>(std::string(buffer.data(), bytesRead));
   }
 
   template <typename T>

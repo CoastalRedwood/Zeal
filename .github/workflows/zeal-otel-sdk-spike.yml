@@ -1,0 +1,181 @@
+# Spike: link the OpenTelemetry C++ SDK into Zeal itself, over the WinHTTP transport.
+#
+# spike/otel-winhttp proved the SDK builds for x86 with curl off and a WinHTTP client supplied. That
+# was a standalone executable. This asks the harder question: does it link into the injected game
+# DLL - 32-bit, static CRT, alongside a 2003 d3dx8.lib - and produce a loadable Zeal.asi?
+#
+# Everything must be /MT here: Zeal is MultiThreaded, so the -md triplet used by the standalone
+# spike would fail on the CRT before anything interesting happened.
+name: OTel SDK build
+
+on:
+  pull_request:
+    paths:
+      - 'Zeal/telemetry.*'
+      - 'Zeal/instrumentation.*'
+      - 'Zeal/otlp_*'
+      - 'Zeal/Zeal.vcxproj'
+      - 'spike/**'
+      - '.github/workflows/zeal-otel-sdk-spike.yml'
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    env:
+      OTEL_CPP_VERSION: v1.28.0
+      TRIPLET: x86-windows-static   # static CRT (/MT), unlike the -md triplet used standalone
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: microsoft/setup-msbuild@v3
+
+      # The SDK build is ~25 minutes and depends only on the pinned version and triplet, while the
+      # interesting failures are all in the Zeal link that follows it. Cache it so iterating on the
+      # link costs minutes rather than half-hours.
+      - name: Restore the built SDK
+        id: sdk-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/otel-install
+            C:/vcpkg/installed/x86-windows-static
+          key: otel-${{ env.OTEL_CPP_VERSION }}-${{ env.TRIPLET }}-mt-v1
+
+      - name: Fetch opentelemetry-cpp
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch $env:OTEL_CPP_VERSION --recurse-submodules `
+            https://github.com/open-telemetry/opentelemetry-cpp.git (Join-Path $env:RUNNER_TEMP 'otel-cpp')
+
+      - name: protobuf and abseil with the static CRT, no zlib
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install "protobuf:$env:TRIPLET" "abseil:$env:TRIPLET"
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg install failed" }
+
+      - name: Point the build at the SDK (cached or freshly built)
+        shell: pwsh
+        run: |
+          echo "VCPKG_INSTALL=$env:VCPKG_INSTALLATION_ROOT\installed\$env:TRIPLET" >> $env:GITHUB_ENV
+          echo "OTEL_INSTALL=$(Join-Path $env:RUNNER_TEMP 'otel-install')" >> $env:GITHUB_ENV
+
+      - name: Build the SDK (x86, /MT, curl off)
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $src = Join-Path $env:RUNNER_TEMP 'otel-cpp'
+          $bld = Join-Path $env:RUNNER_TEMP 'otel-build'
+          $inst = Join-Path $env:RUNNER_TEMP 'otel-install'
+          $args = @(
+            '-S', $src, '-B', $bld, '-G', 'Visual Studio 17 2022', '-A', 'Win32',
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake",
+            "-DVCPKG_TARGET_TRIPLET=$env:TRIPLET",
+            "-DCMAKE_INSTALL_PREFIX=$inst",
+            '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',   # match Zeal's /MT
+            '-DWITH_OTLP_HTTP=ON', '-DWITH_HTTP_CLIENT_CURL=OFF', '-DWITH_OTLP_GRPC=OFF',
+            '-DWITH_EXAMPLES=OFF', '-DBUILD_TESTING=OFF', '-DWITH_BENCHMARK=OFF',
+            '-DWITH_FUNC_TESTS=OFF', '-DOPENTELEMETRY_INSTALL=ON', '-DWITH_ABSEIL=ON'
+          )
+          & cmake @args
+          if ($LASTEXITCODE -ne 0) { throw "configure failed" }
+          $cache = Join-Path $bld 'CMakeCache.txt'
+          $curl = (Select-String -Path $cache -Pattern '^WITH_HTTP_CLIENT_CURL:').Line
+          if ($curl -notmatch '=OFF') { throw "curl still on: $curl" }
+          Write-Host "  $curl"
+          & cmake --build $bld --config Release --target install -- /m
+          if ($LASTEXITCODE -ne 0) { throw "SDK build failed" }
+
+      # cache@v4 only saves on success, and every failure so far has been in the link that follows -
+      # so the 25-minute SDK build was repeated each time. Save it as soon as it exists.
+      - name: Save the SDK to cache
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ runner.temp }}/otel-install
+            C:/vcpkg/installed/x86-windows-static
+          key: otel-${{ env.OTEL_CPP_VERSION }}-${{ env.TRIPLET }}-mt-v1
+
+      # The in-game crash happened under Wine, while this same transport passes on real Windows.
+      # Publishing the standalone test lets the Wine path be reproduced outside the game, instead of
+      # costing a player their session each time.
+      - name: Build the standalone smoke test (x86, /MT) for Wine testing
+        shell: pwsh
+        run: |
+          $bld = Join-Path $env:RUNNER_TEMP 'spike-x86'
+          # protoc is a host tool: vcpkg keeps it in the x64 tree, which the cache (x86 static only)
+          # does not carry. Only find_package needs it - the Zeal link uses prebuilt archives.
+          $protoc = Get-ChildItem 'C:\\vcpkg\\installed' -Recurse -Filter protoc.exe -ErrorAction SilentlyContinue |
+                    Select-Object -First 1
+          if (-not $protoc) {
+            & "$env:VCPKG_INSTALLATION_ROOT\\vcpkg.exe" install protobuf
+            $protoc = Get-ChildItem 'C:\\vcpkg\\installed' -Recurse -Filter protoc.exe -ErrorAction SilentlyContinue |
+                      Select-Object -First 1
+          }
+          if (-not $protoc) { throw "no protoc.exe found" }
+          Write-Host "protoc: $($protoc.FullName)"
+          $cargs = @(
+            "-DProtobuf_PROTOC_EXECUTABLE=$($protoc.FullName)",
+            '-S', '.\\spike\\winhttp-client', '-B', $bld, '-G', 'Visual Studio 17 2022', '-A', 'Win32',
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake",
+            "-DVCPKG_TARGET_TRIPLET=$env:TRIPLET",
+            "-DCMAKE_PREFIX_PATH=$env:OTEL_INSTALL",
+            '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'
+          )
+          & cmake @cargs
+          if ($LASTEXITCODE -ne 0) { throw "smoke test configure failed" }
+          & cmake --build $bld --config Release
+          if ($LASTEXITCODE -ne 0) { throw "smoke test build failed" }
+          $exe = Get-ChildItem $bld -Recurse -Filter smoke_test.exe | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path .\\smoke-out | Out-Null
+          Copy-Item $exe.FullName .\\smoke-out\\
+          Write-Host "smoke_test.exe: $([math]::Round($exe.Length/1MB,2)) MB"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: winhttp-smoke-x86
+          path: smoke-out/smoke_test.exe
+
+      - name: Build Zeal with the SDK linked in
+        shell: pwsh
+        run: |
+          # Write the archive list to a props file the project imports. Passing it via /p: meant
+          # MSBuild split it on ';' and fed the linker a junk input; a file avoids that entirely.
+          $otel = (Get-ChildItem "$env:OTEL_INSTALL\lib" -Filter *.lib | ForEach-Object { $_.Name })
+          $vcpkg = (Get-ChildItem "$env:VCPKG_INSTALL\lib" -Filter *.lib | ForEach-Object { $_.Name })
+          Write-Host "linking $($otel.Count) SDK archives and $($vcpkg.Count) vcpkg archives"
+          $libs = (($otel + $vcpkg) -join ';')
+          $xml = '<?xml version="1.0" encoding="utf-8"?><Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+                 '<PropertyGroup><OTEL_LIBS>' + $libs + ';</OTEL_LIBS></PropertyGroup></Project>'
+          Set-Content -Path .\spike\zeal-sdk\otel_libs.generated.props -Value $xml -Encoding UTF8
+
+          # The real question: does all of this link into a 32-bit /MT DLL that already carries
+          # d3dx8.lib? Failure here is the answer, whatever it says.
+          $env:ZEAL_OTEL_SDK = '1'
+          & msbuild /m /p:Configuration=Release /p:Platform=x86 /p:LanguageStandard=stdcpp20 `
+            /p:ZEAL_OTEL_SDK=1 /p:OTEL_INSTALL="$env:OTEL_INSTALL" /p:VCPKG_INSTALL="$env:VCPKG_INSTALL" `
+            /p:ExportHeader="" /p:ScanDependencies="" .\Zeal.sln
+          if ($LASTEXITCODE -ne 0) { throw "Zeal build with the SDK failed" }
+
+      - name: Report what it costs
+        shell: pwsh
+        run: |
+          $asi = Get-Item .\Release\Zeal.asi
+          $mb = [math]::Round($asi.Length / 1MB, 2)
+          Write-Host "Zeal.asi with the SDK: $mb MB"
+          Write-Host "(the shipping hand-rolled build is about 11.2 MB - the difference is the"
+          Write-Host " decision this spike exists to inform)"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: zeal-otel-sdk-winhttp
+          path: |
+            Release/Zeal.asi
+            Release/Zeal.pdb

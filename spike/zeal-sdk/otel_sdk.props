@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Imported by Zeal.vcxproj only when ZEAL_OTEL_SDK=1, so the shipping build never sees it.
+     Everything here must be /MT to match Zeal's <RuntimeLibrary>MultiThreaded</RuntimeLibrary>;
+     the earlier spike used a -md triplet and would have failed to link on the CRT alone. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- The 119 archive names are written to a generated props by the workflow rather than passed on
+       the command line: MSBuild treats ';' in a /p: value as an argument separator, and escaping it
+       corrupted the link inputs. A file has no such quoting layer. -->
+  <Import Project="$(SolutionDir)spike\zeal-sdk\otel_libs.generated.props"
+          Condition="Exists('$(SolutionDir)spike\zeal-sdk\otel_libs.generated.props')" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(OTEL_INSTALL)\include;$(VCPKG_INSTALL)\include;$(SolutionDir)spike\winhttp-client;$(SolutionDir)spike\zeal-sdk;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZEAL_OTEL_SDK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(OTEL_INSTALL)\lib;$(VCPKG_INSTALL)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(OTEL_LIBS)winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

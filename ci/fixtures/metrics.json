@@ -1,25 +1,333 @@
-{"resourceMetrics":[{"resource":{"attributes":[
- {"key":"service.name","value":{"stringValue":"everquest"}},
- {"key":"service.instance.id","value":{"stringValue":"Controels"}},
- {"key":"everquest.character.class","value":{"stringValue":"Bard"}},
- {"key":"everquest.character.level","value":{"intValue":"60"}}]},
- "scopeMetrics":[{"scope":{"name":"zeal","version":"1.4.5"},"metrics":[
-  {"name":"everquest.combat.damage","unit":"{hitpoint}","sum":{"dataPoints":[{"attributes":[
-    {"key":"everquest.combat.source","value":{"stringValue":"Controels"}},
-    {"key":"everquest.combat.source_type","value":{"stringValue":"player"}},
-    {"key":"everquest.combat.direction","value":{"stringValue":"outgoing"}},
-    {"key":"everquest.combat.damage.type","value":{"stringValue":"slash"}},
-    {"key":"everquest.zone.name","value":{"stringValue":"Dawnshroud Peaks"}},
-    {"key":"everquest.combat.target","value":{"stringValue":"a_temple_guard00"}}],
-    "startTimeUnixNano":"1785540000000000000","timeUnixNano":"1785540000000000000","asInt":"1234"}],
-    "aggregationTemporality":2,"isMonotonic":true}},
-  {"name":"everquest.combat.heal","unit":"{hitpoint}","sum":{"dataPoints":[{"attributes":[
-    {"key":"everquest.combat.source","value":{"stringValue":"Controels"}},
-    {"key":"everquest.combat.direction","value":{"stringValue":"outgoing"}},
-    {"key":"everquest.zone.name","value":{"stringValue":"Dawnshroud Peaks"}}],
-    "startTimeUnixNano":"1785540000000000000","timeUnixNano":"1785540000000000000","asInt":"500"}],
-    "aggregationTemporality":2,"isMonotonic":true}},
-  {"name":"everquest.character.attack","unit":"1","gauge":{"dataPoints":[{"timeUnixNano":"1785540000000000000","asInt":"1280",
-    "attributes":[{"key":"everquest.zone.name","value":{"stringValue":"Dawnshroud Peaks"}}]}]}},
-  {"name":"everquest.character.haste","unit":"%","gauge":{"dataPoints":[{"timeUnixNano":"1785540000000000000","asInt":"91",
-    "attributes":[{"key":"everquest.zone.name","value":{"stringValue":"Dawnshroud Peaks"}}]}]}}]}]}]}
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "everquest"
+            }
+          },
+          {
+            "key": "service.instance.id",
+            "value": {
+              "stringValue": "Controels"
+            }
+          },
+          {
+            "key": "everquest.character.class",
+            "value": {
+              "stringValue": "Bard"
+            }
+          },
+          {
+            "key": "everquest.character.level",
+            "value": {
+              "intValue": "60"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "zeal",
+            "version": "1.4.5"
+          },
+          "metrics": [
+            {
+              "name": "everquest.combat.damage",
+              "unit": "{hitpoint}",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.combat.source",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.source_type",
+                        "value": {
+                          "stringValue": "player"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.direction",
+                        "value": {
+                          "stringValue": "outgoing"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.damage.type",
+                        "value": {
+                          "stringValue": "slash"
+                        }
+                      },
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.target",
+                        "value": {
+                          "stringValue": "a_temple_guard00"
+                        }
+                      },
+                      {
+                        "key": "everquest.group.leader",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1785540000000000000",
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1234"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.combat.source",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.source_type",
+                        "value": {
+                          "stringValue": "player"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.direction",
+                        "value": {
+                          "stringValue": "outgoing"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.damage.type",
+                        "value": {
+                          "stringValue": "damage_shield"
+                        }
+                      },
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.target",
+                        "value": {
+                          "stringValue": "a_temple_guard00"
+                        }
+                      },
+                      {
+                        "key": "everquest.group.leader",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1785540000000000000",
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "37"
+                  }
+                ],
+                "aggregationTemporality": 2,
+                "isMonotonic": true
+              }
+            },
+            {
+              "name": "everquest.combat.heal",
+              "unit": "{hitpoint}",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.combat.source",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.combat.direction",
+                        "value": {
+                          "stringValue": "outgoing"
+                        }
+                      },
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      },
+                      {
+                        "key": "everquest.group.leader",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1785540000000000000",
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "500"
+                  }
+                ],
+                "aggregationTemporality": 2,
+                "isMonotonic": true
+              }
+            },
+            {
+              "name": "everquest.character.attack",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1280",
+                    "attributes": [
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "everquest.character.haste",
+              "unit": "%",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "91",
+                    "attributes": [
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "everquest.group.member",
+              "unit": "{member}",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.group.leader",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.character.name",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1785540000000000000",
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.group.leader",
+                        "value": {
+                          "stringValue": "Controels"
+                        }
+                      },
+                      {
+                        "key": "everquest.character.name",
+                        "value": {
+                          "stringValue": "Zigzap"
+                        }
+                      },
+                      {
+                        "key": "everquest.zone.name",
+                        "value": {
+                          "stringValue": "Dawnshroud Peaks"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1785540000000000000",
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1"
+                  }
+                ],
+                "aggregationTemporality": 2,
+                "isMonotonic": false
+              }
+            },
+            {
+              "name": "everquest.raid.lockout.expiry",
+              "unit": "s",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.raid.target",
+                        "value": {
+                          "stringValue": "Prince Selrach Di`zok"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1785700000"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "everquest.raid.kill.timestamp",
+              "unit": "s",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "everquest.raid.target",
+                        "value": {
+                          "stringValue": "Prince Selrach Di`zok"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1785540000000000000",
+                    "asInt": "1785635200"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

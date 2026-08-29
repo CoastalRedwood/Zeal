@@ -22,6 +22,8 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <!-- Opt-in: imported only when ZEAL_OTEL_SDK=1, so the default build is untouched. -->
+  <Import Project="$(SolutionDir)spike\zeal-sdk\otel_sdk.props" Condition="'$(ZEAL_OTEL_SDK)'=='1'" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
@@ -60,7 +62,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>winmm.lib;Dbghelp.lib;winhttp.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;Dbghelp.lib;winhttp.lib;crypt32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
@@ -104,6 +106,9 @@
     <ClInclude Include="everquest_semconv.h" />
     <ClInclude Include="npc_give.h" />
     <ClInclude Include="otlp_exporter.h" />
+    <ClInclude Include="otlp_client.h" />
+    <ClInclude Include="telemetry.h" />
+    <ClInclude Include="instrumentation.h" />
     <ClInclude Include="page10_binds.h" />
     <ClInclude Include="patches.h" />
     <ClInclude Include="physics.h" />
@@ -191,6 +196,10 @@
     <ClCompile Include="nameplate.cpp" />
     <ClCompile Include="npc_give.cpp" />
     <ClCompile Include="otlp_exporter.cpp" />
+    <ClCompile Include="otlp_client.cpp" />
+    <ClCompile Include="telemetry.cpp" Condition="'$(ZEAL_OTEL_SDK)'=='1'" />
+    <ClCompile Include="instrumentation.cpp" Condition="'$(ZEAL_OTEL_SDK)'=='1'" />
+    <ClCompile Include="..\spike\winhttp-client\winhttp_client.cpp" Condition="'$(ZEAL_OTEL_SDK)'=='1'" />
     <ClCompile Include="page10_binds.cpp" />
     <ClCompile Include="patches.cpp" />
     <ClCompile Include="physics.cpp" />

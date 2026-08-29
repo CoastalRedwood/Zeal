@@ -19,13 +19,15 @@ inline constexpr const char *kEverquestCharacterLevel = "everquest.character.lev
 
 inline constexpr const char *kEverquestCharacterName = "everquest.character.name";
 
-inline constexpr const char *kEverquestCharacterStat = "everquest.character.stat";
+inline constexpr const char *kEverquestCharacterStatName = "everquest.character.stat.name";
 
 inline constexpr const char *kEverquestChatColor = "everquest.chat.color";
 
 inline constexpr const char *kEverquestCombatDamageType = "everquest.combat.damage.type";
 
 inline constexpr const char *kEverquestCombatDirection = "everquest.combat.direction";
+
+inline constexpr const char *kEverquestCombatPetName = "everquest.combat.pet.name";
 
 inline constexpr const char *kEverquestCombatSource = "everquest.combat.source";
 
@@ -41,6 +43,16 @@ inline constexpr const char *kEverquestFightDamageTaken = "everquest.fight.damag
 
 inline constexpr const char *kEverquestFightOutcome = "everquest.fight.outcome";
 
+inline constexpr const char *kEverquestGroupLeader = "everquest.group.leader";
+
+inline constexpr const char *kEverquestHealCasterManaPercent = "everquest.heal.caster.mana.percent";
+
+inline constexpr const char *kEverquestHealChainHandoffMs = "everquest.heal.chain.handoff.ms";
+
+inline constexpr const char *kEverquestHealChainPosition = "everquest.heal.chain.position";
+
+inline constexpr const char *kEverquestRaidTarget = "everquest.raid.target";
+
 inline constexpr const char *kEverquestSpellName = "everquest.spell.name";
 
 inline constexpr const char *kEverquestZoneId = "everquest.zone.id";
@@ -54,9 +66,21 @@ inline constexpr const char *kEverquestCharacterAttackMetric = "everquest.charac
 
 inline constexpr const char *kEverquestCharacterHasteMetric = "everquest.character.haste";
 
+inline constexpr const char *kEverquestCharacterStatMetric = "everquest.character.stat";
+
 inline constexpr const char *kEverquestCombatDamageMetric = "everquest.combat.damage";
 
 inline constexpr const char *kEverquestCombatHealMetric = "everquest.combat.heal";
+
+inline constexpr const char *kEverquestFightActiveMetric = "everquest.fight.active";
+
+inline constexpr const char *kEverquestFightDurationMetric = "everquest.fight.duration";
+
+inline constexpr const char *kEverquestGroupMemberMetric = "everquest.group.member";
+
+inline constexpr const char *kEverquestRaidKillTimestampMetric = "everquest.raid.kill.timestamp";
+
+inline constexpr const char *kEverquestRaidLockoutExpiryMetric = "everquest.raid.lockout.expiry";
 
 
 }  // namespace everquest_semconv
