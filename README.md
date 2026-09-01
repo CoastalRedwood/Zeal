@@ -797,6 +797,19 @@ ___
 - Zeal supports creating a namedpipe for streaming game updates to third party applications
 - C# example: https://github.com/OkieDan/ZealPipes
 
+#### Spawn ids
+Messages that describe an entity carry that entity's spawn id, so a consumer can
+key on a stable identity instead of a display name. This matters because spawns
+of the same type share an identical name (`an orc warrior`), and the gauge
+stream describes a target or pet with only a name and an HP per-mille value.
+
+- `raid` (type 5) and `group` (type 6) members each carry `spawn_id`
+- the `player` message carries `spawn_id` for yourself, plus:
+  - `target_id` - the spawn id of your current target
+  - `pet_id` - the spawn id of your pet
+
+`target_id` and `pet_id` are omitted entirely when there is no target or no pet.
+
 ---
 ### Tick Timer
 
