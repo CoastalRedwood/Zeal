@@ -1,4 +1,5 @@
 #include "item_display.h"
+#include "mouseover_display.h"
 
 #include <algorithm>
 #include <array>
@@ -48,6 +49,7 @@ void ItemDisplay::InitUI() {
         reinterpret_cast<void(__fastcall *)(Zeal::GameUI::ItemDisplayWnd *, int unused)>(vtable->LoadIniInfo);
     load_ini(new_wnd, 0);
   }
+  mouseover_init_ui();
 }
 
 // Returns a window to display the item or spell (use nullptr) in.
@@ -62,7 +64,10 @@ Zeal::GameUI::ItemDisplayWnd *ItemDisplay::get_available_window(Zeal::GameStruct
   for (auto &w : windows) {
     if (!w->IsVisible) return w;
   }
-  return windows.back();
+  // Avoid handing out the last window, it's reserved for the mouseover tooltip (see mouseover_init_ui)
+  if (windows.size() >= 2) return windows[windows.size() - 2];
+  else if (!windows.empty()) return windows[0];
+  return nullptr;
 }
 
 bool ItemDisplay::close_latest_window() {
@@ -622,7 +627,7 @@ static void ApplyMealTime(Zeal::GameStructures::_GAMEITEMINFO *item, std::string
 }
 
 // Generate our customized item description text.
-static void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStructures::_GAMEITEMINFO *item) {
+void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStructures::_GAMEITEMINFO *item) {
   if (!item || wnd->DisplayText.Data == nullptr) return;
 
   // Split the existing text into separate lines, release it, and then update line by line.
@@ -648,6 +653,8 @@ static void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStruc
 void __fastcall SetItem(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, Zeal::GameStructures::_GAMEITEMINFO *item,
                         bool show) {
   ZealService::get_instance()->hooks->hook_map["SetItem"]->original(SetItem)(wnd, unused, item, show);
+
+  if (mouseover_in_set_item()) return;
 
   if (ZealService::get_instance() && ZealService::get_instance()->item_displays)
     ZealService::get_instance()->item_displays->add_to_cache(item);
@@ -698,7 +705,7 @@ static std::string get_target_type_string(int target_type) {
   return std::string("Target: ") + std::string(type);
 }
 
-static void UpdateSetSpellText(Zeal::GameUI::ItemDisplayWnd *wnd, int spell_id, bool buff) {
+void UpdateSetSpellText(Zeal::GameUI::ItemDisplayWnd *wnd, int spell_id, bool buff) {
   if (UpdateSetSpellTextEnhanced(wnd, spell_id, buff)) return;
 
   auto *spell_mgr = Zeal::Game::get_spell_mgr();
@@ -732,6 +739,8 @@ void __fastcall SetSpell(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, int spel
 }
 
 void ItemDisplay::CleanUI() {
+  mouseover_clean_ui();
+
   for (auto &w : windows) {
     if (w) {
       if (w->IsVisible)  // Should never happen.
@@ -750,13 +759,19 @@ void ItemDisplay::DeactivateUI() {
   for (auto &w : windows) {
     if (w && w->IsVisible) w->Deactivate();  // Calls show(0) and clears IsActivated.
   }
+  mouseover_deactivate_ui();
 }
 
 // Response handler for OP_LinkRequest that calls SetItem and Activate().
 void __cdecl msg_request_inspect_item(Zeal::GameStructures::_GAMEITEMINFO *item) {
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;  // Cache the default.
-  Zeal::Game::Windows->ItemWnd = ZealService::get_instance()->item_displays->get_available_window(item);
-  if (Zeal::Game::Windows->ItemWnd->IsVisible) Zeal::Game::Windows->ItemWnd->Deactivate();  // Avoid double activation.
+  auto *wnd = ZealService::get_instance()->item_displays->get_available_window(item);
+  if (!wnd) {
+    ZealService::get_instance()->hooks->hook_map["msg_request_inspect_item"]->original(msg_request_inspect_item)(item);
+    return;
+  }
+  Zeal::Game::Windows->ItemWnd = wnd;
+  if (Zeal::Game::Windows->ItemWnd->IsVisible) Zeal::Game::Windows->ItemWnd->Deactivate();   // Avoid double activation.
 
   ZealService::get_instance()->hooks->hook_map["msg_request_inspect_item"]->original(msg_request_inspect_item)(item);
   Zeal::Game::Windows->ItemWnd = default_item_display_wnd;  // Restore.
@@ -767,10 +782,14 @@ static int __fastcall InvSlotWnd_HandleLButtonUp(Zeal::GameUI::InvSlotWnd *wnd, 
                                                  int mouse_y, unsigned int flags) {
   // If there is an item, modify the ItemWnd global pointer to point to one of our windows.
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
-  if (wnd->IsActive && wnd->invSlot && wnd->invSlot->Item)
-    Zeal::Game::Windows->ItemWnd = ZealService::get_instance()->item_displays->get_available_window(wnd->invSlot->Item);
 
-  if (Zeal::Game::Windows->ItemWnd->IsVisible) Zeal::Game::Windows->ItemWnd->Deactivate();  // Avoid double activation.
+  if (wnd->IsActive && wnd->invSlot && wnd->invSlot->Item) {
+    auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window(wnd->invSlot->Item);
+    if (display_wnd && display_wnd != mouseover_get_wnd()) Zeal::Game::Windows->ItemWnd = display_wnd;
+  }
+
+  if (Zeal::Game::Windows->ItemWnd && Zeal::Game::Windows->ItemWnd->IsVisible)
+    Zeal::Game::Windows->ItemWnd->Deactivate();  // Avoid double activation.
 
   int result = wnd->HandleLButtonUp(mouse_x, mouse_y, flags);
 
@@ -786,12 +805,12 @@ static int __fastcall CastSpellWnd_WndNotification(Zeal::GameUI::CastSpellWnd *w
 
   // Temporarily modify the ItemWnd global pointer to point to one of our windows.
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
-  Zeal::Game::Windows->ItemWnd = ZealService::get_instance()->item_displays->get_available_window();
+  auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window();
+  if (!display_wnd) return 0;
 
+  Zeal::Game::Windows->ItemWnd = display_wnd;
   // The HandleSpellInfoDisplay() will toggle off a visible window, so deactivate it if needed.
-  if (Zeal::Game::Windows->ItemWnd->IsVisible) Zeal::Game::Windows->ItemWnd->Deactivate();
-
-  // Invoke CCastSpellWnd::HandleSpellInfoDisplay() which calls SetSpell() and activates.
+  if (display_wnd->IsVisible) display_wnd->Deactivate();
   wnd->HandleSpellInfoDisplay(src_wnd);
 
   Zeal::Game::Windows->ItemWnd = default_item_display_wnd;
@@ -806,10 +825,13 @@ static int __fastcall SpellBookWnd_WndNotification(Zeal::GameUI::SpellBookWnd *w
 
   // Temporarily modify the ItemWnd global pointer to point to one of our windows.
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
-  Zeal::Game::Windows->ItemWnd = ZealService::get_instance()->item_displays->get_available_window();
+  auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window();
+
+  if (!display_wnd) return 0;
+  Zeal::Game::Windows->ItemWnd = display_wnd;
 
   // The DisplaySpellInfo() will toggle off a visible window, so deactivate it if needed.
-  if (Zeal::Game::Windows->ItemWnd->IsVisible) Zeal::Game::Windows->ItemWnd->Deactivate();
+  if (display_wnd->IsVisible) display_wnd->Deactivate();
 
   // Invoke CSpellBookWnd::DisplaySpellInfo() which calls SetSpell() and activates.
   wnd->DisplaySpellInfo(src_wnd);
@@ -828,6 +850,15 @@ ItemDisplay::ItemDisplay(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { DeactivateUI(); }, callback_type::DeactivateUI);
+  zeal->callbacks->AddGeneric(
+      [this]() {
+        if (!windows.empty()) {
+          // Zoning: CleanUI/InitUI won't fire, so manually re-run mouseover hooks.
+          mouseover_clean_ui();
+          mouseover_init_ui();
+        }
+      },
+      callback_type::EnterZone);
 
   // Modify the Alt + Left Mouse click SetItem() related callback of CInvSlotWnd.
   auto *inv_slot_wnd_vtable = Zeal::GameUI::InvSlotWnd::default_vtable;
@@ -846,6 +877,9 @@ ItemDisplay::ItemDisplay(ZealService *zeal) {
   mem::unprotect_memory(spell_book_wnd_vtable, sizeof(*spell_book_wnd_vtable));
   spell_book_wnd_vtable->WndNotification = SpellBookWnd_WndNotification;
   mem::reset_memory_protection(spell_book_wnd_vtable);
+
+  // Mouseover hooks (HandleMouseMove on InvSlotWnd, SpellGemWnd, ButtonWnd).
+  mouseover_init_hooks(zeal);
 
   // Not bothering to modify these windows (Retain default behavior using the default ItemDisplayWnd).
   // CBuffWindow: Alt + Left click toggles persistent one at a time, Right click is temporary.

@@ -8,7 +8,18 @@
 
 Tooltip::~Tooltip() {}
 
-void Tooltip::synchronize_hover_timeout() { mem::write<int>(0x59E10D, hover_timeout.get()); }
+// 0x59E10D is the immediate of an unsigned hover time comparison (see the jbe -> jb patch in the
+// constructor), so -1 lands as UINT_MAX and the delay is never reached.
+void Tooltip::synchronize_hover_timeout() {
+  mem::write<int>(0x59E10D, native_tooltip_suppressed ? -1 : hover_timeout.get());
+}
+
+// Called per frame by mouseover_display, so skip the write (VirtualProtect) when unchanged.
+void Tooltip::set_native_tooltip_suppressed(bool suppressed) {
+  if (suppressed == native_tooltip_suppressed) return;
+  native_tooltip_suppressed = suppressed;
+  synchronize_hover_timeout();
+}
 
 void Tooltip::synchronize_alt_all_containers() {
   if (all_containers.get()) {
