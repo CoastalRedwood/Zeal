@@ -10,6 +10,7 @@
 
 #include "alarm.h"
 #include "assist.h"
+#include "assist_target.h"
 #include "autofire.h"
 #include "bandolier.h"
 #include "binds.h"
@@ -160,6 +161,7 @@ ZealService::ZealService() {
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
   raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
+  assist_target = MakeCheckedUnique(AssistTarget);  // Uses entity_manager, callbacks. After raid_bars (LMouseUp chain).
   triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
   ui_hide_fake_slots = MakeCheckedUnique(UI_HideFakeSlots);
   nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
@@ -1053,6 +1055,12 @@ void ZealService::AddBinds() {
       }
     }
   });
+  binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           // Suppressed: updates the AssistBar ToT without switching your target.
+                           assist_target->FireAssistRequest(true);
+                       });
 
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
                        [](int key_down) {
