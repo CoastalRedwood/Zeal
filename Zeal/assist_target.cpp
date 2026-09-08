@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 
 #include "callbacks.h"
@@ -26,6 +27,7 @@ AssistTarget::AssistTarget(ZealService *zeal) {
   // Track all visible combat: build attacker -> victim and victim -> attacker maps from OP_Damage.
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {
+        if (!setting_enabled.get()) return false;  // Off: the module does nothing at all.
         if (opcode == Zeal::Packets::Damage && len >= sizeof(Zeal::Packets::Damage_Struct))
           HandleDamagePacket(reinterpret_cast<Zeal::Packets::Damage_Struct *>(buffer));
         return false;  // Never swallow damage packets.
@@ -37,6 +39,7 @@ AssistTarget::AssistTarget(ZealService *zeal) {
   // the client does not retarget us.
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {
+        if (!setting_enabled.get()) return false;  // Off: no recording and no swallowing at all.
         if (opcode == Zeal::Packets::Assist && len >= sizeof(Zeal::Packets::EntityId_Struct)) {
           auto pkt = reinterpret_cast<Zeal::Packets::EntityId_Struct *>(buffer);
           const DWORD now = GetTickCount();
@@ -91,6 +94,8 @@ void AssistTarget::Clean() {
 }
 
 void AssistTarget::HandleDamagePacket(const Zeal::Packets::Damage_Struct *dmg) {
+  // With the bar off nobody consumes this data: stay fully idle (no map churn, no log spam).
+  if (!setting_enabled.get()) return;
   if (!dmg || dmg->target == 0 || dmg->source == 0) return;
   const DWORD now = GetTickCount();
   victim_of[dmg->source] = {dmg->target, now};  // attacker -> most recent victim it damaged.
@@ -115,6 +120,7 @@ void AssistTarget::HandleDamagePacket(const Zeal::Packets::Damage_Struct *dmg) {
 }
 
 void AssistTarget::FireAssistRequest(bool suppress_retarget) {
+  if (!setting_enabled.get()) return;  // Off: no requests of any kind (hotkey / refresh-now too).
   if (!Zeal::Game::is_in_game()) return;
   auto self = Zeal::Game::get_self();
   auto target = Zeal::Game::get_target();
@@ -134,20 +140,17 @@ void AssistTarget::FireAssistRequest(bool suppress_retarget) {
   do_assist_fn(self, "");
 }
 
-// Display-only name cleanup: strip trailing digits (and any spaces left behind), so e.g.
-// "Ghorga123" or "Ghorga 123" draw as "Ghorga". Purely cosmetic - the click-to-target path
-// still uses the real entity pointer, and names made entirely of digits keep their original form.
-static std::string SanitizeDisplayName(const char *name) {
-  if (!name || !*name) return {};
-  std::string out(name);
-  while (!out.empty() && out.back() >= '0' && out.back() <= '9') out.pop_back();
-  while (!out.empty() && (out.back() == ' ')) out.pop_back();
-  return out.empty() ? std::string(name) : out;
+// Sprite fonts available under uifiles/zeal/fonts (arial_NN).
+static bool IsAvailableFontSize(int size) {
+  for (const int s : {8, 9, 10, 12, 14, 16, 20, 24, 28, 32})
+    if (s == size) return true;
+  return false;
 }
 
 void AssistTarget::CallbackRender() {
+  if (!setting_enabled.get() || !Zeal::Game::is_in_game()) return;  // Off: nothing renders, polls,
+                                                                     // or drag-processes.
   candidate_entity = nullptr;
-  if (!setting_enabled.get() || !Zeal::Game::is_in_game()) return;
   auto display = Zeal::Game::get_display();
   if (!display || !Zeal::Game::is_gui_visible()) return;
 
@@ -155,34 +158,30 @@ void AssistTarget::CallbackRender() {
   auto target = Zeal::Game::get_target();
   const bool have_target = (target && target != Zeal::Game::get_self());
 
-  // Auto-refresh: poll the server for an authoritative answer at a fixed interval. Responses are
-  // swallowed so this does not retarget you (unlike typing /assist). Requires a real target.
-  bool poll_fired_this_frame = false;
-  if (have_target && setting_auto_refresh.get()) {
-    const DWORD interval = std::max(5000, setting_refresh_interval_ms.get());
-    if (now - last_poll_time >= interval) {
-      last_poll_time = now;
-      FireAssistRequest(true);
-      poll_fired_this_frame = true;
-    }
-  }
-
-  // Target-change polling: retargeting invalidates Source B (that answer was about a DIFFERENT
-  // target), so clear it immediately - the bar shows "none" until a fresh response arrives rather
-  // than flashing a stale ToT. Then fire an immediate suppressed request for the new target so the
-  // ToT is authoritative within one server round-trip instead of waiting for damage or the next
-  // scheduled poll. A cooldown keeps rapid cycling (/ta, etc.) from spamming requests; skipped
-  // polls leave Source B cleared until something fresh arrives.
+  // Poll for an authoritative /assist answer. Two independent reasons feed ONE fire site per
+  // frame (responses are swallowed, so neither retargets you):
+  //   scheduled     - auto-refresh keeps the bar fresh at a fixed interval;
+  //   target change - a new target invalidates the previous answer (Source B), poll immediately
+  //                   for it to be authoritative within one round-trip; a cooldown stops spam
+  //                   during rapid /ta cycling. Skipped polls leave Source B cleared ("none")
+  //                   until something fresh arrives.
   if (have_target) {
-    if (target->SpawnId != tracked_target_id) {
+    const bool target_changed = (target->SpawnId != tracked_target_id);
+    if (target_changed) {
       tracked_target_id = target->SpawnId;
-      assist_response_id = 0;
+      assist_response_id = 0;   // Stale answer belongs to the previous target - don't show it.
       assist_response_time = 0;
-      if (!poll_fired_this_frame && now - last_change_poll_time >= kTargetChangePollCooldownMs) {
-        last_change_poll_time = now;
-        last_poll_time = now;  // Resync auto-refresh cadence so it does not double-poll.
-        FireAssistRequest(true);
-      }
+    }
+
+    const DWORD interval = std::max(5000, setting_refresh_interval_ms.get());
+    const bool due_scheduled = setting_auto_refresh.get() && (now - last_poll_time >= interval);
+    const bool due_change = target_changed && (now - last_change_poll_time >= kTargetChangePollCooldownMs);
+
+    if (due_scheduled || due_change) {
+      // Stamped unconditionally so both reasons are quiescent after one request.
+      last_poll_time = now;
+      last_change_poll_time = now;
+      FireAssistRequest(true);
     }
   } else {
     tracked_target_id = 0;  // Self/no target: the next real retarget fires again from scratch.
@@ -236,8 +235,12 @@ void AssistTarget::CallbackRender() {
     int hp_percent = 0;
     if (entity->HpMax > 0) hp_percent = static_cast<int>((float)entity->HpCurrent / entity->HpMax * 100.0f);
     bitmap_font->set_hp_percent(hp_percent);
-    line1 = std::string(label) + SanitizeDisplayName(entity->Name);  // Cosmetic only: click-to-target
-                                                                     // uses the real entity pointer.
+    // Client's own proven name cleaning (global buffer - consume immediately, as below).
+    const char *clean_name = Zeal::Game::strip_name(entity->Name);
+    line1 = std::string(label) + (*clean_name ? clean_name : entity->Name);  // Cosmetic only: click-to-
+                                                                             // target still uses the real
+                                                                             // pointer. Empty result (all-digit
+                                                                             // names) falls back to original.
   } else {
     color = D3DCOLOR_XRGB(160, 160, 160);  // Dim placeholder.
     line1 = std::string(label) + "none";
@@ -320,14 +323,20 @@ void AssistTarget::LoadBitmapFont() {
 
   IDirect3DDevice8 *device = ZealService::get_instance()->dx->GetDevice();
   if (!device) return;
-  bitmap_font = BitmapFont::create_bitmap_font(*device, kDefaultFont);
+
+  // Font size is a setting (arial_NN sprite fonts); fall back to the default for invalid values.
+  const int font_size = IsAvailableFontSize(setting_font_size.get()) ? setting_font_size.get() : 8;
+  char font_name[16];
+  std::snprintf(font_name, sizeof(font_name), "arial_%02d", font_size);
+  bitmap_font = BitmapFont::create_bitmap_font(*device, std::string(font_name));
   if (!bitmap_font) {
-    Zeal::Game::print_chat("AssistBar: failed to load font %s", kDefaultFont);
+    Zeal::Game::print_chat("AssistBar: failed to load font %s", font_name);
     setting_enabled.set(false);
     return;
   }
 
   bitmap_font->set_drop_shadow(true);
+  bitmap_font->set_outlined(true);  // Black outline keeps the bar readable over busy backgrounds.
   bitmap_font->set_full_screen_viewport(true);  // Allow rendering outside the reduced viewport.
 
   std::string text("Fakenametotest");  // 14 characters as maximum name length with average chars.
@@ -374,6 +383,7 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
   if (args.size() < 2) {
     Zeal::Game::print_chat("Usage: /assistbar on|off|toggle");
     Zeal::Game::print_chat("       /assistbar position <left> <top>  (or drag the bar with LMB)");
+    Zeal::Game::print_chat("       /assistbar font <size>  (8,9,10,12,14,16,20,24,28,32)");
     Zeal::Game::print_chat("       /assistbar mode <assist|defend>");
     Zeal::Game::print_chat("       /assistbar window <ms>");
     Zeal::Game::print_chat("       /assistbar clickable <on|off>");
@@ -389,6 +399,19 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
   }
   if (Zeal::String::compare_insensitive(args[1], "off")) {
     setting_enabled.set(false);
+    // Behave as if the module were not loaded: clear all runtime tracking state so a later enable
+    // starts fresh and nothing from before (silent polls, candidates) can leak across the toggle.
+    victim_of.clear();
+    hit_by.clear();
+    pending_suppress_count = 0;
+    suppress_until_ms = 0;
+    assist_response_id = 0;
+    assist_response_time = 0;
+    last_poll_time = 0;
+    tracked_target_id = 0;
+    last_change_poll_time = 0;
+    drag_active = false;
+    lmb_was_down = false;
     Zeal::Game::print_chat("AssistBar disabled");
     return;
   }
@@ -399,6 +422,21 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
     setting_position_left.set(left);
     setting_position_top.set(top);
     Zeal::Game::print_chat("AssistBar position set to (%d, %d)", left, top);
+    return;
+  }
+
+  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "font")) {
+    const int size = atoi(args[2].c_str());
+    if (!IsAvailableFontSize(size)) {
+      Zeal::Game::print_chat("AssistBar: invalid font size %d (available: 8, 9, 10, 12, 14, 16, 20, 24, 28, 32)", size);
+      return;
+    }
+    setting_font_size.set(size);
+    if (bitmap_font) {  // Reload with the new size on next render.
+      bitmap_font->release();
+      bitmap_font.reset();
+    }
+    Zeal::Game::print_chat("AssistBar font size set to %d", size);
     return;
   }
 

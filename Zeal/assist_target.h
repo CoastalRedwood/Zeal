@@ -16,9 +16,6 @@
 // OP_Damage events (Damage_Struct source/target spawn ids) within a configurable freshness window.
 class AssistTarget {
  public:
-  static constexpr char kUseDefaultFont[] = "Default";
-  static constexpr char kDefaultFont[] = "arial_08";
-
   explicit AssistTarget(class ZealService *zeal);
   ~AssistTarget();
 
@@ -30,6 +27,8 @@ class AssistTarget {
   ZealSetting<bool> setting_clickable = {true, "AssistBar", "Clickable"};
   ZealSetting<int> setting_position_left = {5, "AssistBar", "Left"};
   ZealSetting<int> setting_position_top = {30, "AssistBar", "Top"};
+  // Font size for the bar text (arial_NN sprite fonts); see IsAvailableFontSize().
+  ZealSetting<int> setting_font_size = {16, "AssistBar", "FontSize"};
   // Mode: 0 = assist (who my target last hit), 1 = defend (who last hit my target).
   ZealSetting<int> setting_mode = {0, "AssistBar", "Mode"};
   // Freshness window in ms for damage events to count as the current candidate.
