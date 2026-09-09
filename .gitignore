@@ -362,3 +362,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+.pi/.vscode-ready
+build.bat
+CONTEXT.md
+Assistbar.txt
