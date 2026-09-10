@@ -379,6 +379,24 @@ bool AssistTarget::HandleLMouseUp(short x, short y) {
   return true;
 }
 
+// True while the client LMB is being consumed by our bar: either a drag in progress, or an LMB
+// press currently over the last drawn rect (a click/drag that UpdateDrag has not claimed yet this
+// frame). CameraMods uses this to treat the region like game UI - no pan starts and an active one
+// aborts. Evaluates raw input against the cached rect so it holds regardless of callback ordering
+// between render ticks and the camera time tick.
+bool AssistTarget::IsBarClaimingLmb() const {
+  if (drag_active) return true;
+  if (!setting_enabled.get()) return false;
+  const int16_t mx = *Zeal::Game::mouse_client_x;
+  const int16_t my = *Zeal::Game::mouse_client_y;
+  if (mx == 32767 || my == 32767) return false;  // Invalid mouse position.
+  const float x = static_cast<float>(setting_position_left.get());
+  const float y = static_cast<float>(setting_position_top.get());
+  const bool over_bar = static_cast<float>(mx) >= x && static_cast<float>(mx) < x + candidate_width &&
+                        static_cast<float>(my) >= y && static_cast<float>(my) < y + candidate_height;
+  return *Zeal::Game::is_left_mouse_down && over_bar;
+}
+
 void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
   if (args.size() < 2) {
     Zeal::Game::print_chat("Usage: /assistbar on|off|toggle");

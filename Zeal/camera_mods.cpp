@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <thread>
 
+#include "assist_target.h"
 #include "binds.h"
 #include "callbacks.h"
 #include "camera_math.h"
@@ -301,8 +302,13 @@ void set_game_mouse_and_win32_position(POINT pt) {
 // previous mouse location state, so we could get some glitching with fast cursor moves at
 // the window edges, but this isn't as critical for lmb as rmb.
 void CameraMods::update_left_pan(DWORD camera_view) {
+  // Treat the AssistBar like game UI while it consumes the LMB press (click or drag on its drawn
+  // rect): no pan starts and an active one aborts. See AssistTarget::IsBarClaimingLmb().
+  auto *zeal = ZealService::get_instance();
+  const bool bar_claiming_lmb = zeal && zeal->assist_target && zeal->assist_target->IsBarClaimingLmb();
+
   if (!*Zeal::Game::is_right_mouse_look_down && *Zeal::Game::is_left_mouse_down && is_zeal_cam_active() &&
-      (lmouse_time || is_over_client_rect()) && !Zeal::Game::is_game_ui_window_hovered()) {
+      (lmouse_time || is_over_client_rect()) && !Zeal::Game::is_game_ui_window_hovered() && !bar_claiming_lmb) {
     if (!lmouse_time) {
       lmouse_time = GetTickCount64();
       lmouse_cursor_pos = POINT{32767, 32767};

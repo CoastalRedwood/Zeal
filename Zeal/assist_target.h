@@ -44,6 +44,11 @@ class AssistTarget {
   // Internal callback use only.
   bool HandleLMouseUp(short x, short y);
 
+  // True while the client LMB is being consumed by our bar: an in-progress drag, or a press over
+  // the last drawn rect that UpdateDrag has not yet claimed. The camera panner treats this region
+  // like game UI (no pan starts; an active one aborts).
+  bool IsBarClaimingLmb() const;
+
   // Fires a synthetic /assist (client do_assist with empty name = current target).
   // suppress_retarget=true swallows the OP_Assist response so the client does not retarget you
   // (used by auto-refresh polling and the AssistRefresh hotkey: bar updates, your target stays).
