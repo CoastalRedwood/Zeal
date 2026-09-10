@@ -62,8 +62,10 @@ AssistTarget::AssistTarget(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXCleanDevice);
 
+#if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
   // Chain onto the existing LMouseUp detour (raid_bars owns "LMouseUp" at this address).
   zeal->hooks->Add("AssistTargetLMouseUp", 0x00531614, LMouseUp, hook_type_detour);
+#endif
 
   zeal->commands_hook->Add("/assistbar", {}, "Always-up assist target bar (target of my target)",
                            [this](std::vector<std::string> &args) {
@@ -268,7 +270,9 @@ void AssistTarget::CallbackRender() {
 
   bitmap_font->flush_queue_to_screen();
 
+#if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
   UpdateDrag();  // LMB drag & drop repositioning (uses this frame's cached rect).
+#endif
 }
 
 // Repositions the bar via LMB drag & drop by polling the client's mouse state each frame (no new
@@ -386,9 +390,10 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
     Zeal::Game::print_chat("       /assistbar font <size>  (8,9,10,12,14,16,20,24,28,32)");
     Zeal::Game::print_chat("       /assistbar mode <assist|defend>");
     Zeal::Game::print_chat("       /assistbar window <ms>");
+#if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
     Zeal::Game::print_chat("       /assistbar clickable <on|off>");
+#endif
     Zeal::Game::print_chat("       /assistbar refresh <on|off> [interval_ms]");
-    Zeal::Game::print_chat("       /assistbar verbose  (log OP_Damage events)");
     return;
   }
 
@@ -459,12 +464,14 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
+  #if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
   if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "clickable")) {
     const bool on = Zeal::String::compare_insensitive(args[2], "on");
     setting_clickable.set(on);
     Zeal::Game::print_chat("AssistBar clickable: %s", on ? "ON" : "OFF");
     return;
   }
+  #endif
 
   if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "refresh")) {
     const bool on = Zeal::String::compare_insensitive(args[2], "on");
@@ -481,6 +488,7 @@ void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
+  // Undocumented (lightly hidden) power-user / developer only verbose mode. Too much spam for typical user.
   if (Zeal::String::compare_insensitive(args[1], "verbose")) {
     setting_verbose.toggle();
     Zeal::Game::print_chat("AssistBar verbose logging: %s", setting_verbose.get() ? "ON" : "OFF");

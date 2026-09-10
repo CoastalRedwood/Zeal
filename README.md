@@ -28,7 +28,7 @@ from the repo source, providing full transparency on the release contents.
 - Integrated map (see In-game Map section below)
 - Additional ui support (new gauges, bag control & locking, looting, spellsets, targetrings,
   nameplates, right click to equip, skill window sorting, ctrl for context menus/looting,
-  tagging (text and shapes), raidbars, etc)
+  tagging (text and shapes), raidbars, target of target, etc)
 - Autostand on move/cast, autosit on camp with export inventory/spellbook option,
   enhanced autorun behavior option
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
@@ -84,6 +84,19 @@ ___
   - **Arguments:** `on`, `off` (Zeal extends these to per character if option set)
   - **Description:** In addition to adding per character support, a second option will generate warnings
     and clear the target if the assist fails (assistee out of range).
+
+- `/assistbar`
+  - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the assistbar (target of target, ToT) \
+                   `position <left> <top>`: Specifies left top of the target of target name and health bar \
+                   `font <size>`: Sets the font size (8,9,10,12,14,16,20,24,28,32) \
+                   `mode <assist | defend>`: Shows target of my target (assist) or who hit my target (defend) \
+                   `window <ms>`: Sets time window (in milliseconds) of combat damage history used for targeting information \
+                   `refresh <on | off> [interval_ms]`: Enables/disables a silent auto-poll using /assist of your target
+  - **Example:** `/assistbar position 1000 100` Sets (x, y) = (left, top) = (1000, 100).
+  - **Example:** `/assistbar refresh on 5000` Enables a silent /assist poll every 5 seconds.
+  - **Description:** Shows the "assist candidate" for your current target (name & health bar) at a configurable
+          on screen position. Uses either damage inference (assist = target of target = who my target last damaged and
+          defend = who last damaged my target), the results of a manual /assist poll, or by an optional auto-poll interval.
 
 - `/autobank`
   - **Aliases:** `/autoba`, `/ab`
