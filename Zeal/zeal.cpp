@@ -134,7 +134,6 @@ ZealService::ZealService() {
   camera_mods = MakeCheckedUnique(CameraMods);
   raid_hook = MakeCheckedUnique(Raid);
   tooltips = MakeCheckedUnique(Tooltip);
-  assist = MakeCheckedUnique(Assist);
   outputfile = MakeCheckedUnique(OutputFile);
   movement = MakeCheckedUnique(PlayerMovement);
   music = MakeCheckedUnique(MusicManager);
@@ -162,6 +161,7 @@ ZealService::ZealService() {
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
   raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
   assist_target = MakeCheckedUnique(AssistTarget);  // Uses entity_manager, callbacks. After raid_bars (LMouseUp chain).
+  assist = MakeCheckedUnique(Assist);               // Register after assist_target so that can swallow auto-assist responses if necessary.
   triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
   ui_hide_fake_slots = MakeCheckedUnique(UI_HideFakeSlots);
   nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
