@@ -25,15 +25,16 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
                                                                                               color);
   switch (type) {
     case 28:
-      if ( str && Zeal::Game::get_target() && zeal->labels_hook->setting_show_target_spawn_id.get() ) // Append the spawn ID if enabled.
-      {
-        const char* name = Zeal::Game::trim_name( Zeal::Game::get_target()->Name );
-        char* global_target_buffer = reinterpret_cast<char*>(0x00630884);  // Hard-coded 0x100 global buffer.
-        snprintf(global_target_buffer, 0x100, "%s (%d)", name, Zeal::Game::get_target()->SpawnId );
-        str->Set( global_target_buffer );  // Native client code copies to the global buffer then does the set.
+      if (str && Zeal::Game::get_target() && zeal->labels_hook->setting_show_target_spawn_id.get()) {
+        // Append the spawn ID if enabled.
+        const char *name = Zeal::Game::trim_name(Zeal::Game::get_target()->Name);
+        char *global_target_buffer = reinterpret_cast<char *>(0x00630884);  // Hard-coded 0x100 global buffer.
+        snprintf(global_target_buffer, 0x100, "%s (%d)", name, Zeal::Game::get_target()->SpawnId);
+        str->Set(global_target_buffer);  // Native client code copies to the global buffer then does the set.
         if (override_color) *override_color = false;
         return true;
       }
+      break;
     case 29:
       if (str && (!Zeal::Game::get_target() || Zeal::Game::get_target()->Type > 1)) {
         str->Set("");  // Clear the "0" when there is no target or a corpse.
@@ -357,14 +358,12 @@ Labels::~Labels() {}
 
 Labels::Labels(ZealService *zeal) {
   zeal->commands_hook->Add("/labels", {}, "prints all labels", [this](std::vector<std::string> &args) {
-    if ( args.size() == 2 && Zeal::String::compare_insensitive(args[1], "showtargetspawnid") )
-    {
+    if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "showtargetspawnid")) {
       setting_show_target_spawn_id.toggle();
       Zeal::Game::print_chat("Show target spawn id: %s", setting_show_target_spawn_id.get() ? "ON" : "OFF");
       return true;
     }
-    if ( args.size() == 2 && Zeal::String::compare_insensitive(args[1], "print"))
-    {
+    if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "print")) {
       for (int i = 0; i < 200; i++) {
         Zeal::GameUI::CXSTR tmp("");
         bool override = false;
