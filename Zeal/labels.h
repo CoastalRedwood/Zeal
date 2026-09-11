@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
+#include "zeal_settings.h"
+
 class Labels {
  public:
   std::string debug_info;
@@ -11,6 +13,8 @@ class Labels {
   Labels(class ZealService *zeal);
   ~Labels();
   void callback_main();
+
+  ZealSetting<bool> setting_show_target_spawn_id = {false, "Labels", "ShowTargetSpawnId"};
 
  private:
 };
