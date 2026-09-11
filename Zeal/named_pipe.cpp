@@ -213,6 +213,7 @@ void NamedPipe::main_loop() {
 
         const auto &entity = entity_manager->Get(member.Name);
         if (entity) {
+          raid_data["spawn_id"] = entity->SpawnId;
           raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
           if (pipe_verbose.get()) {
@@ -246,6 +247,7 @@ void NamedPipe::main_loop() {
         if ((strlen(group_info->Names[i]) > 0) && member) {
           nlohmann::json group_data = nlohmann::json::object();
           group_data["name"] = group_info->Names[i];
+          group_data["spawn_id"] = member->SpawnId;
           group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
           if (pipe_verbose.get()) {
@@ -303,6 +305,18 @@ void NamedPipe::main_loop() {
       player_data["location"] = toJson(Zeal::Game::get_self()->Position);
       player_data["heading"] = Zeal::Game::get_self()->Heading;
       player_data["autoattack"] = (bool)(*(BYTE *)0x7f6ffe);
+      player_data["spawn_id"] = Zeal::Game::get_self()->SpawnId;
+      // Spawn id of the current target and pet. Both keys are omitted when
+      // there is no target / no pet, so a consumer tests for presence rather
+      // than for a sentinel value.
+      // PetID is a SHORT that holds -1 (not 0) when there is no pet, so it is
+      // range checked rather than tested for truthiness. zone_map.cpp gets away
+      // with a plain truthiness test only because get_entity_by_id() rejects a
+      // negative id downstream; there is no such backstop here.
+      const auto *target = Zeal::Game::get_target();
+      if (target) player_data["target_id"] = target->SpawnId;
+      const auto *actor_info = Zeal::Game::get_self()->ActorInfo;
+      if (actor_info && actor_info->PetID > 0) player_data["pet_id"] = actor_info->PetID;
       // nlohmann::json data = { {"zone", Zeal::Game::get_self()->ZoneId}, {"location",
       // Zeal::Game::get_self()->Position.toJson() }, {"heading", Zeal::Game::get_self()->Heading}, {"autoattack",
       // (bool)(*(BYTE*)0x7f6ffe)} };
