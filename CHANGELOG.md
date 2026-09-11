@@ -2,6 +2,32 @@
 
 Summarizes notable changes to Zeal
 
+## [1.4.7] - 2026/09/10
+
+### New features
+
+* Added `/assistbar` for Target of Target name and healthbar
+  - New raidbar like HUD element that shows the target of your target in assist mode or shows
+    the mob that most recently damaged your target in defend mode
+
+* Added `/labels showtargetspawnid` to optionally append the target's spawnid to EQType 28
+
+
+## [1.4.6] - 2026/09/07
+
+### New features
+
+* Named pipe: upgraded to output spawn ids for raid, group, self, target and pet
+
+
+## [1.4.5] - 2026/07/16
+
+### Compatibilty fix
+
+* Fixes a new exception crash caused by Windows Update KB101650
+  - Zeal now ignores (whitelists) a new midi driver exception (Kernelbase.dll 0x6ef)
+
+
 ## [1.4.4] - 2026/07/09
 
 ### New features
