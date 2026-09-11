@@ -224,6 +224,10 @@ ___
 - `/inspect target`
   - **Description:** adds target argument to /inspect, this just inspects your current target.
 
+- `/labels`
+  - **Arguments:** `showtargetspawnid` (toggles visibility of the spawn id in the target name eqtype 28)
+  - **Description:** UI label settings.
+
 - `/lead`
   - **Arguments:** none, `open` (reports raid groups with open slots), `all` (lists all raid groups)
   - **Description:** prints out your current group leader (and raid leader if in raid).
