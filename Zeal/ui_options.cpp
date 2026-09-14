@@ -534,6 +534,9 @@ void ui_options::InitGeneral() {
   ui->AddCheckboxCallback(wnd, "Zeal_EnhancedAutoRun", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->movement->EnhancedAutoRun.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_MouseoverTooltips", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->item_displays->set_mouseover_tooltips(wnd->Checked);
+  });
   ui->AddCheckboxCallback(wnd, "Zeal_SlashNotPoke",
                           [this](Zeal::GameUI::BasicWnd *wnd) { setting_slash_not_poke.set(wnd->Checked); });
   ui->AddCheckboxCallback(wnd, "Zeal_AltTransportCats", [this](Zeal::GameUI::BasicWnd *wnd) {
@@ -1159,6 +1162,8 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_EnhancedSpellInfo",
                  ZealService::get_instance()->item_displays->setting_enhanced_spell_info.get());
   ui->SetChecked("Zeal_EnhancedAutoRun", ZealService::get_instance()->movement->EnhancedAutoRun.get());
+  ui->SetChecked("Zeal_MouseoverTooltips",
+                 ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get());
   ui->SetChecked("Zeal_SlashNotPoke", setting_slash_not_poke.get());
   ui->SetChecked("Zeal_InviteDialog", setting_invite_dialog.get());
   ui->SetChecked("Zeal_AltTransportCats",
