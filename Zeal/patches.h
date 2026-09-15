@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "game_structures.h"
 #include "zeal_settings.h"
 
 class Patches {
@@ -31,13 +32,17 @@ class Patches {
  private:
   enum class SpellEffectOverrideType { Classic, ClientDefault, Replacement };
 
+  struct OriginalSpellEffect {
+    DWORD new_particle_effect = 0;
+  };
+
   struct SpellEffectOverride {
     SpellEffectOverrideType type;
     DWORD effect = 0;
     int source_spell_id = -1;
   };
 
-  std::unordered_map<int, DWORD> originalSpellEffects;
+  std::unordered_map<int, OriginalSpellEffect> originalSpellEffects;
   std::unordered_map<int, SpellEffectOverride> individualSpellEffects;
 
   void SetBrownSkeletons();
