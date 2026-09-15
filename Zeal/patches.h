@@ -17,23 +17,34 @@ class Patches {
   ZealSetting<int> setting_BardEffects = {0, "SpellEffects", "BardEffects", false,
                                           [this](bool val) { SyncBardEffects(); }};
 
-  ZealSetting<int> setting_BuffEffects = {0, "SpellEffects", "BuffEffects", false,
+  ZealSetting<int> setting_BuffEffects = {-1, "SpellEffects", "BuffEffects", false,
                                           [this](const int& val) { SyncBuffEffects(); }};
 
-  ZealSetting<std::string> setting_SpellEffectReplacements = {
-      "", "SpellEffects", "Replacements", false, [this](const std::string& val) { SyncSpellEffectReplacements(); }};
+  ZealSetting<bool> setting_SpellEffectsClassic = {false, "SpellEffects", "Classic", false,
+                                                   [this](bool val) { SyncSpellEffects(val); }};
+
+  ZealSetting<std::string> setting_SpellEffectOverrides = {
+      "", "SpellEffects", "Overrides", false, [this](const std::string& val) { LoadSpellEffectOverrides(); }};
 
   Patches();
 
  private:
+  enum class SpellEffectOverrideType { Classic, ClientDefault, Replacement };
+
+  struct SpellEffectOverride {
+    SpellEffectOverrideType type;
+    DWORD effect = 0;
+    int source_spell_id = -1;
+  };
+
   std::unordered_map<int, DWORD> originalSpellEffects;
-  std::unordered_map<int, DWORD> individualSpellEffects;
+  std::unordered_map<int, SpellEffectOverride> individualSpellEffects;
 
   void SetBrownSkeletons();
   void SyncDisableSprites();
   bool SyncBardEffects();
   bool SyncBuffEffects();
   bool SyncSpellEffects(bool classic);
-  void SyncSpellEffectReplacements();
+  void LoadSpellEffectOverrides();
   bool HandleSpellEffectsCommand(const std::vector<std::string>& args);
 };

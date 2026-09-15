@@ -63,6 +63,20 @@ void Patches::SetBrownSkeletons() {
   }
 }
 
+// Support a utility to find a spell by name and return the spell id (or -1 if not found).
+static int FindSpellByName(const std::string& name) {
+  const auto* spell_mgr = Zeal::Game::get_spell_mgr();
+  if (!spell_mgr) return -1;
+
+  for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+    const auto spell = spell_mgr->Spells[spell_id];
+
+    if (spell && spell->Name && _stricmp(spell->Name, name.c_str()) == 0) return spell_id;
+  }
+
+  return -1;
+}
+
 // Support an option to simply no-op the DoSpriteEffects() call to avoid the dvps.dll crash.
 void Patches::SyncDisableSprites() {
   const BYTE kOpcodeNop = 0x90;
@@ -81,33 +95,52 @@ void Patches::SyncDisableSprites() {
 
 static constexpr int kNumBardEffects = 3;
 
+static constexpr int kReferenceSongIds[kNumBardEffects] = {717, 2050, 7};
+
+// Option 1: Use the pulsing sphere from Selo's (SpellAnim 98).
+// Option 2: Use the more subtle floating notes animation from Nature's Melody (SpellAnim 45).
+// Option 3: Use the even more subtle snowflake-like from Hymn/Cantata's (SpellAnim 69).
+static const char* kReferenceSongNames[kNumBardEffects] = {"Selo`s Accelerando", "Nature's Melody",
+                                                           "Hymn of Restoration"};
+
+static bool IsBardSongId(int spell_id) {
+  for (int i = 0; i < kNumBardEffects; ++i) {
+    if (kReferenceSongIds[i] == spell_id) return true;
+  }
+
+  return false;
+}
+
+// These songs are by default all using old particle effects with SpellAffectIndex = 6.
+static constexpr std::pair<int, const char*> kSongsToModify[] = {
+    {709, "Guardian Rhythms"},
+    {710, "Elemental Rhythms"},
+    {711, "Purifying Rhythms"},
+    {712, "Psalm of Warmth"},
+    {713, "Psalm of Cooling"},
+    {714, "Psalm of Mystic Shielding"},
+    {715, "Psalm of Vitality"},
+    {716, "Psalm of Purity"},
+    {722, "Jaxan`s Jig o` Vigor"},
+    {723, "Cassindra`s Chorus of Clarity"},
+    {1287, "Cassindra`s Chant of Clarity"},
+    {2607, "Elemental Chorus"},
+    {2608, "Purifying Chorus"},
+    {3368, "Psalm of Veeshan"},
+};
+
+static bool IsBardEffectSpell(int spell_id) {
+  for (const auto& pair : kSongsToModify) {
+    if (pair.first == spell_id) return true;
+  }
+
+  return false;
+}
+
+static bool IsBardEffectSpellOrReference(int spell_id) { return IsBardSongId(spell_id) || IsBardEffectSpell(spell_id); }
+
 // Optional bard effects modes to reduce the super bright blue sparklies of constant bard song refreshes.
 bool Patches::SyncBardEffects() {
-  // Option 1: Use the pulsing sphere from Selo's (SpellAnim 98).
-  // Option 2: Use the more subtle floating notes animation from Nature's Melody (SpellAnim 45).
-  // Option 3: Use the even more subtle snowflake-like from Hymn/Cantata's (SpellAnim 69).
-  static constexpr int kReferenceSongIds[kNumBardEffects] = {717, 2050, 7};
-  static const char *kReferenceSongNames[kNumBardEffects] = {"Selo`s Accelerando", "Nature's Melody",
-                                                             "Hymn of Restoration"};
-
-  // These songs are by default all using old particle effects with SpellAffectIndex = 6.
-  static constexpr std::pair<int, const char *> kSongsToModify[] = {
-      {709, "Guardian Rhythms"},
-      {710, "Elemental Rhythms"},
-      {711, "Purifying Rhythms"},
-      {712, "Psalm of Warmth"},
-      {713, "Psalm of Cooling"},
-      {714, "Psalm of Mystic Shielding"},
-      {715, "Psalm of Vitality"},
-      {716, "Psalm of Purity"},
-      {722, "Jaxan`s Jig o` Vigor"},
-      {723, "Cassindra`s Chorus of Clarity"},
-      {1287, "Cassindra`s Chant of Clarity"},
-      {2607, "Elemental Chorus"},
-      {2608, "Purifying Chorus"},
-      {3368, "Psalm of Veeshan"},
-  };
-
   // First check we have access to the spell list and the reference song is a match.
   const auto *spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return false;
@@ -145,6 +178,8 @@ bool Patches::SyncSpellEffects(bool classic) {
     auto spell = spell_mgr->Spells[spell_id];
     if (!spell) continue;
 
+    if (IsBardEffectSpellOrReference(spell_id)) continue;
+
     if (!originalSpellEffects.contains(spell_id)) originalSpellEffects[spell_id] = spell->NewParticleEffect;
   }
 
@@ -153,16 +188,44 @@ bool Patches::SyncSpellEffects(bool classic) {
     auto spell = spell_mgr->Spells[spell_id];
     if (!spell) continue;
 
+    if (IsBardEffectSpellOrReference(spell_id)) continue;
+
     spell->NewParticleEffect = classic ? (DWORD) nullptr : originalSpellEffects[spell_id];
   }
 
-  // Restore the existing Bard preference when returning to Default.
-  if (!classic) SyncBardEffects();
 
-  // Individual replacements always take precedence.
-  for (const auto& [spell_id, effect] : individualSpellEffects) {
+  // Apply the existing Bard preference.
+  SyncBardEffects();
+
+  // Individual overrides always take precedence over family/global settings.
+  for (const auto& [spell_id, override] : individualSpellEffects) {
     auto spell = spell_mgr->Spells[spell_id];
-    if (spell) spell->NewParticleEffect = effect;
+    if (!spell) continue;
+
+    if (IsBardSongId(spell_id)) continue;
+
+    switch (override.type) {
+      case SpellEffectOverrideType::Classic:
+        spell->NewParticleEffect = (DWORD) nullptr;
+        break;
+
+      case SpellEffectOverrideType::ClientDefault:
+        spell->NewParticleEffect = originalSpellEffects[spell_id];
+        break;
+
+      case SpellEffectOverrideType::Replacement: {
+        auto source = originalSpellEffects.find(override.source_spell_id);
+
+        if (source != originalSpellEffects.end() && source->second) {
+          spell->NewParticleEffect = source->second;
+        } else if (override.effect) {
+          // Runtime replacement fallback.
+          spell->NewParticleEffect = override.effect;
+        }
+
+        break;
+      }
+    }
   }
 
   return true;
@@ -174,8 +237,6 @@ bool Patches::SyncBuffEffects() {
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return false;
 
-  SyncSpellEffectReplacements();
-
   for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
     auto spell = spell_mgr->Spells[spell_id];
 
@@ -186,25 +247,47 @@ bool Patches::SyncBuffEffects() {
     auto individual = individualSpellEffects.find(spell_id);
 
     if (individual != individualSpellEffects.end()) {
-      spell->NewParticleEffect = individual->second;
-    } else {
-      spell->NewParticleEffect = setting_BuffEffects.get() == 1 ? (DWORD) nullptr : originalSpellEffects[spell_id];
+      switch (individual->second.type) {
+        case SpellEffectOverrideType::Classic:
+          spell->NewParticleEffect = (DWORD) nullptr;
+          break;
+
+        case SpellEffectOverrideType::ClientDefault:
+          spell->NewParticleEffect = originalSpellEffects[spell_id];
+          break;
+
+        case SpellEffectOverrideType::Replacement: {
+          auto source = originalSpellEffects.find(individual->second.source_spell_id);
+
+          if (source != originalSpellEffects.end() && source->second) {
+            spell->NewParticleEffect = source->second;
+          } else if (individual->second.effect) {
+            spell->NewParticleEffect = individual->second.effect;
+          }
+
+          break;
+        }
+      }
+    } else if (setting_BuffEffects.get() == 1) {
+      spell->NewParticleEffect = (DWORD) nullptr;
+    } else if (setting_BuffEffects.get() == 0) {
+      spell->NewParticleEffect = originalSpellEffects[spell_id];
     }
   }
 
   return true;
 }
 
-static std::string SetSpellEffectReplacement(const std::string& replacements, int target_id, int source_id) {
+static std::string SetSpellEffectOverride(const std::string& overrides, int target_id, const std::string& value) {
   std::string result;
   size_t start = 0;
   bool found = false;
 
-  while (start < replacements.size()) {
-    size_t end = replacements.find(';', start);
-    if (end == std::string::npos) end = replacements.size();
+  while (start < overrides.size()) {
+    size_t end = overrides.find(';', start);
+    if (end == std::string::npos) end = overrides.size();
 
-    std::string entry = replacements.substr(start, end - start);
+    std::string entry = overrides.substr(start, end - start);
     size_t separator = entry.find('=');
 
     if (separator != std::string::npos) {
@@ -215,7 +298,7 @@ static std::string SetSpellEffectReplacement(const std::string& replacements, in
           if (!found) {
             result += std::to_string(target_id);
             result += "=";
-            result += std::to_string(source_id);
+            result += value;
             found = true;
           }
         } else {
@@ -233,96 +316,74 @@ static std::string SetSpellEffectReplacement(const std::string& replacements, in
 
     result += std::to_string(target_id);
     result += "=";
-    result += std::to_string(source_id);
+    result += value;
   }
 
   return result;
 }
 
-static std::string RemoveSpellEffectReplacement(const std::string& replacements, int target_id) {
-  std::string result;
-
-  size_t start = 0;
-
-  while (start < replacements.size()) {
-    size_t end = replacements.find(';', start);
-    if (end == std::string::npos) end = replacements.size();
-
-    std::string entry = replacements.substr(start, end - start);
-    size_t separator = entry.find('=');
-
-    if (separator != std::string::npos) {
-      int existing_target = 0;
-
-      if (Zeal::String::tryParse(entry.substr(0, separator), &existing_target, true) && existing_target != target_id) {
-        if (!result.empty()) result += ";";
-        result += entry;
-      }
-    }
-
-    start = end + 1;
-  }
-
-  return result;
-}
-
-void Patches::SyncSpellEffectReplacements() {
+void Patches::LoadSpellEffectOverrides() {
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return;
 
   individualSpellEffects.clear();
 
-  const std::string& replacements = setting_SpellEffectReplacements.get();
+  const std::string& overrides = setting_SpellEffectOverrides.get();
 
-  if (replacements.empty()) return;
-
-  // Format:
-  // target=source;target=source;...
+  if (overrides.empty()) return;
 
   size_t start = 0;
 
-  while (start < replacements.size()) {
-    size_t end = replacements.find(';', start);
-    if (end == std::string::npos) end = replacements.size();
+  while (start < overrides.size()) {
+    size_t end = overrides.find(';', start);
+    if (end == std::string::npos) end = overrides.size();
 
-    std::string entry = replacements.substr(start, end - start);
+    std::string entry = overrides.substr(start, end - start);
     size_t separator = entry.find('=');
 
     if (separator != std::string::npos) {
       int target_id = 0;
-      int source_id = 0;
 
       std::string target = entry.substr(0, separator);
-      std::string source = entry.substr(separator + 1);
+      std::string value = entry.substr(separator + 1);
 
-      if (Zeal::String::tryParse(target, &target_id, true) && Zeal::String::tryParse(source, &source_id, true) &&
-          target_id >= 0 && target_id < GAME_NUM_SPELLS && source_id >= 0 && source_id < GAME_NUM_SPELLS) {
+      if (Zeal::String::tryParse(target, &target_id, true) && target_id >= 0 && target_id < GAME_NUM_SPELLS) {
         auto target_spell = spell_mgr->Spells[target_id];
-        auto source_spell = spell_mgr->Spells[source_id];
 
-        if (target_spell && source_spell && source_spell->NewParticleEffect) {
-          individualSpellEffects[target_id] = source_spell->NewParticleEffect;
+        if (target_spell) {
+          if (_stricmp(value.c_str(), "classic") == 0) {
+            individualSpellEffects[target_id] = {SpellEffectOverrideType::Classic, 0};
+          } else if (_stricmp(value.c_str(), "default") == 0) {
+            individualSpellEffects[target_id] = {SpellEffectOverrideType::ClientDefault, 0};
+          } else if (value.size() > 8 && _strnicmp(value.c_str(), "replace:", 8) == 0) {
+            int source_id = 0;
+
+            if (Zeal::String::tryParse(value.substr(8), &source_id, true) && source_id >= 0 &&
+                source_id < GAME_NUM_SPELLS) {
+              auto source_spell = spell_mgr->Spells[source_id];
+
+              if (source_spell) {
+                individualSpellEffects[target_id] = {SpellEffectOverrideType::Replacement, 0, source_id};
+              }
+            }
+          }
         }
       }
+      start = end + 1;
     }
 
-    start = end + 1;
+    SyncSpellEffects(setting_SpellEffectsClassic.get());
+    SyncBuffEffects();
   }
 }
 
 bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
   if (args.size() == 2 && args[1] == "classic") {
-    if (!SyncSpellEffects(true)) {
-      Zeal::Game::print_chat("Unable to switch spell effects (spell db unavailable)");
-    } else {
-      Zeal::Game::print_chat("Spell effects: Classic");
-    }
+    setting_SpellEffectsClassic.set(true);
+    Zeal::Game::print_chat("Spell effects: Classic");
   } else if (args.size() == 2 && args[1] == "default") {
-    if (!SyncSpellEffects(false)) {
-      Zeal::Game::print_chat("Unable to restore spell effects (spell db unavailable)");
-    } else {
-      Zeal::Game::print_chat("Spell effects: Default");
-    }
+    setting_SpellEffectsClassic.set(false);
+    Zeal::Game::print_chat("Spell effects: Default");
   } else if (args.size() == 3 && args[1] == "buff") {
     int mode = 0;
 
@@ -337,7 +398,6 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
 
     setting_BuffEffects.set(mode);
 
-    // This sync happens in the set above but call again to see if there was an error.
     if (!SyncBuffEffects()) {
       Zeal::Game::print_chat("Unable to modify buff effects (spell db unavailable)");
     } else {
@@ -346,84 +406,177 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
 
 } else if (args.size() == 2 && args[1] == "reset") {
     individualSpellEffects.clear();
-    setting_SpellEffectReplacements.set("");
+    setting_SpellEffectOverrides.set("");
 
-    if (!SyncSpellEffects(false) || !SyncBuffEffects()) {
+    if (!SyncSpellEffects(setting_SpellEffectsClassic.get()) || !SyncBuffEffects()) {
       Zeal::Game::print_chat("Unable to reset individual spell effects (spell db unavailable)");
     } else {
-      Zeal::Game::print_chat("All individual spell effect replacements reset");
+      Zeal::Game::print_chat("All individual spell effect overrides reset");
     }
 
-  } else if (args.size() == 4 && args[1] == "replace") {
-    int target_id = 0;
+      } else if (args.size() >= 3 && args[1] != "buff" && args[1] != "bard" && args[1] != "replace" &&
+           (args.back() == "classic" || args.back() == "default")) {
+  const std::string mode = args.back();
 
-    if (!Zeal::String::tryParse(args[2], &target_id, true) || target_id < 0 || target_id >= GAME_NUM_SPELLS) {
-      Zeal::Game::print_chat("Error: invalid target spell ID");
+  // Reconstruct the spell name from all arguments between the command and the mode.
+  std::string spell_name = args[1];
+  for (size_t i = 2; i < args.size() - 1; ++i) {
+    spell_name += " " + args[i];
+  }
+
+  int spell_id = -1;
+
+  // A numeric ID is accepted as shorthand; otherwise resolve the spell by name.
+  if (args.size() == 3 && Zeal::String::tryParse(args[1], &spell_id, true)) {
+    if (spell_id < 0 || spell_id >= GAME_NUM_SPELLS) {
+      Zeal::Game::print_chat("Error: invalid spell ID");
       return true;
     }
+  } else {
+    spell_id = FindSpellByName(spell_name);
 
-    const auto* spell_mgr = Zeal::Game::get_spell_mgr();
-    if (!spell_mgr) {
-      Zeal::Game::print_chat("Unable to replace spell effect (spell db unavailable)");
+    if (spell_id < 0) {
+      Zeal::Game::print_chat("Error: could not find spell '%s'", spell_name.c_str());
       return true;
     }
+  }
 
-    auto target_spell = spell_mgr->Spells[target_id];
+  const auto* spell_mgr = Zeal::Game::get_spell_mgr();
+  if (!spell_mgr) {
+    Zeal::Game::print_chat("Unable to modify spell effect (spell db unavailable)");
+    return true;
+  }
 
-    if (!target_spell) {
-      Zeal::Game::print_chat("Error: target spell %d does not exist", target_id);
-      return true;
-    }
+  auto spell = spell_mgr->Spells[spell_id];
 
-    if (args[3] == "default") {
-      individualSpellEffects.erase(target_id);
+  if (!spell) {
+    Zeal::Game::print_chat("Error: spell %d does not exist", spell_id);
+    return true;
+  }
 
-      setting_SpellEffectReplacements.set(
-          RemoveSpellEffectReplacement(setting_SpellEffectReplacements.get(), target_id));
+  if (mode == "classic") {
+    setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), spell_id, "classic"));
 
-      if (target_spell->SpellAffectIndex == 2) {
-        target_spell->NewParticleEffect =
-            setting_BuffEffects.get() == 1 ? (DWORD) nullptr : originalSpellEffects[target_id];
-      } else {
-        target_spell->NewParticleEffect = originalSpellEffects[target_id];
-      }
+    Zeal::Game::print_chat("Spell %d effect set to Classic", spell_id);
+  } else {
+    // "default" means explicitly use the client's original effect.
+    setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), spell_id, "default"));
 
-      Zeal::Game::print_chat("Spell %d effect replacement cleared", target_id);
-      return true;
-    }
+    Zeal::Game::print_chat("Spell %d effect set to Default", spell_id);
+  }
 
-    int source_id = 0;
+  return true;
 
-    if (!Zeal::String::tryParse(args[3], &source_id, true) || source_id < 0 || source_id >= GAME_NUM_SPELLS) {
-      Zeal::Game::print_chat("Error: invalid source spell ID");
-      return true;
-    }
+  } else if (args.size() >= 4 && args[1] == "replace") {
+        const auto* spell_mgr = Zeal::Game::get_spell_mgr();
+        if (!spell_mgr) {
+          Zeal::Game::print_chat("Unable to modify spell effect (spell db unavailable)");
+          return true;
+        }
 
-    if (target_id == source_id) {
-      Zeal::Game::print_chat("Error: target and source spell cannot be the same");
-      return true;
-    }
+        // "replace <target> default" explicitly restores the target's client-default effect.
+        if (args.size() >= 4 && args.back() == "default") {
+          std::string target_text = args[2];
 
-    auto source_spell = spell_mgr->Spells[source_id];
+          for (size_t i = 3; i < args.size() - 1; ++i) {
+            target_text += " " + args[i];
+          }
 
-    if (!source_spell) {
-      Zeal::Game::print_chat("Error: source spell %d does not exist", source_id);
-      return true;
-    }
+          int target_id = -1;
 
-    if (!source_spell->NewParticleEffect) {
-      Zeal::Game::print_chat("Error: source spell %d has no default particle effect", source_id);
-      return true;
-    }
+          if (!Zeal::String::tryParse(target_text, &target_id, true)) {
+            target_id = FindSpellByName(target_text);
+          }
 
-    individualSpellEffects[target_id] = source_spell->NewParticleEffect;
+          if (target_id < 0 || target_id >= GAME_NUM_SPELLS) {
+            Zeal::Game::print_chat("Error: could not find target spell");
+            return true;
+          }
 
-    target_spell->NewParticleEffect = source_spell->NewParticleEffect;
+          auto target_spell = spell_mgr->Spells[target_id];
 
-    setting_SpellEffectReplacements.set(
-        SetSpellEffectReplacement(setting_SpellEffectReplacements.get(), target_id, source_id));
+          if (!target_spell) {
+            Zeal::Game::print_chat("Error: spell %d does not exist", target_id);
+            return true;
+          }
 
-    Zeal::Game::print_chat("Spell %d effect replaced with spell %d effect", target_id, source_id);
+          individualSpellEffects[target_id] = {SpellEffectOverrideType::ClientDefault, 0};
+
+          setting_SpellEffectOverrides.set(
+              SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id, "default"));
+
+          Zeal::Game::print_chat("Spell %d effect set to Default", target_id);
+
+          return true;
+        }
+
+        // Resolve the target and source as either spell IDs or spell names.
+        // Multi-word names are handled by trying each possible split point.
+        int target_id = -1;
+        int source_id = -1;
+
+        for (size_t split = 3; split < args.size(); ++split) {
+          std::string target_text = args[2];
+
+          for (size_t i = 3; i < split; ++i) {
+            target_text += " " + args[i];
+          }
+
+          std::string source_text = args[split];
+
+          for (size_t i = split + 1; i < args.size(); ++i) {
+            source_text += " " + args[i];
+          }
+
+          int candidate_target = -1;
+          int candidate_source = -1;
+
+          if (!Zeal::String::tryParse(target_text, &candidate_target, true)) {
+            candidate_target = FindSpellByName(target_text);
+          }
+
+          if (!Zeal::String::tryParse(source_text, &candidate_source, true)) {
+            candidate_source = FindSpellByName(source_text);
+          }
+
+          if (candidate_target >= 0 && candidate_target < GAME_NUM_SPELLS && candidate_source >= 0 &&
+              candidate_source < GAME_NUM_SPELLS) {
+            target_id = candidate_target;
+            source_id = candidate_source;
+            break;
+          }
+        }
+
+        if (target_id < 0 || target_id >= GAME_NUM_SPELLS) {
+          Zeal::Game::print_chat("Error: could not find target spell");
+          return true;
+        }
+
+        if (source_id < 0 || source_id >= GAME_NUM_SPELLS) {
+          Zeal::Game::print_chat("Error: could not find source spell");
+          return true;
+        }
+
+        auto target_spell = spell_mgr->Spells[target_id];
+
+        if (!target_spell) {
+          Zeal::Game::print_chat("Error: spell %d does not exist", target_id);
+          return true;
+        }
+
+        auto original_source = originalSpellEffects.find(source_id);
+
+        if (original_source == originalSpellEffects.end() || !original_source->second) {
+          Zeal::Game::print_chat("Error: source spell %d has no default particle effect", source_id);
+          return true;
+        }
+
+        setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id,
+                                                                "replace:" + std::to_string(source_id)));
+
+        Zeal::Game::print_chat("Spell %d effect replaced with spell %d effect", target_id, source_id);
+
+        return true;
 
   } else if (args.size() == 2 && args[1] == "nosprites") {
     setting_DisableSprites.toggle();
@@ -442,15 +595,16 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     }
   } else {
     Zeal::Game::print_chat("Usage:");
-    Zeal::Game::print_chat("  /spellfx classic");
-    Zeal::Game::print_chat("  /spellfx default");
-    Zeal::Game::print_chat("  /spellfx buff classic");
-    Zeal::Game::print_chat("  /spellfx buff default");
-    Zeal::Game::print_chat("  /spellfx replace <target> <source>");
-    Zeal::Game::print_chat("  /spellfx replace <target> default");
-    Zeal::Game::print_chat("  /spellfx reset");
+
     Zeal::Game::print_chat("  /spelleffects nosprites");
     Zeal::Game::print_chat("  /spelleffects bard <0, 1, 2, 3>");
+    Zeal::Game::print_chat("  /spelleffects classic");
+    Zeal::Game::print_chat("  /spelleffects default");
+    Zeal::Game::print_chat("  /spelleffects buff classic");
+    Zeal::Game::print_chat("  /spelleffects buff default");
+    Zeal::Game::print_chat("  /spelleffects replace <target> <source>");
+    Zeal::Game::print_chat("  /spelleffects replace <target> default");
+    Zeal::Game::print_chat("  /spelleffects reset");
 
     Zeal::Game::print_chat(
         "nosprites: Disables the minor sprite enhancement of the 180 songs (out of 4000) that can cause a crash"
@@ -459,6 +613,29 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     Zeal::Game::print_chat(
         "bard: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs to optionally"
         " be more subtle (0 is invisible with /showspelleffects off)");
+
+    Zeal::Game::print_chat(
+        "classic: Changes all spell effects to the classic/old style");
+
+    Zeal::Game::print_chat(
+        "default: Reverts all spell effects to the modern/new style used by default by the client");
+
+    Zeal::Game::print_chat("buff classic: Changes spell effects only for the effects commonly associated with the shielding"
+        " buff category (e.g. Minor Shielding) to the classic style complete with level milestone particle effects"
+        " at levels 1 (green), 24 (green + orange), and 39 (green + orange + blue)");
+
+    Zeal::Game::print_chat("buff default: Reverts spell effects only for the effects commonly associated with the shielding buff "
+        " category (e.g. Minor Shielding)to the default used by the client. Level milestones set to 24 regardless of level.");
+
+    Zeal::Game::print_chat(
+        "replace <target ID> <source ID>: Changes the spell effects for the Target Spell ID to use the effects of the Source Spell ID"
+        " Example: `/spellfx replace 2116 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice Comet (732)");
+
+    Zeal::Game::print_chat(
+        "replace <target ID> default: Reverts the changes made for the target spell to the default effects used by the client");
+
+    Zeal::Game::print_chat(
+        "reset: Reverts all individual spell changes made with the `/spellfx replace` command to the default effects used by the client.");
   }
   return true;
 }
@@ -518,9 +695,6 @@ Patches::Patches() {
   ZealService::get_instance()->hooks->Add("CanIBreathe", 0x004C0DAB, CanIBreathe, hook_type_detour);
 
   ZealService::get_instance()->commands_hook->Add(
-      "/spelleffects", {}, "Modify spell effects (prevent crashes, make less flashy, etc).",
-      [this](std::vector<std::string> &args) { return HandleSpellEffectsCommand(args); });
-  ZealService::get_instance()->commands_hook->Add(
-      "/spellfx", {}, "Modify spell effects.",
+      "/spelleffects", {"/spellfx"}, "Modify spell effects (prevent crashes, make less flashy, etc).",
       [this](std::vector<std::string>& args) { return HandleSpellEffectsCommand(args); });
 }
