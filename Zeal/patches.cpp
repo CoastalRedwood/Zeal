@@ -148,16 +148,16 @@ bool Patches::SyncSpellEffects(bool classic) {
     if (!originalSpellEffects.contains(spell_id)) originalSpellEffects[spell_id] = spell->NewParticleEffect;
   }
 
-  // Rebuild persistent individual replacements.
-  SyncSpellEffectReplacements();
-
-  // Apply the global setting.
+  // Apply the global Classic/Default setting.
   for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
     auto spell = spell_mgr->Spells[spell_id];
     if (!spell) continue;
 
     spell->NewParticleEffect = classic ? (DWORD) nullptr : originalSpellEffects[spell_id];
   }
+
+  // Restore the existing Bard preference when returning to Default.
+  if (!classic) SyncBardEffects();
 
   // Individual replacements always take precedence.
   for (const auto& [spell_id, effect] : individualSpellEffects) {
@@ -430,15 +430,12 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     Zeal::Game::print_chat("No sprites: %s", setting_DisableSprites.get() ? "True" : "False");
   } else if (args.size() == 3 && args[1] == "bard") {
     int mode = 0;
-
     if (!Zeal::String::tryParse(args[2], &mode, true) || mode < 0 || mode > kNumBardEffects) {
       Zeal::Game::print_chat("Error: bard effects mode must be between 0 and %d", kNumBardEffects);
       return true;
     }
-
     setting_BardEffects.set(mode);
     Zeal::Game::print_chat("Bard effects mode: %d", setting_BardEffects.get());
-
     // This sync happens in the set above but call again to see if there was an error.
     if (!SyncBardEffects()) {
       Zeal::Game::print_chat("Unable to modify bard effects (spell db change?)");
@@ -454,8 +451,15 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     Zeal::Game::print_chat("  /spellfx reset");
     Zeal::Game::print_chat("  /spelleffects nosprites");
     Zeal::Game::print_chat("  /spelleffects bard <0, 1, 2, 3>");
-  }
 
+    Zeal::Game::print_chat(
+        "nosprites: Disables the minor sprite enhancement of the 180 songs (out of 4000) that can cause a crash"
+        " when `/showspelleffects on` is enabled");
+
+    Zeal::Game::print_chat(
+        "bard: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs to optionally"
+        " be more subtle (0 is invisible with /showspelleffects off)");
+  }
   return true;
 }
 
