@@ -63,6 +63,31 @@ void Patches::SetBrownSkeletons() {
   }
 }
 
+// Compare spell names case-insensitively while treating apostrophe (') and
+// grave accent (`) as equivalent. EverQuest spell data uses both.
+static bool SpellNamesEqual(const char* client_name, const std::string& user_name) {
+  if (!client_name) return false;
+
+  size_t i = 0;
+
+  while (client_name[i] != '\0' && i < user_name.size()) {
+    char client_char = client_name[i];
+    char user_char = user_name[i];
+
+    // EQ spell names inconsistently use ' and `.
+    if (client_char == '\'' || client_char == '`') client_char = '`';
+    if (user_char == '\'' || user_char == '`') user_char = '`';
+
+    if (tolower(static_cast<unsigned char>(client_char)) != tolower(static_cast<unsigned char>(user_char))) {
+      return false;
+    }
+
+    ++i;
+  }
+
+  return client_name[i] == '\0' && i == user_name.size();
+}
+
 // Support a utility to find a spell by name and return the spell id (or -1 if not found).
 static int FindSpellByName(const std::string& name) {
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
@@ -71,7 +96,7 @@ static int FindSpellByName(const std::string& name) {
   for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
     const auto spell = spell_mgr->Spells[spell_id];
 
-    if (spell && spell->Name && _stricmp(spell->Name, name.c_str()) == 0) return spell_id;
+    if (spell && spell->Name && SpellNamesEqual(spell->Name, name)) return spell_id;
   }
 
   return -1;
@@ -349,6 +374,7 @@ static std::string SetSpellEffectOverride(const std::string& overrides, int targ
       if (Zeal::String::tryParse(entry.substr(0, separator), &existing_target, true)) {
         if (existing_target == target_id) {
           if (!found) {
+            if (!result.empty()) result += ";";
             result += std::to_string(target_id);
             result += "=";
             result += value;
