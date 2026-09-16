@@ -21,6 +21,9 @@ class Patches {
   ZealSetting<int> setting_BuffEffects = {-1, "SpellEffects", "BuffEffects", false,
                                           [this](const int& val) { SyncBuffEffects(); }};
 
+  ZealSetting<int> setting_HealingEffects = {-1, "SpellEffects", "HealingEffects", false,
+                                             [this](const int& val) { SyncHealingEffects(); }};
+
   ZealSetting<bool> setting_SpellEffectsClassic = {false, "SpellEffects", "Classic", false,
                                                    [this](bool val) { SyncSpellEffects(val); }};
 
@@ -49,6 +52,7 @@ class Patches {
   void SyncDisableSprites();
   bool SyncBardEffects();
   bool SyncBuffEffects();
+  bool SyncHealingEffects();
   bool SyncSpellEffects(bool classic);
   void LoadSpellEffectOverrides();
   bool HandleSpellEffectsCommand(const std::vector<std::string>& args);
