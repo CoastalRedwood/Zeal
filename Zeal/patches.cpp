@@ -282,6 +282,55 @@ bool Patches::SyncBuffEffects() {
   return true;
 }
 
+bool Patches::SyncHealingEffects() {
+  static constexpr int kHealingSpellAffectIndex = 1;
+
+  const auto* spell_mgr = Zeal::Game::get_spell_mgr();
+  if (!spell_mgr) return false;
+
+  for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+    auto spell = spell_mgr->Spells[spell_id];
+
+    if (!spell || spell->SpellAffectIndex != kHealingSpellAffectIndex) continue;
+
+    if (!originalSpellEffects.contains(spell_id)) {
+      originalSpellEffects[spell_id] = {spell->NewParticleEffect};
+    }
+
+    auto individual = individualSpellEffects.find(spell_id);
+
+    if (individual != individualSpellEffects.end()) {
+      switch (individual->second.type) {
+        case SpellEffectOverrideType::Classic:
+          spell->NewParticleEffect = (DWORD) nullptr;
+          break;
+
+        case SpellEffectOverrideType::ClientDefault:
+          spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
+          break;
+
+        case SpellEffectOverrideType::Replacement: {
+          auto source = originalSpellEffects.find(individual->second.source_spell_id);
+
+          if (source != originalSpellEffects.end() && source->second.new_particle_effect) {
+            spell->NewParticleEffect = source->second.new_particle_effect;
+          } else if (individual->second.effect) {
+            spell->NewParticleEffect = individual->second.effect;
+          }
+
+          break;
+        }
+      }
+    } else if (setting_HealingEffects.get() == 1) {
+      spell->NewParticleEffect = (DWORD) nullptr;
+    } else if (setting_HealingEffects.get() == 0) {
+      spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
+    }
+  }
+
+  return true;
+}
+
 static std::string SetSpellEffectOverride(const std::string& overrides, int target_id, const std::string& value) {
   std::string result;
   size_t start = 0;
@@ -373,12 +422,14 @@ void Patches::LoadSpellEffectOverrides() {
           }
         }
       }
-      start = end + 1;
     }
 
-    SyncSpellEffects(setting_SpellEffectsClassic.get());
-    SyncBuffEffects();
+    start = end + 1;
   }
+
+  SyncSpellEffects(setting_SpellEffectsClassic.get());
+  SyncBuffEffects();
+  SyncHealingEffects();
 }
 
 bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
@@ -408,11 +459,31 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
       Zeal::Game::print_chat("Buff spell effects: %s", mode == 1 ? "Classic" : "Default");
     }
 
+  } else if (args.size() == 3 && args[1] == "heal") {
+    int mode = 0;
+
+    if (args[2] == "classic") {
+      mode = 1;
+    } else if (args[2] == "default") {
+      mode = 0;
+    } else {
+      Zeal::Game::print_chat("Error: healing effects mode must be 'classic' or 'default'");
+      return true;
+    }
+
+    setting_HealingEffects.set(mode);
+
+    if (!SyncHealingEffects()) {
+      Zeal::Game::print_chat("Unable to modify healing effects (spell db unavailable)");
+    } else {
+      Zeal::Game::print_chat("Healing spell effects: %s", mode == 1 ? "Classic" : "Default");
+    }
+
   } else if (args.size() == 2 && args[1] == "reset") {
     individualSpellEffects.clear();
     setting_SpellEffectOverrides.set("");
 
-    if (!SyncSpellEffects(setting_SpellEffectsClassic.get()) || !SyncBuffEffects()) {
+    if (!SyncSpellEffects(setting_SpellEffectsClassic.get()) || !SyncBuffEffects() || !SyncHealingEffects()) {
       Zeal::Game::print_chat("Unable to reset individual spell effects (spell db unavailable)");
     } else {
       Zeal::Game::print_chat("All individual spell effect overrides reset");
@@ -632,11 +703,21 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
         " category (e.g. Minor Shielding)to the default used by the client. Level milestones set to 24 regardless of level.");
 
     Zeal::Game::print_chat(
-        "replace <target ID> <source ID>: Changes the spell effects for the Target Spell ID to use the effects of the Source Spell ID"
-        " Example: `/spellfx replace 2116 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice Comet (732)");
+        "heal classic: Changes spell effects only for the effects commonly associated with healing"
+        " category (e.g. Minor Healing) to the classic style complete with level milestone particle effects"
+        " at levels 1 (simple particles), 24 (simple particles + of ring particles around caster), and 39 (simple particles + ring of particles around caster + sphere of particles surround caster)");
 
     Zeal::Game::print_chat(
-        "replace <target ID> default: Reverts the changes made for the target spell to the default effects used by the client");
+        "heal default: Reverts spell effects only for the effects commonly associated with the healing buff "
+        " category (e.g. Minor Healing)to the default used by the client. Level milestones set to 24 regardless of "
+        "level.");
+
+    Zeal::Game::print_chat(
+        "replace <target spell> <source spell>: Changes the spell effects for the target Spell name or ID to use the effects of the source spell name or ID"
+        " Example: `/spellfx replace Ancient: Destruction of Ice 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice Comet (732)");
+
+    Zeal::Game::print_chat(
+        "replace <target spell> default: Reverts the changes made for the target spell to the default effects used by the client");
 
     Zeal::Game::print_chat(
         "reset: Reverts all individual spell changes made with the `/spellfx replace` command to the default effects used by the client.");
