@@ -903,9 +903,6 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
         SyncBuffEffects();
         SyncHealingEffects();
 
-        // Debug dumps removed for PR cleanliness.
-        // Stored override applied; suppressed verbose debug for PR.
-
         return true;
 
   } else if (args.size() == 2 && args[1] == "nosprites") {
@@ -926,15 +923,17 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
   } else {
     Zeal::Game::print_chat("Usage:");
 
-    Zeal::Game::print_chat("  /spelleffects nosprites");
-    Zeal::Game::print_chat("  /spelleffects bard <0, 1, 2, 3>");
-    Zeal::Game::print_chat("  /spelleffects classic");
-    Zeal::Game::print_chat("  /spelleffects default");
-    Zeal::Game::print_chat("  /spelleffects buff classic");
-    Zeal::Game::print_chat("  /spelleffects buff default");
-    Zeal::Game::print_chat("  /spelleffects replace <target> <source>");
-    Zeal::Game::print_chat("  /spelleffects replace <target> default");
-    Zeal::Game::print_chat("  /spelleffects reset");
+    Zeal::Game::print_chat("/spelleffects nosprites");
+    Zeal::Game::print_chat("/spelleffects bard <0,1,2,3>");
+    Zeal::Game::print_chat("/spelleffects classic");
+    Zeal::Game::print_chat("/spelleffects default");
+    Zeal::Game::print_chat("/spelleffects buff classic");
+    Zeal::Game::print_chat("/spelleffects buff default");
+    Zeal::Game::print_chat("/spelleffects healing classic");
+    Zeal::Game::print_chat("/spelleffects healing default");
+    Zeal::Game::print_chat("/spelleffects replace <target> <source>");
+    Zeal::Game::print_chat("/spelleffects replace <target> default");
+    Zeal::Game::print_chat("/spelleffects reset");
 
     Zeal::Game::print_chat(
         "nosprites: Disables the minor sprite enhancement of the 180 songs (out of 4000) that can cause a crash"
@@ -944,38 +943,38 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
         "bard: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs to optionally"
         " be more subtle (0 is invisible with /showspelleffects off)");
 
-    Zeal::Game::print_chat(
-        "classic: Changes all spell effects to the classic/old style");
+    Zeal::Game::print_chat("classic: Changes all spell effects to the classic style");
+
+    Zeal::Game::print_chat("default: Reverts all spell effects to the style used by default by the client");
 
     Zeal::Game::print_chat(
-        "default: Reverts all spell effects to the modern/new style used by default by the client");
-
-    Zeal::Game::print_chat("buff classic: Changes spell effects only for the effects commonly associated with the shielding"
-        " buff category (e.g. Minor Shielding) to the classic style complete with level milestone particle effects"
-        " at levels 1 (green), 24 (green + orange), and 39 (green + orange + blue)");
-
-    Zeal::Game::print_chat("buff default: Reverts spell effects only for the effects commonly associated with the shielding buff "
-        " category (e.g. Minor Shielding)to the default used by the client. Level milestones set to 24 regardless of level.");
+        "buff classic: Changes spell effects only for the effects commonly associated with the shielding "
+        "buff category (e.g. Minor Shielding) to the classic style complete with level milestone particle "
+        "effects at levels 1 (green), 24 (green + orange), and 39 (green + orange + blue)");
 
     Zeal::Game::print_chat(
-        "heal classic: Changes spell effects only for the effects commonly associated with healing"
-        " category (e.g. Minor Healing) to the classic style complete with level milestone particle effects"
-        " at levels 1 (simple particles), 24 (simple particles + of ring particles around caster), and 39 (simple particles + ring of particles around caster + sphere of particles surround caster)");
+        "buff default: Reverts spell effects only for the effects commonly associated with the shielding "
+        "buff category (e.g. Minor Shielding) to the default used by the client.");
 
     Zeal::Game::print_chat(
-        "heal default: Reverts spell effects only for the effects commonly associated with the healing buff "
-        " category (e.g. Minor Healing)to the default used by the client. Level milestones set to 24 regardless of "
-        " level.");
+        "heal classic: Changes spell effects only for the effects commonly associated with healing spells");
 
     Zeal::Game::print_chat(
-        "replace <target spell> <source spell>: Changes the spell effects for the target Spell name or ID to use the effects of the source spell name or ID"
-        " Example: `/spellfx replace Ancient: Destruction of Ice 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice Comet (732)");
+        "heal default: Reverts spell effects only for the effects commonly associated with healing spells");
 
     Zeal::Game::print_chat(
-        "replace <target spell> default: Reverts the changes made for the target spell to the default effects used by the client");
+        "replace <target spell> <source spell>: Changes the spell effects for the target spell name or ID "
+        "to use the effects of the source spell name or ID. Example: `/spellfx replace Ancient: Destruction "
+        "of Ice 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice "
+        "Comet (732)");
 
     Zeal::Game::print_chat(
-        "reset: Reverts all individual spell changes made with the `/spellfx replace` command to the default effects used by the client.");
+        "replace <target spell> default: Reverts the changes made for the target spell to the default "
+        "effects used by the client");
+
+    Zeal::Game::print_chat(
+        "reset: Reverts all individual spell changes made with the `/spellfx replace` command to the "
+        "default effects used by the client.");
   }
   return true;
 }
