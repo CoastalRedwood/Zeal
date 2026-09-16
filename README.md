@@ -439,13 +439,20 @@ ___
   - **Example:** `/sq` `/sq 1 2`
   - **Description:** sorts your current group members in the ui  using /sq 1 2 will swap players 1 and 2 in your group on your ui.
 
-- `/spelleffects`
-  - **Arguments:** `nosprites`, `bard <0, 1, 2, 3>`
+- `/spelleffects`, `/spellfx`
+  - **Arguments:** `nosprites`, `bard <0, 1, 2, 3>`, `classic`, `default`, `buff classic`, `buff default`, `replace <Target Spell ID> <Source Spell ID>`, `replace <Target Spell ID> default`, `reset`
+  - **Description:** Allows players to copy spell visual and audio effects. Players may copy the effects for an individual spell from another source spell, change all spell effects to the classic ("old") style, or revert all changes to the deafult ("new") visuals used by the client. They optionally may change all 482 spells that have the "self-buff" effects to classic, which restores level milestone particle effects at levels 1, 24, and 39 (e.g. Minor Shielding just having green particles at level 1, green + orange at 24 which is used by default on Quarm regardless of level, and green + orange + blue particles at level 39).
   - **Example:** `/spelleffects nosprites`: Disables the minor sprite enhancement of the 180 songs (out of 4000)
     that can cause the dpvs.dll crash when `/showspelleffects on` is enabled
   - **Example:** `/spelleffects bard`: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs
-    (mostly resists and mana regen) to optionally be more subtle (0 is invisible with /showspelleffects off).
-  - **Description:** allows you to modify spell effects
+    (mostly resists and mana regen) to optionally be more subtle (0 is invisible with /showspelleffects off). Not affected by classic, default, or replace changes.
+  - **Example:** `/spelleffects classic`: Changes all spell effects to the classic ("old") style with working particle level milestones at levels 1, 24, and 39.
+  - **Example:** `/spelleffects default`: Reverts all spell effects to the modern ("new) style used by default by the client. Level milestone particle effects for most spells are stuck at level 24 regardless of character level.
+  - **Example:** `/spelleffects buff classic`: Changes spell effects only for the effects commonly associated with the shielding buff category (e.g. Minor Shielding, Shield of the Magi, Dead Man Floating, Rune III, etc.) to the classic ("old") style with working particle level milestones at levels 1, 24, and 39. This effetively fixes the level milestone particle effects bug limitation with the TAKP client.
+  - **Example:** `/spelleffects buff default`: Reverts spell effects only for the effects commonly associated with the shielding buff category (e.g. Minor Shielding, Shield of the Magi, Dead Man Floating, Rune III, etc.) to the default ("new") style. Level milestone particle effects for all buffs in this category will remain at level 24 regardless of level (green + orange particles).
+  - **Example:** `/spelleffects replace <Target Spell Name or ID> <Source Spell Name or ID>`: Changes the spell effects for the target spell (by name or ID) to use the effects of the source spell (by name or ID). For example, `/spelleffects replace Ancient: Destruction of Ice 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice Comet (732). Names and IDs can be mixed, so you can just use names, IDs, or any combination of them. Use pqdi.cc or other databases to find the correct spell ID from the spell, not the scroll item that teaches it. This always takes priority over any other `/spelleffects` setting.
+  - **Example:** `/spelleffects replace <Target Spell ID> default`: Reverts the changes made for the target spell to the default effects used by the client.
+  - **Example:** `/spelleffects reset`: Reverts all individual spell changes made with the `/spellfx replace` command to the default effects used by the client.
 
 - `/spellset`
   - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
