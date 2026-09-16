@@ -2,10 +2,15 @@
 
 #include <string>
 #include <unordered_map>
+#include <optional>
+#include <mutex>
 #include <vector>
 
 #include "game_structures.h"
 #include "zeal_settings.h"
+
+// Forward declare old particle record type (defined in game_structures.h)
+namespace Zeal { namespace GameStructures { struct SpellEffectRecord; } }
 
 class Patches {
  public:
@@ -37,16 +42,24 @@ class Patches {
 
   struct OriginalSpellEffect {
     DWORD new_particle_effect = 0;
+    Zeal::GameStructures::SpellEffectRecord* old_particle_effect = nullptr;
   };
 
   struct SpellEffectOverride {
     SpellEffectOverrideType type;
     DWORD effect = 0;
     int source_spell_id = -1;
+    bool use_old_effect = false;
   };
 
-  std::unordered_map<int, OriginalSpellEffect> originalSpellEffects;
-  std::unordered_map<int, SpellEffectOverride> individualSpellEffects;
+  // Use dense vector indexed by spell id for fast lookups and predictable memory
+  // footprint. std::optional indicates presence.
+  std::vector<std::optional<OriginalSpellEffect>> originalSpellEffects;
+  std::vector<std::optional<SpellEffectOverride>> individualSpellEffects;
+  // Per-target allocated copies of old particle records when we clone classic effects.
+
+  // Protect concurrent access to spell-effect structures.
+  mutable std::mutex spell_effects_mutex;
 
   void SetBrownSkeletons();
   void SyncDisableSprites();
@@ -56,4 +69,5 @@ class Patches {
   bool SyncSpellEffects(bool classic);
   void LoadSpellEffectOverrides();
   bool HandleSpellEffectsCommand(const std::vector<std::string>& args);
+  // (No heap-allocated copies retained in this build.)
 };

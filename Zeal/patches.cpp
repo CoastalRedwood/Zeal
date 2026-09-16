@@ -93,10 +93,47 @@ static int FindSpellByName(const std::string& name) {
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return -1;
 
+  // Try direct match using SpellNamesEqual first (handles ' vs ` and case).
   for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
     const auto spell = spell_mgr->Spells[spell_id];
-
     if (spell && spell->Name && SpellNamesEqual(spell->Name, name)) return spell_id;
+  }
+
+  // Fallback: normalize both sides and compare strings (handles extra whitespace, quotes).
+  auto normalize_input = [](const std::string &s) {
+    std::string out;
+    out.reserve(s.size());
+    bool in_whitespace = false;
+    for (size_t i = 0; i < s.size(); ++i) {
+      unsigned char c = static_cast<unsigned char>(s[i]);
+      // normalize apostrophes/backticks to backtick
+      if (c == '\'' || c == '`' || c == 0x2019 /* right single quote */) c = '`';
+      if (std::isspace(c)) {
+        if (!in_whitespace) {
+          out.push_back(' ');
+          in_whitespace = true;
+        }
+      } else {
+        out.push_back(static_cast<char>(std::tolower(c)));
+        in_whitespace = false;
+      }
+    }
+    // trim
+    if (!out.empty() && out.front() == ' ') out.erase(out.begin());
+    if (!out.empty() && out.back() == ' ') out.pop_back();
+    // remove surrounding quotes
+    if (out.size() >= 2 && ((out.front() == '"' && out.back() == '"') || (out.front() == '\'' && out.back() == '\''))) {
+      out = out.substr(1, out.size() - 2);
+    }
+    return out;
+  };
+
+  std::string norm_name = normalize_input(name);
+  for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+    const auto spell = spell_mgr->Spells[spell_id];
+    if (!spell || !spell->Name) continue;
+    std::string cand = normalize_input(spell->Name);
+    if (cand == norm_name) return spell_id;
   }
 
   return -1;
@@ -199,25 +236,34 @@ bool Patches::SyncSpellEffects(bool classic) {
   if (!spell_mgr) return false;
 
   // Capture the client's default effects before applying any overrides.
-  for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
-    auto spell = spell_mgr->Spells[spell_id];
-    if (!spell) continue;
-
-    if (IsBardEffectSpellOrReference(spell_id)) continue;
-
-    if (!originalSpellEffects.contains(spell_id)) {
-      originalSpellEffects[spell_id] = {spell->NewParticleEffect};
+  {
+    std::lock_guard<std::mutex> guard(spell_effects_mutex);
+    for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+      auto spell = spell_mgr->Spells[spell_id];
+      if (!spell) continue;
+      if (IsBardEffectSpellOrReference(spell_id)) continue;
+      if (!originalSpellEffects[spell_id].has_value()) {
+        originalSpellEffects[spell_id] = OriginalSpellEffect{spell->NewParticleEffect, spell->OldParticleEffect};
+      }
     }
   }
 
   // Apply the global Classic/Default setting.
-  for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
-    auto spell = spell_mgr->Spells[spell_id];
-    if (!spell) continue;
-
-    if (IsBardEffectSpellOrReference(spell_id)) continue;
-
-    spell->NewParticleEffect = classic ? (DWORD) nullptr : originalSpellEffects[spell_id].new_particle_effect;
+  {
+    std::lock_guard<std::mutex> guard(spell_effects_mutex);
+    for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+      auto spell = spell_mgr->Spells[spell_id];
+      if (!spell) continue;
+      if (IsBardEffectSpellOrReference(spell_id)) continue;
+      DWORD orig_effect = 0;
+      Zeal::GameStructures::SpellEffectRecord* orig_old = nullptr;
+      if (originalSpellEffects[spell_id].has_value()) {
+        orig_effect = originalSpellEffects[spell_id]->new_particle_effect;
+        orig_old = originalSpellEffects[spell_id]->old_particle_effect;
+      }
+      spell->NewParticleEffect = classic ? (DWORD) nullptr : orig_effect;
+      if (classic) spell->OldParticleEffect = orig_old;
+    }
   }
 
 
@@ -225,38 +271,72 @@ bool Patches::SyncSpellEffects(bool classic) {
   SyncBardEffects();
 
   // Individual overrides always take precedence over family/global settings.
-  for (const auto& [spell_id, override] : individualSpellEffects) {
-    auto spell = spell_mgr->Spells[spell_id];
-    if (!spell) continue;
+  // Apply individual overrides (if present) on top of the global setting.
+  {
+    std::lock_guard<std::mutex> guard(spell_effects_mutex);
+    for (int spell_id = 0; spell_id < GAME_NUM_SPELLS; ++spell_id) {
+      if (!individualSpellEffects[spell_id].has_value()) continue;
+      auto &override = *individualSpellEffects[spell_id];
+      auto spell = spell_mgr->Spells[spell_id];
+      if (!spell) continue;
+      if (IsBardSongId(spell_id)) continue;
 
-    if (IsBardSongId(spell_id)) continue;
+      switch (override.type) {
+        case SpellEffectOverrideType::Classic:
+          spell->NewParticleEffect = (DWORD) nullptr;
+          break;
 
-    switch (override.type) {
-      case SpellEffectOverrideType::Classic:
-        spell->NewParticleEffect = (DWORD) nullptr;
-        break;
+        case SpellEffectOverrideType::ClientDefault:
+          if (originalSpellEffects[spell_id].has_value())
+            spell->NewParticleEffect = originalSpellEffects[spell_id]->new_particle_effect;
+          else
+            spell->NewParticleEffect = 0;
+          break;
 
-      case SpellEffectOverrideType::ClientDefault:
-        spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
-        break;
-
-      case SpellEffectOverrideType::Replacement: {
-        auto source = originalSpellEffects.find(override.source_spell_id);
-
-        if (source != originalSpellEffects.end() && source->second.new_particle_effect) {
-          spell->NewParticleEffect = source->second.new_particle_effect;
-        } else if (override.effect) {
-          // Runtime replacement fallback.
-          spell->NewParticleEffect = override.effect;
+        case SpellEffectOverrideType::Replacement: {
+          int src = override.source_spell_id;
+          if (override.use_old_effect) {
+            // Use the source's old (classic) particle effect pointer, and clear the NewParticleEffect
+            if (src >= 0 && src < GAME_NUM_SPELLS) {
+              auto src_spell = spell_mgr->Spells[src];
+              if (src_spell && src_spell->OldParticleEffect) {
+                // Try to point to the source's old record directly first.
+                spell->OldParticleEffect = src_spell->OldParticleEffect;
+                spell->NewParticleEffect = 0;
+                spell->SpellAnim = src_spell->SpellAnim;
+                spell->SpellAffectIndex = src_spell->SpellAffectIndex;
+                // Verify the pointed record has enabled subEffects. If not, clone the record into our own heap and point to it.
+                bool hasActive = false;
+                for (int ii = 0; ii < 3; ++ii) {
+                  if (spell->OldParticleEffect->subEffect[ii].effectMode >= 0) {
+                    hasActive = true;
+                    break;
+                  }
+                }
+                // If no active subEffects, fall back to treating this as having no classic data (do not clone).
+                (void)hasActive;
+              }
+            }
+          } else {
+            if (src >= 0 && src < GAME_NUM_SPELLS && originalSpellEffects[src].has_value() &&
+                originalSpellEffects[src]->new_particle_effect)
+              spell->NewParticleEffect = originalSpellEffects[src]->new_particle_effect;
+            else if (override.effect)
+              spell->NewParticleEffect = override.effect;
+          }
+          // Applied override (debug removed for PR cleanliness)
+          break;
         }
-
-        break;
       }
     }
   }
 
+  // No dynamic old-effect copies retained in this build.
+
   return true;
 }
+
+// No-op placeholder removed; FreeCopiedOldEffects is no longer declared in header.
 
 bool Patches::SyncBuffEffects() {
   static constexpr int kBuffSpellAffectIndex = 2;
@@ -268,39 +348,60 @@ bool Patches::SyncBuffEffects() {
     auto spell = spell_mgr->Spells[spell_id];
 
     if (!spell || spell->SpellAffectIndex != kBuffSpellAffectIndex) continue;
-
-    if (!originalSpellEffects.contains(spell_id)) {
-      originalSpellEffects[spell_id] = {spell->NewParticleEffect};
-    }
-
-    auto individual = individualSpellEffects.find(spell_id);
-
-    if (individual != individualSpellEffects.end()) {
-      switch (individual->second.type) {
-        case SpellEffectOverrideType::Classic:
-          spell->NewParticleEffect = (DWORD) nullptr;
-          break;
-
-        case SpellEffectOverrideType::ClientDefault:
-          spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
-          break;
-
-        case SpellEffectOverrideType::Replacement: {
-          auto source = originalSpellEffects.find(individual->second.source_spell_id);
-
-          if (source != originalSpellEffects.end() && source->second.new_particle_effect) {
-            spell->NewParticleEffect = source->second.new_particle_effect;
-          } else if (individual->second.effect) {
-            spell->NewParticleEffect = individual->second.effect;
-          }
-
-          break;
-        }
+    {
+      std::lock_guard<std::mutex> guard(spell_effects_mutex);
+      if (!originalSpellEffects[spell_id].has_value()) {
+        originalSpellEffects[spell_id] = OriginalSpellEffect{spell->NewParticleEffect, spell->OldParticleEffect};
       }
-    } else if (setting_BuffEffects.get() == 1) {
-      spell->NewParticleEffect = (DWORD) nullptr;
-    } else if (setting_BuffEffects.get() == 0) {
-      spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
+
+      if (individualSpellEffects[spell_id].has_value()) {
+        auto &individual = *individualSpellEffects[spell_id];
+        switch (individual.type) {
+          case SpellEffectOverrideType::Classic:
+            spell->NewParticleEffect = (DWORD) nullptr;
+            break;
+
+          case SpellEffectOverrideType::ClientDefault:
+            if (originalSpellEffects[spell_id].has_value())
+              spell->NewParticleEffect = originalSpellEffects[spell_id]->new_particle_effect;
+            else
+              spell->NewParticleEffect = 0;
+            break;
+
+          case SpellEffectOverrideType::Replacement: {
+            int src = individual.source_spell_id;
+            if (individual.use_old_effect) {
+              if (src >= 0 && src < GAME_NUM_SPELLS) {
+                auto src_spell = spell_mgr->Spells[src];
+                if (src_spell && src_spell->OldParticleEffect) {
+                  spell->OldParticleEffect = src_spell->OldParticleEffect;
+                  spell->NewParticleEffect = 0;
+                  spell->SpellAnim = src_spell->SpellAnim;
+                  spell->SpellAffectIndex = src_spell->SpellAffectIndex;
+                }
+              }
+            } else {
+              if (src >= 0 && src < GAME_NUM_SPELLS && originalSpellEffects[src].has_value() &&
+                  originalSpellEffects[src]->new_particle_effect)
+                spell->NewParticleEffect = originalSpellEffects[src]->new_particle_effect;
+              else if (individual.effect)
+                spell->NewParticleEffect = individual.effect;
+            }
+            // Debug: show what we set
+            Zeal::Game::print_chat("spelleffects: applied individual override for %d -> src %d use_old=%d new=0x%08x old=%p",
+                                   spell_id, src, individual.use_old_effect ? 1 : 0,
+                                   static_cast<unsigned int>(spell->NewParticleEffect), (void *)spell->OldParticleEffect);
+            break;
+          }
+        }
+      } else if (setting_BuffEffects.get() == 1) {
+        spell->NewParticleEffect = (DWORD) nullptr;
+      } else if (setting_BuffEffects.get() == 0) {
+        if (originalSpellEffects[spell_id].has_value())
+          spell->NewParticleEffect = originalSpellEffects[spell_id]->new_particle_effect;
+        else
+          spell->NewParticleEffect = 0;
+      }
     }
   }
 
@@ -317,39 +418,60 @@ bool Patches::SyncHealingEffects() {
     auto spell = spell_mgr->Spells[spell_id];
 
     if (!spell || spell->SpellAffectIndex != kHealingSpellAffectIndex) continue;
-
-    if (!originalSpellEffects.contains(spell_id)) {
-      originalSpellEffects[spell_id] = {spell->NewParticleEffect};
-    }
-
-    auto individual = individualSpellEffects.find(spell_id);
-
-    if (individual != individualSpellEffects.end()) {
-      switch (individual->second.type) {
-        case SpellEffectOverrideType::Classic:
-          spell->NewParticleEffect = (DWORD) nullptr;
-          break;
-
-        case SpellEffectOverrideType::ClientDefault:
-          spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
-          break;
-
-        case SpellEffectOverrideType::Replacement: {
-          auto source = originalSpellEffects.find(individual->second.source_spell_id);
-
-          if (source != originalSpellEffects.end() && source->second.new_particle_effect) {
-            spell->NewParticleEffect = source->second.new_particle_effect;
-          } else if (individual->second.effect) {
-            spell->NewParticleEffect = individual->second.effect;
-          }
-
-          break;
-        }
+    {
+      std::lock_guard<std::mutex> guard(spell_effects_mutex);
+      if (!originalSpellEffects[spell_id].has_value()) {
+        originalSpellEffects[spell_id] = OriginalSpellEffect{spell->NewParticleEffect};
       }
-    } else if (setting_HealingEffects.get() == 1) {
-      spell->NewParticleEffect = (DWORD) nullptr;
-    } else if (setting_HealingEffects.get() == 0) {
-      spell->NewParticleEffect = originalSpellEffects[spell_id].new_particle_effect;
+
+      if (individualSpellEffects[spell_id].has_value()) {
+        auto &individual = *individualSpellEffects[spell_id];
+        switch (individual.type) {
+          case SpellEffectOverrideType::Classic:
+            spell->NewParticleEffect = (DWORD) nullptr;
+            break;
+
+          case SpellEffectOverrideType::ClientDefault:
+            if (originalSpellEffects[spell_id].has_value())
+              spell->NewParticleEffect = originalSpellEffects[spell_id]->new_particle_effect;
+            else
+              spell->NewParticleEffect = 0;
+            break;
+
+          case SpellEffectOverrideType::Replacement: {
+            int src = individual.source_spell_id;
+            if (individual.use_old_effect) {
+              if (src >= 0 && src < GAME_NUM_SPELLS) {
+                auto src_spell = spell_mgr->Spells[src];
+                if (src_spell && src_spell->OldParticleEffect) {
+                  spell->OldParticleEffect = src_spell->OldParticleEffect;
+                  spell->NewParticleEffect = 0;
+                  spell->SpellAnim = src_spell->SpellAnim;
+                  spell->SpellAffectIndex = src_spell->SpellAffectIndex;
+                }
+              }
+            } else {
+              if (src >= 0 && src < GAME_NUM_SPELLS && originalSpellEffects[src].has_value() &&
+                  originalSpellEffects[src]->new_particle_effect)
+                spell->NewParticleEffect = originalSpellEffects[src]->new_particle_effect;
+              else if (individual.effect)
+                spell->NewParticleEffect = individual.effect;
+            }
+            // Debug: show what we set
+            Zeal::Game::print_chat("spelleffects: applied individual override for %d -> src %d use_old=%d new=0x%08x old=%p",
+                                   spell_id, src, individual.use_old_effect ? 1 : 0,
+                                   static_cast<unsigned int>(spell->NewParticleEffect), (void *)spell->OldParticleEffect);
+            break;
+          }
+        }
+      } else if (setting_HealingEffects.get() == 1) {
+        spell->NewParticleEffect = (DWORD) nullptr;
+      } else if (setting_HealingEffects.get() == 0) {
+        if (originalSpellEffects[spell_id].has_value())
+          spell->NewParticleEffect = originalSpellEffects[spell_id]->new_particle_effect;
+        else
+          spell->NewParticleEffect = 0;
+      }
     }
   }
 
@@ -358,6 +480,8 @@ bool Patches::SyncHealingEffects() {
 
 static std::string SetSpellEffectOverride(const std::string& overrides, int target_id, const std::string& value) {
   std::string result;
+  // Reserve approximate size to avoid repeated reallocations for common cases.
+  result.reserve(overrides.size() + 16);
   size_t start = 0;
   bool found = false;
 
@@ -405,11 +529,18 @@ void Patches::LoadSpellEffectOverrides() {
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return;
 
-  individualSpellEffects.clear();
-
   const std::string& overrides = setting_SpellEffectOverrides.get();
 
   if (overrides.empty()) return;
+
+  // Clear existing overrides (set all entries to empty optional) under lock.
+  {
+    std::lock_guard<std::mutex> guard(spell_effects_mutex);
+    if (individualSpellEffects.size() != static_cast<size_t>(GAME_NUM_SPELLS))
+      individualSpellEffects.assign(GAME_NUM_SPELLS, std::nullopt);
+    else
+      std::fill(individualSpellEffects.begin(), individualSpellEffects.end(), std::nullopt);
+  }
 
   size_t start = 0;
 
@@ -431,18 +562,26 @@ void Patches::LoadSpellEffectOverrides() {
 
         if (target_spell) {
           if (_stricmp(value.c_str(), "classic") == 0) {
-            individualSpellEffects[target_id] = {SpellEffectOverrideType::Classic, 0};
+            individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::Classic, 0, -1, false};
           } else if (_stricmp(value.c_str(), "default") == 0) {
-            individualSpellEffects[target_id] = {SpellEffectOverrideType::ClientDefault, 0};
+            individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::ClientDefault, 0, -1, false};
+          } else if (value.size() > 14 && _strnicmp(value.c_str(), "replace-classic:", 14) == 0) {
+            int source_id = 0;
+            if (Zeal::String::tryParse(value.substr(14), &source_id, true) && source_id >= 0 &&
+                source_id < GAME_NUM_SPELLS) {
+              auto source_spell = spell_mgr->Spells[source_id];
+              if (source_spell) {
+                individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::Replacement, 0, source_id, true};
+              }
+            }
           } else if (value.size() > 8 && _strnicmp(value.c_str(), "replace:", 8) == 0) {
             int source_id = 0;
-
             if (Zeal::String::tryParse(value.substr(8), &source_id, true) && source_id >= 0 &&
                 source_id < GAME_NUM_SPELLS) {
               auto source_spell = spell_mgr->Spells[source_id];
 
               if (source_spell) {
-                individualSpellEffects[target_id] = {SpellEffectOverrideType::Replacement, 0, source_id};
+                individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::Replacement, 0, source_id, false};
               }
             }
           }
@@ -506,7 +645,14 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     }
 
   } else if (args.size() == 2 && args[1] == "reset") {
-    individualSpellEffects.clear();
+    // Reset individual overrides: ensure vector is sized and cleared to std::nullopt for each spell id
+    {
+      std::lock_guard<std::mutex> guard(spell_effects_mutex);
+      if (individualSpellEffects.size() != static_cast<size_t>(GAME_NUM_SPELLS))
+        individualSpellEffects.assign(GAME_NUM_SPELLS, std::nullopt);
+      else
+        std::fill(individualSpellEffects.begin(), individualSpellEffects.end(), std::nullopt);
+    }
     setting_SpellEffectOverrides.set("");
 
     if (!SyncSpellEffects(setting_SpellEffectsClassic.get()) || !SyncBuffEffects() || !SyncHealingEffects()) {
@@ -559,11 +705,19 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), spell_id, "classic"));
 
     Zeal::Game::print_chat("Spell %d effect set to Classic", spell_id);
+    // Apply immediately
+    SyncSpellEffects(setting_SpellEffectsClassic.get());
+    SyncBuffEffects();
+    SyncHealingEffects();
   } else {
     // "default" means explicitly use the client's original effect.
     setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), spell_id, "default"));
 
     Zeal::Game::print_chat("Spell %d effect set to Default", spell_id);
+    // Apply immediately
+    SyncSpellEffects(setting_SpellEffectsClassic.get());
+    SyncBuffEffects();
+    SyncHealingEffects();
   }
 
   return true;
@@ -601,7 +755,7 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
             return true;
           }
 
-          individualSpellEffects[target_id] = {SpellEffectOverrideType::ClientDefault, 0};
+          individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::ClientDefault, 0, -1};
 
           setting_SpellEffectOverrides.set(
               SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id, "default"));
@@ -615,8 +769,25 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
         // Multi-word names are handled by trying each possible split point.
         int target_id = -1;
         int source_id = -1;
+        bool selected_use_old = false;
 
-        for (size_t split = 3; split < args.size(); ++split) {
+        // Special-case syntax: replace <target> classic <source>
+        if (args.size() >= 5 && _strnicmp(args[3].c_str(), "classic", 7) == 0) {
+          std::string target_text = args[2];
+          std::string source_text;
+          for (size_t i = 4; i < args.size(); ++i) {
+            if (!source_text.empty()) source_text += " ";
+            source_text += args[i];
+          }
+
+          // Resolve IDs
+          if (!Zeal::String::tryParse(target_text, &target_id, true)) target_id = FindSpellByName(target_text);
+          if (!Zeal::String::tryParse(source_text, &source_id, true)) source_id = FindSpellByName(source_text);
+
+          if (target_id >= 0 && target_id < GAME_NUM_SPELLS && source_id >= 0 && source_id < GAME_NUM_SPELLS)
+            selected_use_old = true;
+        } else {
+          for (size_t split = 3; split < args.size(); ++split) {
           std::string target_text = args[2];
 
           for (size_t i = 3; i < split; ++i) {
@@ -637,15 +808,30 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
           }
 
           if (!Zeal::String::tryParse(source_text, &candidate_source, true)) {
-            candidate_source = FindSpellByName(source_text);
+            // Support optional "classic <name>" prefix for using old/classic particle effect from source
+            if (source_text.size() > 7 && _strnicmp(source_text.c_str(), "classic ", 7) == 0) {
+              std::string stripped = source_text.substr(7);
+              candidate_source = FindSpellByName(stripped);
+              if (candidate_source >= 0) {
+                candidate_source = candidate_source;
+                // Mark that we want the old/classic effect
+                // Note: selected_use_old will be set when accepting this candidate pair below
+              }
+            } else {
+              candidate_source = FindSpellByName(source_text);
+            }
           }
 
           if (candidate_target >= 0 && candidate_target < GAME_NUM_SPELLS && candidate_source >= 0 &&
               candidate_source < GAME_NUM_SPELLS) {
             target_id = candidate_target;
             source_id = candidate_source;
+            // If source_text started with "classic ", mark to use old effect
+            if (source_text.size() > 7 && _strnicmp(source_text.c_str(), "classic ", 7) == 0)
+              selected_use_old = true;
             break;
           }
+        }
         }
 
         if (target_id < 0 || target_id >= GAME_NUM_SPELLS) {
@@ -665,17 +851,60 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
           return true;
         }
 
-        auto original_source = originalSpellEffects.find(source_id);
-
-        if (original_source == originalSpellEffects.end() || !original_source->second.new_particle_effect) {
-          Zeal::Game::print_chat("Error: source spell %d has no default particle effect", source_id);
-          return true;
+        {
+          std::lock_guard<std::mutex> guard(spell_effects_mutex);
+          // If user requested classic source effect, allow source with OldParticleEffect even if it has no NewParticleEffect.
+          auto source_spell = spell_mgr->Spells[source_id];
+          if (selected_use_old) {
+            if (!source_spell || !source_spell->OldParticleEffect) {
+              Zeal::Game::print_chat("Error: source spell %d has no classic particle effect", source_id);
+              return true;
+            }
+          } else {
+            // If the source has no new/default particle effect, but does have a classic OldParticleEffect,
+            // automatically treat this as a classic replacement so users don't need to specify "classic".
+            if (source_id < 0 || source_id >= GAME_NUM_SPELLS || !originalSpellEffects[source_id].has_value() ||
+                !originalSpellEffects[source_id]->new_particle_effect) {
+              if (source_spell && source_spell->OldParticleEffect) {
+                selected_use_old = true;
+              } else {
+                Zeal::Game::print_chat("Error: source spell %d has no default particle effect", source_id);
+                return true;
+              }
+            }
+          }
         }
 
-        setting_SpellEffectOverrides.set(SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id,
-                                                                "replace:" + std::to_string(source_id)));
+        // Also set the in-memory override immediately so callers see the change without waiting on the
+        // settings reload. This mirrors what LoadSpellEffectOverrides will do when the setting string is updated.
+        {
+          std::lock_guard<std::mutex> guard(spell_effects_mutex);
+          if (selected_use_old) {
+            individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::Replacement, 0, source_id, true};
+          } else {
+            individualSpellEffects[target_id] = SpellEffectOverride{SpellEffectOverrideType::Replacement, 0, source_id, false};
+          }
+        }
 
-        Zeal::Game::print_chat("Spell %d effect replaced with spell %d effect", target_id, source_id);
+        if (selected_use_old)
+          setting_SpellEffectOverrides.set(
+              SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id,
+                                     "replace-classic:" + std::to_string(source_id)));
+        else
+          setting_SpellEffectOverrides.set(
+              SetSpellEffectOverride(setting_SpellEffectOverrides.get(), target_id,
+                                     "replace:" + std::to_string(source_id)));
+
+        // User feedback: confirm the replacement was stored/applied.
+        Zeal::Game::print_chat("Spell %d effect replaced with spell %d", target_id, source_id);
+
+        // Apply immediately to the runtime spell table.
+        SyncSpellEffects(setting_SpellEffectsClassic.get());
+        SyncBuffEffects();
+        SyncHealingEffects();
+
+        // Debug dumps removed for PR cleanliness.
+        // Stored override applied; suppressed verbose debug for PR.
 
         return true;
 
@@ -736,7 +965,7 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     Zeal::Game::print_chat(
         "heal default: Reverts spell effects only for the effects commonly associated with the healing buff "
         " category (e.g. Minor Healing)to the default used by the client. Level milestones set to 24 regardless of "
-        "level.");
+        " level.");
 
     Zeal::Game::print_chat(
         "replace <target spell> <source spell>: Changes the spell effects for the target Spell name or ID to use the effects of the source spell name or ID"
@@ -755,6 +984,10 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
 static int get_hand_to_hand_delay_ms() { return Zeal::Game::get_hand_to_hand_delay() * 100; }
 
 Patches::Patches() {
+  // Reserve map capacity to avoid rehashing when populating per-spell data.
+  // Initialize vectors sized to hold per-spell entries.
+  originalSpellEffects.assign(GAME_NUM_SPELLS, std::nullopt);
+  individualSpellEffects.assign(GAME_NUM_SPELLS, std::nullopt);
   const char sit_stand_patch[] = {(char)0xEB, (char)0x1A};
   mem::write(0x42d14d, sit_stand_patch);  // fix pet sit shortcut crash (makes default return of function the sit/stand
                                           // button not sure why its passing in 0)
