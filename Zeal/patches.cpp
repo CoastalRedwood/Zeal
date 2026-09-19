@@ -927,12 +927,14 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
     Zeal::Game::print_chat("/spelleffects bard <0,1,2,3>");
     Zeal::Game::print_chat("/spelleffects classic");
     Zeal::Game::print_chat("/spelleffects default");
+    Zeal::Game::print_chat("/spelleffects <target spell> classic");
+    Zeal::Game::print_chat("/spelleffects <target spell> default");
     Zeal::Game::print_chat("/spelleffects buff classic");
     Zeal::Game::print_chat("/spelleffects buff default");
     Zeal::Game::print_chat("/spelleffects healing classic");
     Zeal::Game::print_chat("/spelleffects healing default");
-    Zeal::Game::print_chat("/spelleffects replace <target> <source>");
-    Zeal::Game::print_chat("/spelleffects replace <target> default");
+    Zeal::Game::print_chat("/spelleffects replace <target spell> <source spell>");
+    Zeal::Game::print_chat("/spelleffects replace <target spell> default");
     Zeal::Game::print_chat("/spelleffects reset");
 
     Zeal::Game::print_chat(
@@ -943,38 +945,48 @@ bool Patches::HandleSpellEffectsCommand(const std::vector<std::string>& args) {
         "bard: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs to optionally"
         " be more subtle (0 is invisible with /showspelleffects off)");
 
-    Zeal::Game::print_chat("classic: Changes all spell effects to the classic style");
+    Zeal::Game::print_chat(
+        "classic: Changes all spell effects to the classic style");
 
-    Zeal::Game::print_chat("default: Reverts all spell effects to the style used by default by the client");
+    Zeal::Game::print_chat(
+        "default: Reverts all spell effects to the style used by default by the client");
+
+    Zeal::Game::print_chat(
+        "<target spell> classic: Changes the effects of the specified spell to the classic style");
+
+    Zeal::Game::print_chat(
+        "<target spell> default: Reverts the effects of the specified spell to the default style");
 
     Zeal::Game::print_chat(
         "buff classic: Changes spell effects only for the effects commonly associated with the shielding "
-        "buff category (e.g. Minor Shielding) to the classic style complete with level milestone particle "
-        "effects at levels 1 (green), 24 (green + orange), and 39 (green + orange + blue)");
+        " buff category (e.g. Minor Shielding) to the classic style complete with level milestone particle "
+        " effects at levels 1 (green), 24 (green + orange), and 39 (green + orange + blue)");
 
     Zeal::Game::print_chat(
         "buff default: Reverts spell effects only for the effects commonly associated with the shielding "
-        "buff category (e.g. Minor Shielding) to the default used by the client.");
+        " buff category to the default used by the client.");
 
     Zeal::Game::print_chat(
-        "heal classic: Changes spell effects only for the effects commonly associated with healing spells");
+        "heal classic: Changes spell effects only for the effects commonly associated with the healing spells"
+        " category (e.g. Complete Healing) to the classic style complete with level milestone particle "
+        " effects at level 1 (blue particles from the hands), 24 (hands + ring of particles around caster), and 39 (hands + ring + sphere around caster)");
 
     Zeal::Game::print_chat(
-        "heal default: Reverts spell effects only for the effects commonly associated with healing spells");
+        "heal default: Reverts spell effects only for the effects commonly associated with the healing spells");
 
     Zeal::Game::print_chat(
         "replace <target spell> <source spell>: Changes the spell effects for the target spell name or ID "
-        "to use the effects of the source spell name or ID. Example: `/spellfx replace Ancient: Destruction "
-        "of Ice 732` would change the effects of Ancient: Destruction of Ice (2116) to use the effects of Ice "
-        "Comet (732)");
+        " to use the effects of the source spell name or ID. Example: `/spellfx replace Ancient: Destruction "
+        " of Ice 732` would change the effects of Ancient: Destruction of Ice (ID: 2116) to use the effects of Ice "
+        " Comet (ID: 732)");
 
     Zeal::Game::print_chat(
         "replace <target spell> default: Reverts the changes made for the target spell to the default "
-        "effects used by the client");
+        " effects used by the client");
 
     Zeal::Game::print_chat(
         "reset: Reverts all individual spell changes made with the `/spellfx replace` command to the "
-        "default effects used by the client.");
+        " defaults used by the client.");
   }
   return true;
 }
