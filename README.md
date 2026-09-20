@@ -424,6 +424,11 @@ ___
 - `/shownames`
   - **Description:** Default commmand extended to support options 5, 6, and 7.
 
+- `/shownames raid`
+  - **Arguments:** `off`, `1` (first only), `2` (first+last), `3` (first+last+guild), `4` (everything), `5` (title+first), `6` (title+first+last), `7` (first+guild) 
+  - **Description:** When player joins a raid, the raid members names are shown above their heads. This command allows you to control what is shown while in a raid. 
+  - When you leave a raid, the names will return to the setting `/shownames` is on--by default, 4 (everything).
+
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
   - **Description:** Toggles on and off the single click auto-transfer of stackable items to open

@@ -102,7 +102,7 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
 
   if (args.size() <= 1) {
     Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
-    return true;
+    return true; // Suppress original command so only showing new usage above.
   }
 
   // /shownames raid <value>
@@ -151,6 +151,7 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
   if (!Zeal::String::tryParse(args[1], &value, true) || (value < 1) || (value > 7))
     value = (args[1].starts_with("off")) ? 0 : 4;
 
+  // Add some confirmation text missing for the extended nameplates.
   if (value == 5)
     Zeal::Game::print_chat("Showing title and first names.");
   else if (value == 6)
@@ -158,11 +159,14 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
   else if (value == 7)
     Zeal::Game::print_chat("Showing first and guild names.");
 
-  // Remember the player's normal/non-raid preference.
+  // Keep the UI options in sync. Immediately write to some globals now that the original command will perform
+  // later so the update options call below works correctly. The original command will update the Show PC
+  // Names
+  // Additionally, remember the player's normal/non-raid preference.
   normal_shownames = value;
 
-  *reinterpret_cast<int32_t*>(0x007d01e4) = value;
-  *reinterpret_cast<int*>(0x00798af4) = value != 0;
+  *reinterpret_cast<int32_t*>(0x007d01e4) = value; // Update the current shownames level.
+  *reinterpret_cast<int*>(0x00798af4) = value != 0; // Update the depressed button Show PC Names button state.
 
   if (update_options_ui_callback) update_options_ui_callback();
 
