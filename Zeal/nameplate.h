@@ -89,6 +89,10 @@ class NamePlate {
                                                       mem::write<BYTE>(0x004ff8ff, 0x05);  // Restore original value
                                                     }
                                                   }};
+
+  // Raid shownames (allows different setting for /shownames 0-7 when in raid)
+  ZealSetting<int> setting_raid_shownames = {0, "Zeal", "NameplateRaidShownames", false};
+
   // Local AA Title Choice
   ZealSetting<int> setting_local_aa_title = {3, "Zeal", "NameplateLocalAATitle", true};
 
@@ -151,6 +155,11 @@ class NamePlate {
   void send_tag_message_to_channel(const std::string &message);
   bool check_for_tag_channel_message(const char *message, int color_index);
   void synchronize_pretty_print() const;
+  int normal_shownames = 4;
+  bool raid_shownames_active = false;
+  bool raid_shownames_initialized = false;
+  void check_raid_shownames();
+  void set_shownames_value(int value);
 
   void clean_ui();
   void render_ui();

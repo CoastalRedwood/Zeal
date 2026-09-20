@@ -97,19 +97,60 @@ void NamePlate::handle_entity_destructor(Zeal::GameStructures::Entity *entity) {
   if (it != nameplate_info_map.end()) nameplate_info_map.erase(it);
 }
 
-bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
+bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
   if (!setting_extended_nameplate.get()) return false;
 
   if (args.size() <= 1) {
     Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
-    return true;  // Suppress original command so only showing new usage above.
+    return true;
+  }
+
+  // /shownames raid <value>
+  if (args[1] == "raid") {
+    if (args.size() <= 2) {
+      Zeal::Game::print_chat("Format: /shownames raid <off/1/2/3/4/5/6/7>");
+      return true;
+    }
+
+    if (args[2] == "off") {
+      setting_raid_shownames.set(0);
+
+      if (raid_shownames_active) {
+        set_shownames_value(normal_shownames);
+        raid_shownames_active = false;
+      }
+
+      raid_shownames_initialized = false;
+      return true;
+    }
+
+    int raid_value = -1;
+    if (!Zeal::String::tryParse(args[2], &raid_value, true) || raid_value < 1 || raid_value > 7) {
+      Zeal::Game::print_chat("Format: /shownames raid <off/1/2/3/4/5/6/7>");
+      return true;
+    }
+
+    setting_raid_shownames.set(raid_value);
+
+    // Apply immediately if we're already in a raid.
+    if (Zeal::Game::RaidInfo->is_in_raid()) {
+      if (!raid_shownames_initialized) {
+        normal_shownames = Zeal::Game::get_showname();
+        raid_shownames_initialized = true;
+      }
+
+      set_shownames_value(raid_value);
+      raid_shownames_active = true;
+    }
+
+    Zeal::Game::print_chat("Raid shownames set to %d.", raid_value);
+    return true;
   }
 
   int value = -1;
   if (!Zeal::String::tryParse(args[1], &value, true) || (value < 1) || (value > 7))
-    value = (args[1].starts_with("off")) ? 0 : 4;  // Show all is the default except for "off".
+    value = (args[1].starts_with("off")) ? 0 : 4;
 
-  // Add some confirmation text missing for the extended nameplates.
   if (value == 5)
     Zeal::Game::print_chat("Showing title and first names.");
   else if (value == 6)
@@ -117,14 +158,59 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string> &args) {
   else if (value == 7)
     Zeal::Game::print_chat("Showing first and guild names.");
 
-  // Keep the UI options in sync. Immediately write to some globals now that the original command will perform
-  // later so the update options call below works correctly. The original command will update the Show PC
-  // Names
-  *reinterpret_cast<int32_t *>(0x007d01e4) = value;   // Update the current shownames level.
-  *reinterpret_cast<int *>(0x00798af4) = value != 0;  // Update the depressed button Show PC Names button state.
+  // Remember the player's normal/non-raid preference.
+  normal_shownames = value;
+
+  *reinterpret_cast<int32_t*>(0x007d01e4) = value;
+  *reinterpret_cast<int*>(0x00798af4) = value != 0;
+
   if (update_options_ui_callback) update_options_ui_callback();
 
-  return false;  // Let the original command run fully update (beyond shortcuts above).
+  if (raid_shownames_active) {
+    set_shownames_value(setting_raid_shownames.get());
+    return true;
+  }
+
+  return false;
+
+}
+
+// Updates the globals for the current shownames level and the Show PC Names button state.
+void NamePlate::set_shownames_value(int value) {
+  *reinterpret_cast<int32_t*>(0x007d01e4) = value;
+  *reinterpret_cast<int*>(0x00798af4) = value != 0;
+
+  if (update_options_ui_callback) update_options_ui_callback();
+}
+
+// Checks if the player is in a raid and updates the /shownames setting accordingly. This is called.
+void NamePlate::check_raid_shownames() {
+  // Feature is completely inactive unless explicitly enabled.
+  if (setting_raid_shownames.get() == 0) return;
+
+  if (!Zeal::Game::is_in_game()) return;
+
+  const bool in_raid = Zeal::Game::RaidInfo->is_in_raid();
+
+  // Establish the player's normal /shownames setting the first time
+  // the feature is actually running.
+  if (!raid_shownames_initialized) {
+    normal_shownames = Zeal::Game::get_showname();
+    raid_shownames_initialized = true;
+  }
+
+  // Entering a raid.
+  if (in_raid && !raid_shownames_active) {
+    set_shownames_value(setting_raid_shownames.get());
+    raid_shownames_active = true;
+    return;
+  }
+
+  // Leaving a raid.
+  if (!in_raid && raid_shownames_active) {
+    set_shownames_value(normal_shownames);
+    raid_shownames_active = false;
+  }
 }
 
 // Support adding text_tag as a tooltip of the target window.
@@ -187,6 +273,7 @@ NamePlate::NamePlate(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXReset);  // Just release all resources.
   zeal->callbacks->AddGeneric([this]() { clean_ui(); }, callback_type::DXCleanDevice);
   zeal->callbacks->AddGeneric([this]() { render_ui(); }, callback_type::RenderUI);
+  zeal->callbacks->AddGeneric([this]() { check_raid_shownames(); }, callback_type::MainLoop);
 }
 
 NamePlate::~NamePlate() {}
