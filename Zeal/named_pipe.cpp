@@ -318,14 +318,17 @@ void NamedPipe::main_loop() {
         player_data["target_id"] = target->SpawnId;
         // Descriptors for the current target. A consumer that maps a spawn back to
         // a server database cannot do it by name alone: same-name spawns can be
-        // backed by different database rows with different loot. The spawn id does
-        // not resolve that either, since it identifies a live entity rather than a
-        // database row. Race and position are what separate most of those cases.
+        // backed by different database rows with different levels, classes and
+        // loot. The spawn id does not resolve that either, since it identifies a
+        // live entity rather than a database row. Level, class, race and position
+        // are what actually separate them.
         // The name is included so that a consumer does not have to parse eqtype 28,
         // whose text is formatting dependent (see /labels showtargetspawnid).
         player_data["target_name"] = Zeal::Game::trim_name(target->Name);
         player_data["target_type"] = target->Type;  // EntityTypes
-        player_data["target_race"] = target->Race;   // RACE_x
+        player_data["target_level"] = target->Level;
+        player_data["target_class"] = target->Class;  // ClassTypes
+        player_data["target_race"] = target->Race;    // RACE_x
         player_data["target_loc"] = toJson(target->Position);
       }
       const auto *actor_info = Zeal::Game::get_self()->ActorInfo;
