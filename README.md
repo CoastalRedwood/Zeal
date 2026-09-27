@@ -135,6 +135,8 @@ ___
   - **Description:** Allows you to save and load bandolier sets
     - Works for primary, secondary, range and ammo slots
     - Primary and secondary always swap but range and ammo will not change if you save a set with both of them empty
+    - All bandolier messages go to the Zeal->Bandolier chat filter, so a chat window can take them apart from
+      Other; failed swaps (casting, cursor busy, no empty slot, item not found, etc.) print there in red
     - The item getting swapped out first tries to store in the slot of the swap in item, then in the location
       it was originally swapped in from (if available), then in the preferred bag if there is room, then in
       any inventory bag (starting from last) if there is room, then in a pack slot
@@ -628,7 +630,7 @@ Manual editing of the ini file is required to copy from old section to the new s
 
 ## Chat filtering
 - Adds additional chat filtering options under the Zeal submenu that includes things like:
-  - Random, loot, money, Pet chat & damage, Melee specials, Other damage shield, Zeal Spam
+  - Random, loot, money, Pet chat & damage, Melee specials, Other damage shield, Zeal Spam, Bandolier
 - Supports reporting damage taken by NPCs from damage shields and spell damage from other
   players if the 'Others non-melee' option is enabled
   - Spell damage by others is routed to the Spells->Others channel

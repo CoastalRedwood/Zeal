@@ -331,6 +331,12 @@ UINT32 __fastcall GetRGBAFromIndex(int t, int u, USHORT index) {
       return c->get_color_callback(26);
     case CHANNEL_ZEAL_SPAM:
       return c->get_color_callback(27);
+    case CHANNEL_BANDOLIER:
+      index = 0;  // The same color bandolier messages always had (print_chat default).
+      break;
+    case CHANNEL_BANDOLIER_FAILURE:
+      index = USERCOLOR_SPELL_FAILURE;  // Failed swaps stand out in red inside the Bandolier window.
+      break;
     default:
       break;
   }

@@ -554,6 +554,11 @@ chatfilter::chatfilter(ZealService *zeal) {
       [this, zeal](short &color, const std::string &data) { return color == CHANNEL_OTHER_DAMAGE_SHIELD; }));
   Extended_ChannelMaps.push_back(CustomFilter(
       "Zeal Spam", 0x1000E, [this](short &color, std::string &data) { return HandleZealSpamCallbacks(color, data); }));
+  // Keep new entries at the end: the ids must stay contiguous (0x10000 + list index) and each
+  // filter's window is saved by its list position (UI ini ChatManager ChannelMap41 + index).
+  Extended_ChannelMaps.push_back(CustomFilter("Bandolier", 0x1000F, [this](short &color, const std::string &data) {
+    return color == CHANNEL_BANDOLIER || color == CHANNEL_BANDOLIER_FAILURE;
+  }));
 
   // Callbacks
   zeal->callbacks->AddOutputText([this](Zeal::GameUI::ChatWnd *&wnd, std::string &msg, short &channel) {
