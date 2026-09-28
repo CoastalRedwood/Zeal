@@ -329,7 +329,13 @@ void NamedPipe::main_loop() {
         player_data["target_level"] = target->Level;
         player_data["target_class"] = target->Class;  // ClassTypes
         player_data["target_race"] = target->Race;    // RACE_x
-        player_data["target_loc"] = toJson(target->Position);
+        // The target's position is only exported while it is close to the player
+        // (server policy), so this can't be used to locate spawns across a zone.
+        auto self = Zeal::Game::get_self();  // This is known to be non-null from above.
+        float distance_sq = (target->Position.x - self->Position.x) * (target->Position.x - self->Position.x) +
+                            (target->Position.y - self->Position.y) * (target->Position.y - self->Position.y) +
+                            (target->Position.z - self->Position.z) * (target->Position.z - self->Position.z);
+        if (distance_sq < 250.f * 250.f) player_data["target_loc"] = toJson(target->Position);
       }
       const auto *actor_info = Zeal::Game::get_self()->ActorInfo;
       if (actor_info && actor_info->PetID > 0) player_data["pet_id"] = actor_info->PetID;
