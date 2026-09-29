@@ -829,6 +829,22 @@ stream describes a target or pet with only a name and an HP per-mille value.
 
 `target_id` and `pet_id` are omitted entirely when there is no target or no pet.
 
+#### Target descriptors
+The `player` message also describes the current target, so that a consumer can
+tell apart two spawns that share a name but are backed by different server
+database rows (different level, class or loot). The spawn id alone cannot do
+this, since it identifies a live entity rather than a database row.
+
+- `target_name` - trimmed name, matching what eqtype 28 shows by default
+- `target_type` - 0 player, 1 NPC, 2 NPC corpse, 3 player corpse
+- `target_level`, `target_class`, `target_race` - the client's spawn descriptors
+- `target_loc` - the target's current position, same `{x, y, z}` shape as `location`.
+  Only included while the target is within 250 units of the player; omitted otherwise
+
+These are omitted along with `target_id` when there is no target. `target_name`
+is provided so that a consumer never has to parse eqtype 28, whose text is
+formatting dependent (see `/labels showtargetspawnid`).
+
 ---
 ### Tick Timer
 
