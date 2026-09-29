@@ -100,33 +100,29 @@ void NamePlate::handle_entity_destructor(Zeal::GameStructures::Entity *entity) {
 bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
   if (!setting_extended_nameplate.get()) return false;
 
-  if (args.size() <= 1) {
+  if (args.size() <= 1 || (args.size() == 2 && args[1] == "raid")) {
     Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
     return true; // Suppress original command so only showing new usage above.
   }
 
   // /shownames raid <value>
   if (args[1] == "raid") {
-    if (args.size() <= 2) {
-      Zeal::Game::print_chat("Format: /shownames raid <off/1/2/3/4/5/6/7>");
-      return true;
-    }
-
     if (args[2] == "off") {
       setting_raid_shownames.set(0);
 
       if (raid_shownames_active) {
-        set_shownames_value(normal_shownames);
+        if (normal_shownames != -1) set_shownames_value(normal_shownames);
         raid_shownames_active = false;
       }
 
-      raid_shownames_initialized = false;
+      // Mark normal_shownames as uninitialized so it will be re-captured when needed.
+      normal_shownames = -1;
       return true;
     }
 
     int raid_value = -1;
     if (!Zeal::String::tryParse(args[2], &raid_value, true) || raid_value < 1 || raid_value > 7) {
-      Zeal::Game::print_chat("Format: /shownames raid <off/1/2/3/4/5/6/7>");
+      Zeal::Game::print_chat("Format: /shownames <off/1/2/3/4/5/6/7>");
       return true;
     }
 
@@ -134,9 +130,8 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
 
     // Apply immediately if we're already in a raid.
     if (Zeal::Game::RaidInfo->is_in_raid()) {
-      if (!raid_shownames_initialized) {
+      if (normal_shownames == -1) {
         normal_shownames = Zeal::Game::get_showname();
-        raid_shownames_initialized = true;
       }
 
       set_shownames_value(raid_value);
@@ -149,7 +144,7 @@ bool NamePlate::handle_shownames_command(const std::vector<std::string>& args) {
 
   int value = -1;
   if (!Zeal::String::tryParse(args[1], &value, true) || (value < 1) || (value > 7))
-    value = (args[1].starts_with("off")) ? 0 : 4;
+    value = (args[1].starts_with("off")) ? 0 : 4;  // Show all is the default except for "off".
 
   // Add some confirmation text missing for the extended nameplates.
   if (value == 5)
@@ -198,9 +193,8 @@ void NamePlate::check_raid_shownames() {
 
   // Establish the player's normal /shownames setting the first time
   // the feature is actually running.
-  if (!raid_shownames_initialized) {
+  if (normal_shownames == -1) {
     normal_shownames = Zeal::Game::get_showname();
-    raid_shownames_initialized = true;
   }
 
   // Entering a raid.
@@ -452,7 +446,6 @@ void NamePlate::render_ui() {
   if (!sprite_font) {
     Zeal::Game::print_chat("Nameplate: Failed to load zeal fonts, disabling");
     setting_zeal_fonts.set(false, false);  // Fallback to native nameplates.
-    if (update_options_ui_callback) update_options_ui_callback();
     return;
   }
 
