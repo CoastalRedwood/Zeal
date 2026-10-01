@@ -16,11 +16,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 
 #include "default_spritefont.h"
 #include "game_functions.h"
 #include "string_util.h"
 #include "ui_skin.h"
+#include "zeal.h"
+#include "tick.h"
+#include "nameplate.h"
 
 namespace {
 
@@ -859,6 +863,117 @@ void SpriteFont::render_queue() {
                                   vertex_buffer_wr_index * kNumGlyphIndices, batch_count * kNumGlyphTriangles);
       read_index += batch_count;
       vertex_buffer_wr_index += batch_count;
+    }
+
+    // After drawing the glyphs for this string, optionally draw the server tick overlay over mana bars.
+    // Minimal, isolated: only active when nameplate mana tick overlay setting is enabled and mana is present.
+    try {
+      auto svc = ZealService::get_instance();
+      if (svc && svc->tick && svc->nameplate) {
+        if (svc->nameplate->setting_mana_tick_overlay.get()) {
+          DWORD ms_until = svc->tick->GetTimeUntilTick();
+          if (ms_until > 0) {
+            // Scale to 0 - 1000 matching Tick implementation constants.
+            const float kAverageTickDuration = 6010.0f;
+            const float kGaugeScale = 1000.0f;
+            float gauge = (ms_until * kGaugeScale) / kAverageTickDuration;
+            if (svc->tick->ReverseDirection.get()) gauge = kGaugeScale - gauge;
+            float frac = std::max(0.0f, std::min(1.0f, gauge / kGaugeScale));
+
+            // Compute tick rectangle in object space (same coordinate system as glyphs for this string).
+            float tick_x = entry.position.x + (frac * stats_bar_width);
+            float tick_y = entry.position.y;
+            // Place the tick slightly more in front of the mana bar so it is not occluded.
+            // Mana/HP/stamina use -0.5f; choose a more negative value to ensure front-most rendering.
+            float tick_z = -0.75f;
+            float tick_w = 1.0f;     // Thin vertical line width in pixels.
+            float tick_h = stats_bar_height;
+
+            // Find mana or health glyph entry in this string and use its local glyph position (model space)
+            // to compute the tick location. Prefer mana if present and nameplate has mana bars enabled.
+            int mana_glyph_index = -1;
+            Vec2 mana_glyph_pos = Vec2(0, 0);
+            int health_glyph_index = -1;
+            Vec2 health_glyph_pos = Vec2(0, 0);
+            for (int gi = entry.start_index; gi < entry.stop_index; ++gi) {
+              const auto &g = glyph_queue[gi];
+              if (g.glyph) {
+                if ((mana_glyph_index < 0) && (g.glyph->character == BitmapFontBase::kManaBarValue)) {
+                  mana_glyph_index = gi;
+                  mana_glyph_pos = g.position;
+                }
+                if ((health_glyph_index < 0) && (g.glyph->character == BitmapFontBase::kHealthBarValue)) {
+                  health_glyph_index = gi;
+                  health_glyph_pos = g.position;
+                }
+              }
+            }
+
+            // Determine which bar to use: mana (preferred) or health if mana not available.
+            bool use_mana = false;
+            if (mana_glyph_index >= 0 && svc->nameplate->setting_mana_bars.get()) use_mana = true;
+            else if (health_glyph_index >= 0 && svc->nameplate->setting_health_bars.get()) use_mana = false;
+            else use_mana = false;  // Nothing to draw on.
+
+            if ((use_mana && mana_glyph_index >= 0) || (!use_mana && health_glyph_index >= 0)) {
+              // Get self percent to ensure this string corresponds to self (nameplates only show self mana/hp currently).
+              auto self_ent = Zeal::Game::get_self();
+              int self_percent = -1;
+              if (self_ent) {
+                if (use_mana && self_ent->CharInfo) {
+                  int mana = self_ent->CharInfo->mana();
+                  int max_mana = self_ent->CharInfo->max_mana();
+                  if (max_mana > 0) self_percent = std::max(0, std::min(100, (mana * 100) / max_mana));
+                } else {
+                  // Use HP for health bar
+                  if (self_ent->HpMax > 0) self_percent = (self_ent->HpCurrent > 0 && self_ent->HpMax > 0) ?
+                                                            (self_ent->HpCurrent * 100) / self_ent->HpMax : 0;
+                }
+              }
+
+              int entry_percent = use_mana ? entry.mana_percent : entry.hp_percent;
+              if (self_percent >= 0 && entry_percent == self_percent) {
+                Vec2 bar_pos = use_mana ? mana_glyph_pos : health_glyph_pos;
+                float tick_x_local = bar_pos.x + (frac * stats_bar_width);
+                float tick_y_local = bar_pos.y;
+
+                // Trail: faint white overlay from bar start to tick position.
+                float bar_start_x = bar_pos.x;
+                float trail_left = std::min(bar_start_x, tick_x_local);
+                float trail_right = std::max(bar_start_x, tick_x_local);
+                float trail_w = trail_right - trail_left;
+                if (trail_w >= 1.0f) {
+                  float trail_z = -0.6f;  // Slightly behind the tick but in front of the bar.
+                  Glyph3DVertex trail_vertices[4];
+                  D3DCOLOR trail_color = D3DCOLOR_ARGB(48, 0xff, 0xff, 0xff);  // Very faint white.
+                  trail_vertices[0] = {trail_left, tick_y_local, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[1] = {trail_left + trail_w, tick_y_local, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[2] = {trail_left, tick_y_local + tick_h, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[3] = {trail_left + trail_w, tick_y_local + tick_h, trail_z, trail_color, 0.f, 0.f};
+                  device.SetVertexShader(Glyph3DVertex::kFvfCode);
+                  device.SetTexture(0, NULL);
+                  device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, trail_vertices, sizeof(Glyph3DVertex));
+                  device.SetTexture(0, texture);
+                }
+
+                // Tick marker (draw on top)
+                Glyph3DVertex tick_vertices[4];
+                D3DCOLOR white = D3DCOLOR_XRGB(0xff, 0xff, 0xff);
+                tick_vertices[0] = {tick_x_local, tick_y_local, tick_z, white, 0.f, 0.f};
+                tick_vertices[1] = {tick_x_local + tick_w, tick_y_local, tick_z, white, 0.f, 0.f};
+                tick_vertices[2] = {tick_x_local, tick_y_local + tick_h, tick_z, white, 0.f, 0.f};
+                tick_vertices[3] = {tick_x_local + tick_w, tick_y_local + tick_h, tick_z, white, 0.f, 0.f};
+                device.SetVertexShader(Glyph3DVertex::kFvfCode);
+                device.SetTexture(0, NULL);
+                device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tick_vertices, sizeof(Glyph3DVertex));
+                device.SetTexture(0, texture);
+              }
+            }
+          }
+        }
+      }
+    } catch (...) {
+      // Swallow any unexpected errors to avoid impacting rendering.
     }
   }
 

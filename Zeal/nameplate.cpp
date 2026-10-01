@@ -142,6 +142,7 @@ NamePlate::NamePlate(ZealService *zeal) {
 
   // Intercept the call within the entity destructor to properly flush the nameplate_info_map cache.
   zeal->hooks->Add("SetNameSpriteState_Destructor", 0x0050724c, SetNameSpriteState_Destructor, hook_type_replace_call);
+  // No-op placeholder: ensures file context refreshed before adding further commands.
 
   // Replace the tint only updates in RealRender_World with one that also updates the text
   // when there is a change in target. This processing happens shortly after the DoPassageOfTime()
@@ -172,6 +173,16 @@ NamePlate::NamePlate(ZealService *zeal) {
                              if (update_options_ui_callback) update_options_ui_callback();
                              return true;
                            });
+
+  // Command to toggle showing the server tick overlay on mana bars for preview.
+  zeal->commands_hook->Add("/showtickbar", {}, "Toggles showing the server tick overlay on mana bars.",
+                           [this](std::vector<std::string> &args) {
+                             setting_mana_tick_overlay.toggle();
+                             Zeal::Game::print_chat("Nameplate: Mana tick overlay %s.",
+                                                   setting_mana_tick_overlay.get() ? "enabled" : "disabled");
+                             return true;
+                           });
+
   zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { handle_tag_message(msg); });
   zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { handle_tag_message(msg); });
   zeal->chat_hook->add_incoming_chat_callback(

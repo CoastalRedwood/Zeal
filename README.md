@@ -422,6 +422,9 @@ ___
 - `/shownames`
   - **Description:** Default commmand extended to support options 5, 6, and 7.
 
+- `/showtickbar`
+  - **Description:** Toggles showing the server tick overlay on nameplate mana bars if shown. Falls back to health bars if mana bars are hidden, but health bars shown. This feature follows `/tickreverse` logic. 
+
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
   - **Description:** Toggles on and off the single click auto-transfer of stackable items to open
