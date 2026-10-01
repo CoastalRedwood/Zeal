@@ -14,6 +14,9 @@ class ItemDisplay {
 
   std::vector<Zeal::GameUI::ItemDisplayWnd *> get_windows() { return windows; }  // For short-term use only.
 
+  // The dedicated window mouseover_display borrows for its tooltip (nullptr before InitUI).
+  Zeal::GameUI::ItemDisplayWnd *get_mouseover_window() { return mouseover_window; }
+
   bool close_latest_window();
   void add_to_cache(const Zeal::GameStructures::GAMEITEMINFO *item);
   const Zeal::GameStructures::GAMEITEMINFO *get_cached_item(int item_id) const;
@@ -28,8 +31,13 @@ class ItemDisplay {
   void InitUI();
   void CleanUI();
   void DeactivateUI();
+  // Creates an ItemDisplayWnd and fixes up its child/sibling relationships (shared by the pool
+  // windows and the dedicated mouseover window).
+  Zeal::GameUI::ItemDisplayWnd *create_display_window();
   const int max_item_displays = 5;
   std::vector<Zeal::GameUI::ItemDisplayWnd *> windows;
+  // Dedicated tooltip window owned here but driven by mouseover_display; never persists to the ini.
+  Zeal::GameUI::ItemDisplayWnd *mouseover_window = nullptr;
 
   std::unordered_map<int, Zeal::GameStructures::GAMEITEMINFO> item_cache;  // Cache of all displayed items.
 };

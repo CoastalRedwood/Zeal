@@ -14,5 +14,3 @@ void mouseover_clean_ui();
 void mouseover_deactivate_ui();
 void mouseover_init_hooks(class ZealService *zeal);
 void UpdateSetItemText(Zeal::GameUI::ItemDisplayWnd *wnd, Zeal::GameStructures::_GAMEITEMINFO *item);
-bool mouseover_in_set_item();
-Zeal::GameUI::ItemDisplayWnd *mouseover_get_wnd();

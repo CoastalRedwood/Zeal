@@ -17,29 +17,46 @@
 #undef max
 #undef min
 
+// Creates an ItemDisplayWnd and fixes up the child/sibling relationships that Create() leaves
+// misconfigured. Note: Create() also reassigns the global Zeal::Game::Windows->ItemWnd to the new
+// window, so the last window created ends up being the game's hold-right-click window.
+Zeal::GameUI::ItemDisplayWnd *ItemDisplay::create_display_window() {
+  Zeal::GameUI::ItemDisplayWnd *new_wnd = Zeal::GameUI::ItemDisplayWnd::Create(0);
+  if (!new_wnd) return nullptr;
+  // new_wnd->SetupCustomVTable();  // Re-enable this and the deleter if custom vtables are required.
+
+  // For an unclear reason the constructor above is not configuring the window relationships
+  // correctly, which causes the ItemDescription window to pop above the IconBtn when clicked.
+  new_wnd->HasChildren = true;  // Both flags seem to need to be set even if only one is true.
+  new_wnd->HasSiblings = true;
+  new_wnd->FirstChildWnd = new_wnd->ItemDescription;
+  new_wnd->ItemDescription->NextSiblingWnd = new_wnd->IconBtn;
+  new_wnd->ItemDescription->HasChildren = true;
+  new_wnd->ItemDescription->HasSiblings = true;
+  new_wnd->IconBtn->HasChildren = true;
+  new_wnd->IconBtn->HasSiblings = true;
+  return new_wnd;
+}
+
 void ItemDisplay::InitUI() {
-  if (!windows.empty()) Zeal::Game::print_chat("Warning: InitUI and CleanUI out of sync in ItemDisplay");
+  if (!windows.empty() || mouseover_window)
+    Zeal::Game::print_chat("Warning: InitUI and CleanUI out of sync in ItemDisplay");
 
   windows.clear();
+
+  // Dedicated mouseover tooltip window, created before the pool so that the loop below leaves the
+  // game's ItemWnd pointer on a normal pool window (Create() reassigns it) - preserving the default
+  // hold-right-click behavior. Sized dynamically, so no ini storage.
+  mouseover_window = create_display_window();
+  if (mouseover_window) mouseover_window->EnableINIStorage = 0;
+
   for (int i = 0; i < max_item_displays; i++) {
-    Zeal::GameUI::ItemDisplayWnd *new_wnd = Zeal::GameUI::ItemDisplayWnd::Create(0);
+    Zeal::GameUI::ItemDisplayWnd *new_wnd = create_display_window();
     if (!new_wnd) {
       Zeal::Game::print_chat("Error: Memory allocation failed in ItemDisplay");
       break;
     }
     windows.push_back(new_wnd);
-    // new_wnd->SetupCustomVTable();  // Re-enable this and the deleter if custom vtables are required.
-
-    // For an unclear reason the constructor above is not configuring the window relationships
-    // correctly, which causes the ItemDescription window to pop above the IconBtn when clicked.
-    new_wnd->HasChildren = true;  // Both flags seem to need to be set even if only one is true.
-    new_wnd->HasSiblings = true;
-    new_wnd->FirstChildWnd = new_wnd->ItemDescription;
-    new_wnd->ItemDescription->NextSiblingWnd = new_wnd->IconBtn;
-    new_wnd->ItemDescription->HasChildren = true;
-    new_wnd->ItemDescription->HasSiblings = true;
-    new_wnd->IconBtn->HasChildren = true;
-    new_wnd->IconBtn->HasSiblings = true;
 
     // Set up independent ini settings for these new windows and reload using the new name.
     new_wnd->EnableINIStorage = 0x19;  // Magic value to use the INIStorageName.
@@ -49,6 +66,10 @@ void ItemDisplay::InitUI() {
         reinterpret_cast<void(__fastcall *)(Zeal::GameUI::ItemDisplayWnd *, int unused)>(vtable->LoadIniInfo);
     load_ini(new_wnd, 0);
   }
+
+  // Initial geometry only; resized on first display.
+  if (mouseover_window && !windows.empty()) mouseover_window->Location = windows.back()->Location;
+
   mouseover_init_ui();
 }
 
@@ -64,10 +85,7 @@ Zeal::GameUI::ItemDisplayWnd *ItemDisplay::get_available_window(Zeal::GameStruct
   for (auto &w : windows) {
     if (!w->IsVisible) return w;
   }
-  // Avoid handing out the last window, it's reserved for the mouseover tooltip (see mouseover_init_ui)
-  if (windows.size() >= 2) return windows[windows.size() - 2];
-  else if (!windows.empty()) return windows[0];
-  return nullptr;
+  return windows.empty() ? nullptr : windows.back();
 }
 
 bool ItemDisplay::close_latest_window() {
@@ -654,8 +672,6 @@ void __fastcall SetItem(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, Zeal::Gam
                         bool show) {
   ZealService::get_instance()->hooks->hook_map["SetItem"]->original(SetItem)(wnd, unused, item, show);
 
-  if (mouseover_in_set_item()) return;
-
   if (ZealService::get_instance() && ZealService::get_instance()->item_displays)
     ZealService::get_instance()->item_displays->add_to_cache(item);
 
@@ -739,7 +755,7 @@ void __fastcall SetSpell(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, int spel
 }
 
 void ItemDisplay::CleanUI() {
-  mouseover_clean_ui();
+  mouseover_clean_ui();  // Releases the borrowed mouseover_window pointer before we destroy it.
 
   for (auto &w : windows) {
     if (w) {
@@ -752,6 +768,15 @@ void ItemDisplay::CleanUI() {
     }
   }
   windows.clear();
+
+  if (mouseover_window) {
+    if (mouseover_window->IsVisible) mouseover_window->Deactivate();
+    if (reinterpret_cast<uint32_t>(mouseover_window->vtbl) != Zeal::GameUI::ItemDisplayWnd::kDefaultVTableAddr)
+      mouseover_window->DeleteCustomVTable();
+    mouseover_window->Destroy();
+    mouseover_window = nullptr;
+  }
+
   item_cache.clear();
 }
 
@@ -785,7 +810,7 @@ static int __fastcall InvSlotWnd_HandleLButtonUp(Zeal::GameUI::InvSlotWnd *wnd, 
 
   if (wnd->IsActive && wnd->invSlot && wnd->invSlot->Item) {
     auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window(wnd->invSlot->Item);
-    if (display_wnd && display_wnd != mouseover_get_wnd()) Zeal::Game::Windows->ItemWnd = display_wnd;
+    if (display_wnd) Zeal::Game::Windows->ItemWnd = display_wnd;
   }
 
   if (Zeal::Game::Windows->ItemWnd && Zeal::Game::Windows->ItemWnd->IsVisible)
@@ -806,7 +831,7 @@ static int __fastcall CastSpellWnd_WndNotification(Zeal::GameUI::CastSpellWnd *w
   // Temporarily modify the ItemWnd global pointer to point to one of our windows.
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
   auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window();
-  if (!display_wnd) return 0;
+  if (!display_wnd) return wnd->WndNotification(src_wnd, param_2, param_3);
 
   Zeal::Game::Windows->ItemWnd = display_wnd;
   // The HandleSpellInfoDisplay() will toggle off a visible window, so deactivate it if needed.
@@ -827,7 +852,7 @@ static int __fastcall SpellBookWnd_WndNotification(Zeal::GameUI::SpellBookWnd *w
   auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
   auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window();
 
-  if (!display_wnd) return 0;
+  if (!display_wnd) return wnd->WndNotification(src_wnd, param_2, param_3);
   Zeal::Game::Windows->ItemWnd = display_wnd;
 
   // The DisplaySpellInfo() will toggle off a visible window, so deactivate it if needed.
@@ -878,7 +903,7 @@ ItemDisplay::ItemDisplay(ZealService *zeal) {
   spell_book_wnd_vtable->WndNotification = SpellBookWnd_WndNotification;
   mem::reset_memory_protection(spell_book_wnd_vtable);
 
-  // Mouseover hooks (HandleMouseMove on InvSlotWnd, SpellGemWnd, ButtonWnd).
+  // Mouseover: /mouseover command, InvSlotWnd hooks and per-frame check.
   mouseover_init_hooks(zeal);
 
   // Not bothering to modify these windows (Retain default behavior using the default ItemDisplayWnd).

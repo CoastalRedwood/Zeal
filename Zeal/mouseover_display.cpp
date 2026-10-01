@@ -20,10 +20,11 @@
 #include "ui_skin.h"
 #include "zeal.h"
 
-// Provides mouseover tooltips by reusing the existing hold-right-click ItemDisplayWnd.
-// Moves/Attaches it to the cursor when hovering over an item or spell.
-// Hides it off screen when not in use to avoid a performance hit when creating/destroying windows.
-// While enabled, it disables updates to "[ItemDisplayWindow]" for the character's UI file.
+// Provides mouseover tooltips using a dedicated ItemDisplayWnd owned by ItemDisplay (see
+// ItemDisplay::InitUI). This module borrows that window and moves/attaches it to the cursor when
+// hovering over an item or spell. Hides it off screen when not in use to avoid a performance hit
+// from creating/destroying windows. The dedicated window never persists to the character UI file,
+// so the game's own hold-right-click item window is left untouched.
 
 // InvSlotWnd's original handlers
 static LPVOID s_original_inv_slot_mouse_move = nullptr;
@@ -34,8 +35,6 @@ static LPVOID s_original_spell_gem_wnd_mouse_move = nullptr;
 static Zeal::GameUI::BaseVTable *s_hooked_spell_gem_vtbl = nullptr;
 static LPVOID s_original_buff_button_wnd_mouse_move = nullptr;
 static Zeal::GameUI::BaseVTable *s_hooked_buff_btn_vtbl = nullptr;
-static LPVOID s_original_buff_wnd_notification = nullptr;
-static Zeal::GameUI::SidlScreenWndVTable *s_hooked_buff_wnd_vtbl = nullptr;
 
 // The ItemDisplayWnd re-used to render mouseover tooltips.
 // Kept off-screen whenever no tooltip is currently shown.
@@ -44,36 +43,26 @@ static Zeal::GameUI::ItemDisplayWnd *s_mouseover_wnd = nullptr;
 // The Short Duration Buff (song) window. Couldn't find a pointer so will attempt to discover it live
 static Zeal::GameUI::BuffWindow *s_song_wnd = nullptr;
 
-// Items/Spells/Buffs
+// Slot index (items) or spell ID (spells/buffs) being shown; -1 when hidden
 static int s_mouseover_slot_index = -1;
 
-// To determine when the mouseover tooltip is being populated vs a normal one
-static bool s_in_mouseover_set_item = false;
-
-// Maps each spell book icon's window pointer to its 0-7 slot index on it's spell page
+// Maps each spell book icon window to its 0-15 slot across the two open pages
 static std::unordered_map<Zeal::GameUI::BasicWnd *, int> s_spell_book_icon_slot_map;
 
 // Off-screen position to move the window to when hiding
 static constexpr int kOffscreenX = -10000;
 static constexpr int kOffscreenY = -10000;
 
-// CXWnd::HandleWheelMove stub
+// Base CXWnd::HandleWheelMove, restored on cleanup
 static LPVOID const kDefaultHandleWheelMove = reinterpret_cast<LPVOID>(0x574ec0);
 
-// Placeholder for the native/ini size of the tooltip window
+// Default max tooltip size, taken from the game's item window (0 until captured)
 static int s_native_max_width = 0;
 static int s_native_max_height = 0;
 
 // Minimum size for dynamically-sized tooltip
 static constexpr int kMinTooltipWidth = 80;
 static constexpr int kMinTooltipHeight = 40;
-
-// Whether the current SetItem call is populating the mouseover tooltip window (item_display.cpp).
-bool mouseover_in_set_item() { return s_in_mouseover_set_item; }
-
-// The window used to render mouseover tooltips, or nullptr if mouseover tooltips are
-// disabled/not yet initialized.
-Zeal::GameUI::ItemDisplayWnd *mouseover_get_wnd() { return s_mouseover_wnd; }
 
 // Suppresses/restores the native name-only hover tooltip. Suppression is global, so every
 // path that sets it must have a matching restore (see mouseover_process_frame)
@@ -82,7 +71,7 @@ static void suppress_native_tooltip(bool suppressed) {
   if (tooltips) tooltips->set_native_tooltip_suppressed(suppressed);
 }
 
-// Moves s_mouseover_wnd off-screen without deactivating it, so it can be repositioned 
+// Moves s_mouseover_wnd off-screen without deactivating it, so it can be repositioned
 // back under the cursor without the window creation performance hit
 static void hide_mouseover_window() {
   if (!s_mouseover_wnd) return;
@@ -95,7 +84,6 @@ static void hide_mouseover_window() {
   s_mouseover_slot_index = -1;
 }
 
-// Move window back on screen when required.
 // Anchors the tooltip to the bottom-right of the cursor by a fixed offset, flipping to
 // the left and/or above the cursor if it would otherwise extend past the screen edge.
 static void reposition_mouseover_window(int mouse_x, int mouse_y) {
@@ -114,12 +102,11 @@ static void reposition_mouseover_window(int mouse_x, int mouse_y) {
   int x = mouse_x + kTooltipCursorOffset;
   int y = mouse_y + kTooltipCursorOffset;
 
-  // Alternate tooltip possitons to avoid extension off-screen
+  // Alternate tooltip positions to avoid extension off-screen
   if (x + current_width > screen_w) x = mouse_x - current_width;
   if (y + current_height > screen_h) y = mouse_y - current_height;
   if (y + current_height > screen_h) y = screen_h - current_height;
 
-  // Move tooltip
   s_mouseover_wnd->Location.Left = x;
   s_mouseover_wnd->Location.Top = y;
   s_mouseover_wnd->Location.Right = x + current_width;
@@ -135,14 +122,16 @@ static void hide_mouseover_titlebar_buttons() {
   s_mouseover_wnd->WindowStyleFlags &= ~(kWindowStyleCloseBoxBit | kWindowStyleMinimizeBoxBit);
 }
 
-// Commandeers an ItemDisplayWnd for mouseover tooltips: captures its native/INI size as the
-// default max, disables position persistence, and hides it off-screen ready for use
+// Borrows ItemDisplay's dedicated tooltip window (wnd) for mouseover use: captures the game's
+// hold-right-click item window size as the fallback max (/mouseover width|height override it),
+// then hides it off-screen ready for use.
 static void acquire_mouseover_wnd(Zeal::GameUI::ItemDisplayWnd *wnd) {
   s_mouseover_wnd = wnd;
-  // Capture the native/INI size before anything (e.g. dynamic resizing) touches it
-  s_native_max_width = wnd->Location.Right - wnd->Location.Left;
-  s_native_max_height = wnd->Location.Bottom - wnd->Location.Top;
-  wnd->EnableINIStorage &= ~0x1;
+  auto *default_wnd = Zeal::Game::Windows ? Zeal::Game::Windows->ItemWnd : nullptr;
+  if (default_wnd) {
+    s_native_max_width = default_wnd->Location.Right - default_wnd->Location.Left;
+    s_native_max_height = default_wnd->Location.Bottom - default_wnd->Location.Top;
+  }
   wnd->Activate();
   hide_mouseover_titlebar_buttons();
   hide_mouseover_window();
@@ -310,12 +299,8 @@ static float estimate_line_width_px(const std::string &line, int line_height) {
   return max(normal_px, bold_px);
 }
 
-// Shrinks/grows s_mouseover_wnd to fit the content in DisplayText, word-wrap aware, capped by
-// the effective max width/height (/mouseover width|height overrides, else the native size).
-// The engine never re-lays-out ItemDescription after resizing the parent, so content size is
-// estimated from the raw STML text using GDI font metrics (the client's fonts are real GDI
-// fonts). Height is exact via the live font's GetHeight(); width depends on the guessed face
-// (see get_measurement_font_face).
+// Resizes the tooltip to fit DisplayText, capped by the max width/height. The engine doesn't re-layout
+// ItemDescription on resize, so size is estimated from the STML text with GDI.
 static void fit_mouseover_window_to_content() {
   auto &item_displays = ZealService::get_instance()->item_displays;
   if (!s_mouseover_wnd || !s_mouseover_wnd->DisplayText.Data || !item_displays) return;
@@ -329,8 +314,7 @@ static void fit_mouseover_window_to_content() {
   max_w = max(max_w, kMinTooltipWidth);
   max_h = max(max_h, kMinTooltipHeight);
 
-  // Prefer ItemDescription's own font so this adapts to custom skins/big-fonts mode. GAMEFONT*
-  // and CTextureFont* are the same underlying object (see CXWndManager::TextureFont in game_ui.h)
+  // Prefer ItemDescription's font so this adapts to skins/big fonts (GAMEFONT* is a CTextureFont*)
   Zeal::GameUI::GAMEFONT *desc_font_ptr =
       s_mouseover_wnd->ItemDescription ? s_mouseover_wnd->ItemDescription->FontPointer : s_mouseover_wnd->FontPointer;
   auto *desc_font = reinterpret_cast<Zeal::GameUI::CTextureFont *>(desc_font_ptr);
@@ -383,10 +367,7 @@ static void fit_mouseover_window_to_content() {
 template <typename PopulateFn>
 static void run_mouseover_update(int spell_or_slot, int mouse_x, int mouse_y, PopulateFn populate) {
   // Activate mouseover window if required
-  if (!s_mouseover_wnd->IsActivated) {
-    s_mouseover_wnd->EnableINIStorage &= ~0x1;
-    s_mouseover_wnd->Activate();
-  }
+  if (!s_mouseover_wnd->IsActivated) s_mouseover_wnd->Activate();
 
   // Just reposition if already showing same spell/slot
   if (spell_or_slot == s_mouseover_slot_index) {
@@ -413,17 +394,15 @@ static void run_mouseover_update(int spell_or_slot, int mouse_x, int mouse_y, Po
   s_mouseover_slot_index = spell_or_slot;
 }
 
-// Starts the process of displaying/updating an item when it's hovered over
+// Shows or updates the tooltip for a hovered item
 static void show_mouseover_item(Zeal::GameStructures::_GAMEITEMINFO *item, int slot_index, int mouse_x, int mouse_y) {
   if (!s_mouseover_wnd) return;
   auto &item_displays = ZealService::get_instance()->item_displays;
   if (!item_displays || !item_displays->setting_mouseover_tooltips.get()) return;
 
   run_mouseover_update(slot_index, mouse_x, mouse_y, [&]() {
-    s_in_mouseover_set_item = true;
     // Call original SetItem with show=true to build basic DisplayText.
     ZealService::get_instance()->hooks->hook_map["SetItem"]->original(SetItem)(s_mouseover_wnd, 0, item, true);
-    s_in_mouseover_set_item = false;
 
     // Append our enhanced text on top of the basic text.
     item_displays->add_to_cache(item);
@@ -431,7 +410,7 @@ static void show_mouseover_item(Zeal::GameStructures::_GAMEITEMINFO *item, int s
   });
 }
 
-// Starts the process of displaying/updating a spell/buff when it's hovered over
+// Shows or updates the tooltip for a hovered spell or buff
 static void show_mouseover_spell(int spell_id, int mouse_x, int mouse_y, bool is_buff_spell = false) {
   if (!s_mouseover_wnd) return;
   auto &item_displays = ZealService::get_instance()->item_displays;
@@ -531,18 +510,8 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
   // Suppress before calling through: the original handler can trigger the native tooltip itself.
   if (mouseover_enabled && s_mouseover_wnd) suppress_native_tooltip(true);
 
-  // Temporarily swap ItemWnd away before calling the original so the client's
-  // hover handling doesn't activate/deactivate our mouseover window.
-  auto *default_item_wnd = Zeal::Game::Windows->ItemWnd;
-  if (s_mouseover_wnd && Zeal::Game::Windows->ItemWnd == s_mouseover_wnd) {
-    auto *safe_wnd = ZealService::get_instance()->item_displays->get_available_window();
-    Zeal::Game::Windows->ItemWnd = safe_wnd ? safe_wnd : default_item_wnd;
-  }
-
   int result = reinterpret_cast<int(__thiscall *)(Zeal::GameUI::SidlWnd *, int, int, unsigned int)>(
       s_original_buff_button_wnd_mouse_move)(wnd, mouse_x, mouse_y, flags);
-
-  Zeal::Game::Windows->ItemWnd = default_item_wnd;
 
   if (!mouseover_enabled) return result;
 
@@ -588,6 +557,7 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
     }
 
     int button_index = -1;
+    // The song window has 6 buttons
     for (int i = 0; i < 6 && i < GAME_NUM_BUFFS; i++) {
       if (s_song_wnd->BuffButtonWnd[i] == reinterpret_cast<Zeal::GameUI::BuffWindowButton *>(wnd)) {
         button_index = i;
@@ -624,6 +594,7 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
       return result;
     }
 
+    // Client spell book: 32 pages x 8 spells
     DWORD book_index = spell_book_wnd->SpellBookIndex;
     if (book_index >= 32) {
       hide_mouseover_window();
@@ -656,27 +627,6 @@ static int __fastcall ButtonWnd_HandleWheelMove(Zeal::GameUI::SidlWnd *wnd, int 
     return 1;
   }
   return 0;
-}
-
-// Hooked WndNotification on the BuffWindow vtable (also covers the song window, which shares the same vtable).
-static int __fastcall BuffWnd_WndNotification(Zeal::GameUI::BuffWindow *wnd, int unused_edx,
-                                              Zeal::GameUI::BasicWnd *src_wnd, int param_2, void *param_3) {
-
-  auto *default_item_display_wnd = Zeal::Game::Windows->ItemWnd;
-  if (s_mouseover_wnd && default_item_display_wnd == s_mouseover_wnd) {
-    auto *display_wnd = ZealService::get_instance()->item_displays->get_available_window();
-    if (display_wnd) {
-      Zeal::Game::Windows->ItemWnd = display_wnd;
-      // Re-use existing windows if the max windows are already open
-      if (display_wnd->IsVisible) display_wnd->Deactivate();
-    }
-  }
-
-  int result = reinterpret_cast<int(__thiscall *)(Zeal::GameUI::BuffWindow *, Zeal::GameUI::BasicWnd *, int, void *)>(
-      s_original_buff_wnd_notification)(wnd, src_wnd, param_2, param_3);
-
-  Zeal::Game::Windows->ItemWnd = default_item_display_wnd;
-  return result;
 }
 
 // Per-frame check to close the tooltip when not needed. This catches the case where the mouse leaves a hooked button
@@ -719,58 +669,48 @@ static void mouseover_process_frame() {
   if (!over_valid) hide_mouseover_window();
 }
 
-// Returns the mouseover window behavior to it's disabled state. Re-enables storage/position persistence,
-// reloads its saved position, and deactivates if currently shown.
+// Releases the borrowed mouseover window: deactivates it if shown and drops
+// the pointer. The window itself is owned/destroyed by ItemDisplay, not here.
 static void release_mouseover_wnd() {
   suppress_native_tooltip(false);
   if (!s_mouseover_wnd) return;
-  if (s_mouseover_wnd->IconBtn) s_mouseover_wnd->IconBtn->IsVisible = true;
-  s_mouseover_wnd->EnableINIStorage |= 0x1;
-  auto vtable = static_cast<Zeal::GameUI::ItemDisplayVTable *>(s_mouseover_wnd->vtbl);
-  auto load_ini = reinterpret_cast<void(__fastcall *)(Zeal::GameUI::ItemDisplayWnd *, int)>(vtable->LoadIniInfo);
-  load_ini(s_mouseover_wnd, 0);
   if (s_mouseover_wnd->IsVisible) s_mouseover_wnd->Deactivate();
   s_mouseover_wnd = nullptr;
   s_mouseover_slot_index = -1;
 }
 
-// Settings callback for the mouseover tooltips toggle. Enabling commandeers ItemWnd the same
-// way mouseover_init_ui() does (covers toggling on after UI init), Disabling releases it back
+// Settings callback for the mouseover tooltips toggle. Enabling borrows the dedicated tooltip
+// window the same way mouseover_init_ui() does (covers toggling on after UI init); disabling
+// releases it back.
 void ItemDisplay::set_mouseover_tooltips(bool enabled) {
   setting_mouseover_tooltips.set(enabled);
   if (enabled) {
-    if (!s_mouseover_wnd && Zeal::Game::Windows && Zeal::Game::Windows->ItemWnd)
-      acquire_mouseover_wnd(Zeal::Game::Windows->ItemWnd);
+    if (!s_mouseover_wnd && get_mouseover_window()) acquire_mouseover_wnd(get_mouseover_window());
   } else {
     release_mouseover_wnd();
   }
 }
 
-// Sets up everything mouseover tooltips need: commandeers an ItemDisplayWnd, patches the
-// shared vtables for buff/song buttons, spell book icons, and spell gems, hooks
-// BuffWindow's WndNotification, and builds the spell book icon slot map. Resets all
-// mouseover state first, so this is safe to call again (e.g. on zoning) after
-// mouseover_clean_ui().
+// Sets up everything mouseover tooltips need: borrows the dedicated tooltip window, patches the
+// shared vtables for buff/song buttons, spell book icons, and spell gems, and builds the spell book
+// icon slot map. Resets all mouseover state first, so this is safe to call again (e.g. on zoning)
+// after mouseover_clean_ui().
 void mouseover_init_ui() {
   Zeal::Game::print_debug("[Mouseover] mouseover_init_ui called");
   s_hooked_buff_btn_vtbl = nullptr;
   s_hooked_spell_gem_vtbl = nullptr;
-  s_hooked_buff_wnd_vtbl = nullptr;
   s_mouseover_wnd = nullptr;
   s_mouseover_slot_index = -1;
-  s_in_mouseover_set_item = false;
   s_song_wnd = nullptr;
   s_spell_book_icon_slot_map.clear();
   s_original_spell_gem_wnd_mouse_move = nullptr;
   s_original_buff_button_wnd_mouse_move = nullptr;
-  s_original_buff_wnd_notification = nullptr;
 
   auto &item_displays = ZealService::get_instance()->item_displays;
 
-  // Take over the default ItemWnd if mouseover tooltips are enabled
-  if (item_displays && item_displays->setting_mouseover_tooltips.get() && Zeal::Game::Windows &&
-      Zeal::Game::Windows->ItemWnd)
-    acquire_mouseover_wnd(Zeal::Game::Windows->ItemWnd);
+  // Borrow the dedicated tooltip window if mouseover tooltips are enabled.
+  if (item_displays && item_displays->setting_mouseover_tooltips.get() && item_displays->get_mouseover_window())
+    acquire_mouseover_wnd(item_displays->get_mouseover_window());
 
   // Patch the shared ButtonWnd vtable once from the first buff button.
   // Covers both buff buttons and spell book icons since they share a vtable.
@@ -789,16 +729,6 @@ void mouseover_init_ui() {
         }
         break;
       }
-    }
-
-    // Hook WndNotification on BuffWindow for alt+click spell info.
-    if (!s_original_buff_wnd_notification) {
-      auto *buff_vtbl = buff_wnd_live->vtbl;
-      s_original_buff_wnd_notification = buff_vtbl->WndNotification;
-      s_hooked_buff_wnd_vtbl = reinterpret_cast<Zeal::GameUI::SidlScreenWndVTable *>(buff_vtbl);
-      mem::unprotect_memory(buff_vtbl, sizeof(*buff_vtbl));
-      buff_vtbl->WndNotification = BuffWnd_WndNotification;
-      mem::reset_memory_protection(buff_vtbl);
     }
   }
 
@@ -825,6 +755,7 @@ void mouseover_init_ui() {
   s_spell_book_icon_slot_map.clear();
   auto *spell_book = Zeal::Game::Windows->SpellBook;
   if (spell_book) {
+    // 16 spells across 2 pages
     for (int i = 0; i < 16; i++) {
       std::string name = std::format("SBW_Spell{}", i);
       auto *spell_btn = spell_book->GetChildItem(name, false);
@@ -837,12 +768,11 @@ void mouseover_init_ui() {
 // clears cached state. Called on UI cleanup and before re-running mouseover_init_ui() on zoning.
 void mouseover_clean_ui() {
   Zeal::Game::print_debug("[Mouseover] mouseover_clean_ui called");
-  s_in_mouseover_set_item = false;
 
   if (s_hooked_buff_btn_vtbl && s_original_buff_button_wnd_mouse_move) {
     mem::unprotect_memory(s_hooked_buff_btn_vtbl, sizeof(*s_hooked_buff_btn_vtbl));
     s_hooked_buff_btn_vtbl->HandleMouseMove = s_original_buff_button_wnd_mouse_move;
-    // Restore HandleWheelMove to the known default stub (assumed, not saved separately)
+    // Restore the base CXWnd::HandleWheelMove
     s_hooked_buff_btn_vtbl->HandleWheelMove = kDefaultHandleWheelMove;
     mem::reset_memory_protection(s_hooked_buff_btn_vtbl);
     s_hooked_buff_btn_vtbl = nullptr;
@@ -857,19 +787,11 @@ void mouseover_clean_ui() {
     s_hooked_spell_gem_vtbl = nullptr;
   }
 
-  if (s_hooked_buff_wnd_vtbl && s_original_buff_wnd_notification) {
-    mem::unprotect_memory(s_hooked_buff_wnd_vtbl, sizeof(*s_hooked_buff_wnd_vtbl));
-    s_hooked_buff_wnd_vtbl->WndNotification = s_original_buff_wnd_notification;
-    mem::reset_memory_protection(s_hooked_buff_wnd_vtbl);
-    s_hooked_buff_wnd_vtbl = nullptr;
-  }
-
   release_mouseover_wnd();
   s_spell_book_icon_slot_map.clear();
   s_song_wnd = nullptr;
   s_original_spell_gem_wnd_mouse_move = nullptr;
   s_original_buff_button_wnd_mouse_move = nullptr;
-  s_original_buff_wnd_notification = nullptr;
 }
 
 // Release when loading/zoning etc
