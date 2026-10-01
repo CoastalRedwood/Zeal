@@ -2,6 +2,23 @@
 
 Summarizes notable changes to Zeal
 
+
+## [1.4.8] - 2026/10/01
+
+### New features
+
+* Removed era override so `/mystats` will now use PoP formulas
+
+* Added new "Zeal>Bandolier" chat channel filter for routing bandolier messages
+
+* Added a new `raid` option (`/showname raid <option>`) to allow auto-switching between the
+  normal mode and a raid-specific mode when entering and exiting raids
+  - Can also be set with a new UI combobox in Zeal options->Nameplate tab
+
+* Added `rsgs` option (`/tag rsgs <message>`) that will broadcast to rsay if in a raid else
+  to gsay in a group else to local (self)
+
+
 ## [1.4.7] - 2026/09/10
 
 ### New features
