@@ -756,12 +756,13 @@ void SpriteFont::queue_string(const char *text, const Vec3 &position, bool cente
   int start_index = glyph_queue.size();
   BitmapFontBase::queue_string(text, Vec3(0, 0, 0), center, color, grid_align);
   int stop_index = glyph_queue.size();
-  glyph_string_queue.push_back({.position = position,
+    glyph_string_queue.push_back({.position = position,
                                 .start_index = start_index,
                                 .stop_index = stop_index,
                                 .hp_percent = hp_percent,
                                 .mana_percent = mana_percent,
-                                .stamina_percent = stamina_percent});
+                                .stamina_percent = stamina_percent,
+                                .is_self = is_self_flag});
 }
 
 // Renders all queued glyphs to the screen.
@@ -933,40 +934,67 @@ void SpriteFont::render_queue() {
 
               int entry_percent = use_mana ? entry.mana_percent : entry.hp_percent;
               if (self_percent >= 0 && entry_percent == self_percent) {
-                Vec2 bar_pos = use_mana ? mana_glyph_pos : health_glyph_pos;
-                float tick_x_local = bar_pos.x + (frac * stats_bar_width);
-                float tick_y_local = bar_pos.y;
+                // Ensure this queued string actually corresponds to the player's nameplate by
+                // comparing the world anchor position to the player's head position. This avoids
+                // showing the tick on NPCs even if percentages match.
+                bool is_self_position = false;
+                auto self_ent_pos = Vec3(0, 0, 0);
+                auto self_ent = Zeal::Game::get_self();
+                if (self_ent && self_ent->ActorInfo && self_ent->ActorInfo->DagHeadPoint) {
+                  self_ent_pos = self_ent->ActorInfo->DagHeadPoint->Position;
+                  float dx = fabsf(entry.position.x - self_ent_pos.x);
+                  float dy = fabsf(entry.position.y - self_ent_pos.y);
+                  float dz = fabsf(entry.position.z - self_ent_pos.z);
+                  if (dx < 1.0f && dy < 1.0f && dz < 4.0f) is_self_position = true;
+                }
 
-                // Trail: faint white overlay from bar start to tick position.
+                if (!is_self_position) continue;  // Don't draw on non-self entries.
+
+                Vec2 bar_pos = use_mana ? mana_glyph_pos : health_glyph_pos;
+                // Tick smaller: 1px tall centered vertically on bar.
+                float small_tick_h = 1.0f;
+                float tick_x_local = bar_pos.x + (frac * stats_bar_width);
+                float tick_y_local = bar_pos.y + (stats_bar_height - small_tick_h) / 2.0f;
+
+                // Trail: faint white overlay spanning the full height of the bar from the bar start to the tick position.
                 float bar_start_x = bar_pos.x;
                 float trail_left = std::min(bar_start_x, tick_x_local);
                 float trail_right = std::max(bar_start_x, tick_x_local);
                 float trail_w = trail_right - trail_left;
                 if (trail_w >= 1.0f) {
-                  float trail_z = -0.6f;  // Slightly behind the tick but in front of the bar.
-                  Glyph3DVertex trail_vertices[4];
-                  D3DCOLOR trail_color = D3DCOLOR_ARGB(48, 0xff, 0xff, 0xff);  // Very faint white.
-                  trail_vertices[0] = {trail_left, tick_y_local, trail_z, trail_color, 0.f, 0.f};
-                  trail_vertices[1] = {trail_left + trail_w, tick_y_local, trail_z, trail_color, 0.f, 0.f};
-                  trail_vertices[2] = {trail_left, tick_y_local + tick_h, trail_z, trail_color, 0.f, 0.f};
-                  trail_vertices[3] = {trail_left + trail_w, tick_y_local + tick_h, trail_z, trail_color, 0.f, 0.f};
+                  // First draw a solid 1px tall indicator across the filled portion (bar start -> tick)
+                  // so it reads as the filled thin line. Then draw the faded full-height trail over it so
+                  // the indicator appears embedded within the faded region.
+                  float tick_h_small = 1.0f;
+                  float tick_y_bottom = bar_pos.y + tick_h - tick_h_small;  // bottom-aligned
+                  float indicator_left = trail_left;
+                  float indicator_w = trail_w;
+                  float tick_z_embedded = -0.6f;  // same depth as trail to appear embedded
+
+                  Glyph3DVertex tick_vertices[4];
+                  BYTE indicator_alpha = 175; // slightly transparent solid indicator
+                  D3DCOLOR white = D3DCOLOR_ARGB(indicator_alpha, 0xff, 0xff, 0xff);
+                  tick_vertices[0] = {indicator_left, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
+                  tick_vertices[1] = {indicator_left + indicator_w, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
+                  tick_vertices[2] = {indicator_left, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
+                  tick_vertices[3] = {indicator_left + indicator_w, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
                   device.SetVertexShader(Glyph3DVertex::kFvfCode);
                   device.SetTexture(0, NULL);
+                  device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tick_vertices, sizeof(Glyph3DVertex));
+                  // Now draw the faded full-height trail over the same horizontal region.
+                  float trail_z = -0.6f;
+                  Glyph3DVertex trail_vertices[4];
+                  // Make mana trail slightly fainter per request. Health remains slightly darker.
+                  BYTE trail_alpha = use_mana ? 24 : 40;  // mana fainter = 24
+                  D3DCOLOR trail_color = D3DCOLOR_ARGB(trail_alpha, 0xff, 0xff, 0xff);
+                  // Full height trail: top = bar_pos.y, bottom = bar_pos.y + tick_h (stats_bar_height)
+                  trail_vertices[0] = {trail_left, bar_pos.y, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[1] = {trail_left + trail_w, bar_pos.y, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[2] = {trail_left, bar_pos.y + tick_h, trail_z, trail_color, 0.f, 0.f};
+                  trail_vertices[3] = {trail_left + trail_w, bar_pos.y + tick_h, trail_z, trail_color, 0.f, 0.f};
                   device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, trail_vertices, sizeof(Glyph3DVertex));
                   device.SetTexture(0, texture);
                 }
-
-                // Tick marker (draw on top)
-                Glyph3DVertex tick_vertices[4];
-                D3DCOLOR white = D3DCOLOR_XRGB(0xff, 0xff, 0xff);
-                tick_vertices[0] = {tick_x_local, tick_y_local, tick_z, white, 0.f, 0.f};
-                tick_vertices[1] = {tick_x_local + tick_w, tick_y_local, tick_z, white, 0.f, 0.f};
-                tick_vertices[2] = {tick_x_local, tick_y_local + tick_h, tick_z, white, 0.f, 0.f};
-                tick_vertices[3] = {tick_x_local + tick_w, tick_y_local + tick_h, tick_z, white, 0.f, 0.f};
-                device.SetVertexShader(Glyph3DVertex::kFvfCode);
-                device.SetTexture(0, NULL);
-                device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tick_vertices, sizeof(Glyph3DVertex));
-                device.SetTexture(0, texture);
               }
             }
           }

@@ -78,6 +78,8 @@ class BitmapFontBase {
 
   void set_stamina_percent(int value) { stamina_percent = value; }
 
+  void set_is_self(bool val) { is_self_flag = val ? 1 : 0; }
+
   // Inserts a request to render the background rect into the queue. Only one per flush allowed.
   void queue_background_rect(const RECT &rect, D3DCOLOR color);
 
@@ -149,6 +151,7 @@ class BitmapFontBase {
   char hp_percent = 0;
   char mana_percent = 0;
   char stamina_percent = 0;
+  char is_self_flag = 0;
   RECT background_rect = {0, 0, 0, 0};  // Cached value (only one per flush allowed).
 
   IDirect3DDevice8 &device;
@@ -239,6 +242,7 @@ class SpriteFont : public BitmapFontBase {
     char hp_percent;  // Value of internal hp_percent when queued.
     char mana_percent;
     char stamina_percent;
+    char is_self;     // Non-zero when this string corresponds to the local player.
   };
 
   // Vertices allow texturing and color modulation.

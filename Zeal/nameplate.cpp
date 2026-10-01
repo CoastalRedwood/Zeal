@@ -142,7 +142,6 @@ NamePlate::NamePlate(ZealService *zeal) {
 
   // Intercept the call within the entity destructor to properly flush the nameplate_info_map cache.
   zeal->hooks->Add("SetNameSpriteState_Destructor", 0x0050724c, SetNameSpriteState_Destructor, hook_type_replace_call);
-  // No-op placeholder: ensures file context refreshed before adding further commands.
 
   // Replace the tint only updates in RealRender_World with one that also updates the text
   // when there is a change in target. This processing happens shortly after the DoPassageOfTime()
@@ -424,7 +423,11 @@ void NamePlate::render_ui() {
     }
 
     auto nameplate_color = info.color | 0xff000000;
-    if (!full_text.empty()) sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
+    if (!full_text.empty()) {
+      bool is_self = (entity == Zeal::Game::get_self());
+      sprite_font->set_is_self(is_self);
+      sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
+    }
 
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
     if (!is_corpse && info.tag_color != TagArrowColor::Off) {
