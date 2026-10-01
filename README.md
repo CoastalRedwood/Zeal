@@ -422,12 +422,11 @@ ___
   - **Description:** Shows you your current loot lockouts on supporting servers.
 
 - `/shownames`
-  - **Description:** Default commmand extended to support options 5, 6, and 7.
-
-- `/shownames raid`
   - **Arguments:** `off`, `1` (first only), `2` (first+last), `3` (first+last+guild), `4` (everything), `5` (title+first), `6` (title+first+last), `7` (first+guild) 
-  - **Description:** When player joins a raid, the raid members names are shown above their heads. This command allows you to control what is shown while in a raid. 
-  - When you leave a raid, the names will return to the setting `/shownames` is on--by default, 4 (everything).
+  - **Arguments:** `raid` + any of the above arguments
+  - **Description:** Extends default `/shownames` command to support options 5, 6, and 7. It also adds an optional `raid` mode that sets the
+          `/shownames` mode automatically when joining a raid and then switches back to the normal setting when leaving a raid.
+  - **Example:** `/shownames raid 1` Sets the nameplates of everyone to first name only when joining a raid.
 
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
