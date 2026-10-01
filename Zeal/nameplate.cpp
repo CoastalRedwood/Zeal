@@ -192,7 +192,7 @@ void NamePlate::set_shownames_value(int value, bool update_ui) {
 // Checks if the player is in a raid and updates the /shownames setting accordingly. Hooked into mainloop call.
 void NamePlate::check_raid_shownames() {
   // Feature is skipped if not in game or if it isn't already active and is disabled.
-  if (!Zeal::Game::is_in_game() || (!raid_shownames_active && setting_raid_shownames.get() <= 0 )) return;
+  if (!Zeal::Game::is_in_game() || (!raid_shownames_active && setting_raid_shownames.get() <= 0)) return;
 
   const bool in_raid = Zeal::Game::RaidInfo->is_in_raid();
   if (in_raid != raid_shownames_active) {
@@ -1009,8 +1009,10 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     return;
   }
 
-  if (args.size() > 2 && (args[1] == "rsay" || args[1] == "gsay" || args[1] == "local" || args[1] == "chat")) {
+  if (args.size() > 2 &&
+      (args[1] == "rsay" || args[1] == "gsay" || args[1] == "local" || args[1] == "chat" || args[1] == "rsgs")) {
     if (!setting_tag_enable.get()) enable_tags(true);  // Auto-set to on if sending a message.
+    bool rsgs = (args[1] == "rsgs");
     bool rsay = (args[1] == "rsay");
     bool gsay = (args[1] == "gsay");
     bool chat = (args[1] == "chat");
@@ -1023,6 +1025,10 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     } else if (chat && setting_tag_channel.get().empty()) {
       Zeal::Game::print_chat("Must have a chat channel set");
       return;
+    } else if (rsgs && Zeal::Game::RaidInfo->is_in_raid()) {
+      rsay = true;
+    } else if (rsgs && Zeal::Game::GroupInfo->is_in_group()) {
+      gsay = true;
     }
 
     bool is_clear = args.size() == 3 && args[2] == "clear";
@@ -1063,10 +1069,11 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /tag <on | off | clear>");
   Zeal::Game::print_chat("Usage: /tag <tooltip | filter | suppress | prettyprint> <on | off>");
   Zeal::Game::print_chat("Usage: /tag target <text_to_match>");
-  Zeal::Game::print_chat("Usage: /tag <gsay | rsay | chat> local> <message | clear | channel>");
+  Zeal::Game::print_chat("Usage: /tag <gsay | rsay | rsgs | chat | local> <message | clear | channel>");
   Zeal::Game::print_chat("Usage: <message> prefixes: '+' to append, '^R^' or '*R:' for color arrow (R, O, Y, G, B, W)");
-  Zeal::Game::print_chat("Example: /tag rsay Assist me");
-  Zeal::Game::print_chat("Example: /tag gsay Off tank");
+  Zeal::Game::print_chat("Example: /tag rsay Assist me (broadcasts a tag to the raid)");
+  Zeal::Game::print_chat(
+      "Example: /tag rsgs Off tank (broadcasts a tag to raid if in raid else to group if in group else local)");
   Zeal::Game::print_chat("Example: /tag gsay clear (broadcasts a clear all tags)");
   return;
 }
