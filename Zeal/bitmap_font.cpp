@@ -871,7 +871,8 @@ void SpriteFont::render_queue() {
     try {
       auto svc = ZealService::get_instance();
       if (svc && svc->tick && svc->nameplate) {
-        if (svc->nameplate->setting_mana_tick_overlay.get()) {
+        int tick_overlay_mode = svc->nameplate->setting_mana_tick_overlay.get();
+        if (tick_overlay_mode != 0) {
           DWORD ms_until = svc->tick->GetTimeUntilTick();
           if (ms_until > 0) {
             // Scale to 0 - 1000 matching Tick implementation constants.
@@ -962,25 +963,46 @@ void SpriteFont::render_queue() {
                 float trail_right = std::max(bar_start_x, tick_x_local);
                 float trail_w = trail_right - trail_left;
                 if (trail_w >= 1.0f) {
-                  // First draw a solid 1px tall indicator across the filled portion (bar start -> tick)
-                  // so it reads as the filled thin line. Then draw the faded full-height trail over it so
-                  // the indicator appears embedded within the faded region.
-                  float tick_h_small = 1.0f;
-                  float tick_y_bottom = bar_pos.y + tick_h - tick_h_small;  // bottom-aligned
-                  float indicator_left = trail_left;
-                  float indicator_w = trail_w;
-                  float tick_z_embedded = -0.6f;  // same depth as trail to appear embedded
+                  // Two display modes supported:
+                  // mode 1: solid filled thin indicator across the filled portion + faded full-height trail
+                  // mode 2: legacy thin vertical full-height indicator (no solid filled portion) + faded full-height trail
+                  if (tick_overlay_mode == 1) {
+                    // First draw a solid 1px tall indicator across the filled portion (bar start -> tick)
+                    // so it reads as the filled thin line. Then draw the faded full-height trail over it so
+                    // the indicator appears embedded within the faded region.
+                    float tick_h_small = 1.0f;
+                    float tick_y_bottom = bar_pos.y + tick_h - tick_h_small;  // bottom-aligned
+                    float indicator_left = trail_left;
+                    float indicator_w = trail_w;
+                    float tick_z_embedded = -0.6f;  // same depth as trail to appear embedded
 
-                  Glyph3DVertex tick_vertices[4];
-                  BYTE indicator_alpha = 175; // slightly transparent solid indicator
-                  D3DCOLOR white = D3DCOLOR_ARGB(indicator_alpha, 0xff, 0xff, 0xff);
-                  tick_vertices[0] = {indicator_left, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
-                  tick_vertices[1] = {indicator_left + indicator_w, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
-                  tick_vertices[2] = {indicator_left, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
-                  tick_vertices[3] = {indicator_left + indicator_w, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
-                  device.SetVertexShader(Glyph3DVertex::kFvfCode);
-                  device.SetTexture(0, NULL);
-                  device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tick_vertices, sizeof(Glyph3DVertex));
+                    Glyph3DVertex tick_vertices[4];
+                    BYTE indicator_alpha = 175; // slightly transparent solid indicator
+                    D3DCOLOR white = D3DCOLOR_ARGB(indicator_alpha, 0xff, 0xff, 0xff);
+                    tick_vertices[0] = {indicator_left, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
+                    tick_vertices[1] = {indicator_left + indicator_w, tick_y_bottom, tick_z_embedded, white, 0.f, 0.f};
+                    tick_vertices[2] = {indicator_left, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
+                    tick_vertices[3] = {indicator_left + indicator_w, tick_y_bottom + tick_h_small, tick_z_embedded, white, 0.f, 0.f};
+                    device.SetVertexShader(Glyph3DVertex::kFvfCode);
+                    device.SetTexture(0, NULL);
+                    device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tick_vertices, sizeof(Glyph3DVertex));
+                  } else if (tick_overlay_mode == 2) {
+                    // Draw a thin vertical line spanning the full bar height at the tick position.
+                    float thin_w = tick_w;  // use same thin width
+                    float thin_left = tick_x_local - (thin_w / 2.0f);
+                    float thin_z = -0.6f;
+                    Glyph3DVertex thin_vertices[4];
+                    BYTE indicator_alpha = 175; // same alpha as solid indicator
+                    D3DCOLOR white = D3DCOLOR_ARGB(indicator_alpha, 0xff, 0xff, 0xff);
+                    thin_vertices[0] = {thin_left, bar_pos.y, thin_z, white, 0.f, 0.f};
+                    thin_vertices[1] = {thin_left + thin_w, bar_pos.y, thin_z, white, 0.f, 0.f};
+                    thin_vertices[2] = {thin_left, bar_pos.y + tick_h, thin_z, white, 0.f, 0.f};
+                    thin_vertices[3] = {thin_left + thin_w, bar_pos.y + tick_h, thin_z, white, 0.f, 0.f};
+                    device.SetVertexShader(Glyph3DVertex::kFvfCode);
+                    device.SetTexture(0, NULL);
+                    device.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, thin_vertices, sizeof(Glyph3DVertex));
+                  }
+
                   // Now draw the faded full-height trail over the same horizontal region.
                   float trail_z = -0.6f;
                   Glyph3DVertex trail_vertices[4];

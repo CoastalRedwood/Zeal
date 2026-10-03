@@ -423,7 +423,10 @@ ___
   - **Description:** Default commmand extended to support options 5, 6, and 7.
 
 - `/showtickbar`
-  - **Description:** Toggles showing the server tick overlay on nameplate mana bars if shown. Falls back to health bars if mana bars are hidden, but health bars shown. This feature follows `/tickreverse` logic. 
+  - **Arguments:** `off`, `1`, `2`
+  - **Description:** Shows a server tick overlay on nameplate mana bars if shown. Falls back to health bars if mana bars are hidden, but health bars shown. This feature follows `/tickreverse` logic. There are two different styles. 
+  - **Example:** `/showtickbar 1` shows a small solid progression bar overlay on the bottom of the nameplate mana bars if shown, otherwise health bars if shown.
+  - **Example:** `/showtickbar 2` shows a progression indicator overlay running the full height on nameplate mana bars if shown, otherwise health bars if shown.
 
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #

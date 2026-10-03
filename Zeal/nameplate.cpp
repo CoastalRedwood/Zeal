@@ -173,12 +173,31 @@ NamePlate::NamePlate(ZealService *zeal) {
                              return true;
                            });
 
-  // Command to toggle showing the server tick overlay on mana bars for preview.
+  // Command to control showing the server tick overlay on mana bars for preview.
+  // Usage: /showtickbar 1  (default progression indicator)
+  //        /showtickbar 2  (legacy full-height thin indicator)
+  //        /showtickbar off (disable)
   zeal->commands_hook->Add("/showtickbar", {}, "Toggles showing the server tick overlay on mana bars.",
                            [this](std::vector<std::string> &args) {
-                             setting_mana_tick_overlay.toggle();
-                             Zeal::Game::print_chat("Nameplate: Mana tick overlay %s.",
-                                                   setting_mana_tick_overlay.get() ? "enabled" : "disabled");
+                             int mode = setting_mana_tick_overlay.get();
+                             if (args.size() <= 1) {
+                               // No argument: toggle between off(0) and mode 1 for backwards compatibility.
+                               mode = (mode == 0) ? 1 : 0;
+                             } else {
+                               if (args[1].starts_with("off") || args[1] == "0")
+                                 mode = 0;
+                               else {
+                                 int parsed = 1;
+                                 if (!Zeal::String::tryParse(args[1], &parsed, true)) parsed = 1;
+                                 if (parsed < 0 || parsed > 2) parsed = 1;
+                                 mode = parsed;
+                               }
+                             }
+                             setting_mana_tick_overlay.set(mode);
+                             if (mode == 0)
+                               Zeal::Game::print_chat("Nameplate: Mana tick overlay disabled.");
+                             else
+                               Zeal::Game::print_chat("Nameplate: Mana tick overlay enabled (style %d).", mode);
                              return true;
                            });
 
