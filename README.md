@@ -428,6 +428,12 @@ ___
           `/shownames` mode automatically when joining a raid and then switches back to the normal setting when leaving a raid.
   - **Example:** `/shownames raid 1` Sets the nameplates of everyone to first name only when joining a raid.
 
+- `/showtickbar`
+  - **Arguments:** `off`, `1`, `2`
+  - **Description:** Shows a server tick overlay on nameplate mana bars if shown. Falls back to health bars if mana bars are hidden, but health bars shown. This feature follows `/tickreverse` logic. There are two different styles. 
+  - **Example:** `/showtickbar 1` shows a small solid progression bar overlay on the bottom of the nameplate mana bars if shown, otherwise health bars if shown.
+  - **Example:** `/showtickbar 2` shows a progression indicator overlay running the full height on nameplate mana bars if shown, otherwise health bars if shown.
+
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
   - **Description:** Toggles on and off the single click auto-transfer of stackable items to open
