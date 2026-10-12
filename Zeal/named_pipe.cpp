@@ -460,7 +460,7 @@ void NamedPipe::write(const char *format, ...) {
 
 void NamedPipe::update_delay(unsigned new_delay) {
   pipe_delay.set(new_delay);
-  Zeal::Game::print_chat("pipe delay is now set to %i", pipe_delay);
+  Zeal::Game::print_chat("pipe delay is now set to %i", pipe_delay.get());
 }
 
 // Adds the handle to the thread protected transfer queue.
