@@ -50,6 +50,7 @@
 #include "player_movement.h"
 #include "raid.h"
 #include "raid_bars.h"
+#include "spell_effects.h"
 #include "spellsets.h"
 #include "string_util.h"
 #include "survey.h"
@@ -127,6 +128,7 @@ ZealService::ZealService() {
 
   // Create classes that use core framework and game client specific classes only.
   game_patches = MakeCheckedUnique(Patches);
+  spell_effects = MakeCheckedUnique(SpellEffects);
   physics = MakeCheckedUnique(Physics);
   dx = MakeCheckedUnique(DirectX);
   gamestr_hook = MakeCheckedUnique(GameStr);
@@ -161,13 +163,14 @@ ZealService::ZealService() {
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
   raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
   assist_target = MakeCheckedUnique(AssistTarget);  // Uses entity_manager, callbacks. After raid_bars (LMouseUp chain).
-  assist = MakeCheckedUnique(Assist);               // Register after assist_target so that can swallow auto-assist responses if necessary.
-  triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
+  assist = MakeCheckedUnique(
+      Assist);  // Register after assist_target so that can swallow auto-assist responses if necessary.
+  triggers = MakeCheckedUnique(Triggers);  // Uses chat_hook.
   ui_hide_fake_slots = MakeCheckedUnique(UI_HideFakeSlots);
-  nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
-  tells = MakeCheckedUnique(TellWindows);           // Uses new UI ChatManager.
-  looting_hook = MakeCheckedUnique(Looting);        // Uses new UI Loot window (and ChatManager).
-  give = MakeCheckedUnique(NPCGive);                // Uses new Ui Trade & Give and also looting.
+  nameplate = MakeCheckedUnique(NamePlate);   // Uses target ring blink rate, chat, chatfilter.
+  tells = MakeCheckedUnique(TellWindows);     // Uses new UI ChatManager.
+  looting_hook = MakeCheckedUnique(Looting);  // Uses new UI Loot window (and ChatManager).
+  give = MakeCheckedUnique(NPCGive);          // Uses new Ui Trade & Give and also looting.
 
   // More complex new UI classes.
   zone_map = MakeCheckedUnique(ZoneMap);            // Uses ui and ui->options (post construction).
@@ -1055,12 +1058,11 @@ void ZealService::AddBinds() {
       }
     }
   });
-  binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target,
-                       [this](int key_down) {
-                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
-                           // Suppressed: updates the AssistBar ToT without switching your target.
-                           assist_target->FireAssistRequest(true);
-                       });
+  binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target, [this](int key_down) {
+    if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+      // Suppressed: updates the AssistBar ToT without switching your target.
+      assist_target->FireAssistRequest(true);
+  });
 
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
                        [](int key_down) {
