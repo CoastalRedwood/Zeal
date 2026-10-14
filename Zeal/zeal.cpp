@@ -32,6 +32,7 @@
 #include "game_addresses.h"
 #include "game_str.h"
 #include "helm_manager.h"
+#include "hide_ui_cursor.h"
 #include "hook_wrapper.h"
 #include "io_ini.h"
 #include "item_display.h"
@@ -152,6 +153,7 @@ ZealService::ZealService() {
   // Adds DirectX (and UISkin for resource file paths) dependencies.
   target_ring = MakeCheckedUnique(TargetRing);
   floating_damage = MakeCheckedUnique(FloatingDamage);  // Uses target ring method.
+  hide_ui_cursor = MakeCheckedUnique(HideUiCursor);     // Uses dx, callbacks, commands.
 
   // Classes that add more explicit dependencies on the new UI.
   utils = MakeCheckedUnique(Utils);                 // Uses container manager.

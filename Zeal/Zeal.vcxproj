@@ -83,6 +83,7 @@
     <ClInclude Include="items.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="helm_manager.h" />
+    <ClInclude Include="hide_ui_cursor.h" />
     <ClInclude Include="music.h" />
     <ClInclude Include="raid_bars.h" />
     <ClInclude Include="raid_bars_manage.h" />
@@ -170,6 +171,7 @@
     <ClCompile Include="equip_item.cpp" />
     <ClCompile Include="floating_damage.cpp" />
     <ClCompile Include="helm_manager.cpp" />
+    <ClCompile Include="hide_ui_cursor.cpp" />
     <ClCompile Include="items.cpp" />
     <ClCompile Include="music.cpp" />
     <ClCompile Include="raid_bars.cpp" />

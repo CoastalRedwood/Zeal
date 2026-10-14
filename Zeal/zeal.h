@@ -52,6 +52,7 @@ class ZealService {
   std::unique_ptr<class GameStr> gamestr_hook = nullptr;
   std::unique_ptr<class CycleTarget> cycle_target = nullptr;
   std::unique_ptr<class CameraMods> camera_mods = nullptr;
+  std::unique_ptr<class HideUiCursor> hide_ui_cursor = nullptr;
   std::unique_ptr<class Raid> raid_hook = nullptr;
   std::unique_ptr<class Tooltip> tooltips = nullptr;
   std::unique_ptr<class OutputFile> outputfile = nullptr;

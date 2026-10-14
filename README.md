@@ -541,6 +541,13 @@ ___
   - **Description:** Supports very simplistic countdown timers from chat parsing triggers.
      See the [Triggers](#Triggers) section for more details.
 
+- `/uicursor`
+  - **Arguments:** `on`, `off` (no argument toggles)
+  - **Description:** Enables (on, the default) or disables drawing an arrow mouse cursor while the UI is hidden (F10).
+     The game stops drawing its own cursor in that mode, so this makes it possible to see where you are clicking.
+     The cursor is not drawn during right mouse button mouse look or when the game window is not in focus.
+     Saved in the ini file as `ShowCursorWithUiHidden` in the `[Zeal]` section.
+
 - `/uierrors`
   - **Arguments:** `on`, `off`
   - **Description:** Sets (on) or clears (off) the enable for showing dialog messages for unknown xml errors.
