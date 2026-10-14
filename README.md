@@ -54,6 +54,7 @@ from the repo source, providing full transparency on the release contents.
 5. `<name>_protected.ini`: Per character saved /protect item list
 6. `<name>_bandolier.ini`: Per character saved /bandolier sets
 7. `<name>-Triggers.txt`: Manually created source for /triggers
+8. `zeal_spell_effects_override.ini`: Optional individual spell effects overrides.
 
 ### Chat % Replacements
 - %n or %mana for mana%
@@ -445,13 +446,21 @@ ___
   - **Example:** `/sq` `/sq 1 2`
   - **Description:** sorts your current group members in the ui  using /sq 1 2 will swap players 1 and 2 in your group on your ui.
 
-- `/spelleffects`
-  - **Arguments:** `nosprites`, `bard <0, 1, 2, 3>`
+- `/spelleffects`, `/spellfx`
+  - **Arguments:** `nosprites`, `bard <0, 1, 2, 3>`, `list`, `classic`, `default`, `<buff | heal> <classic | default | global>`, `lookup`, `override <Target Spell ID> <classic | default | Source Spell ID | reset>`, `override reset`
+  - **Description:** Allows preventing the dpvs.dll crash and modifying spell effects.  Players may copy the effects for an individual spell from another source spell, change all spell effects to the classic ("old") style, or revert all changes to the deafult ("new") visuals used by the client. They optionally may change all 482 spells that have the "self-buff" effects to classic, which restores level milestone particle effects at levels 1, 24, and 39 (e.g. Minor Shielding just having green particles at level 1, green + orange at 24 which is used by default on Quarm regardless of level, and green + orange + blue particles at level 39).
   - **Example:** `/spelleffects nosprites`: Disables the minor sprite enhancement of the 180 songs (out of 4000)
     that can cause the dpvs.dll crash when `/showspelleffects on` is enabled
   - **Example:** `/spelleffects bard`: Sets the effects mode (0 = default, 1, 2, 3 = alternatives) of 14 bard songs
-    (mostly resists and mana regen) to optionally be more subtle (0 is invisible with /showspelleffects off).
-  - **Description:** allows you to modify spell effects
+    (mostly resists and mana regen) to optionally be more subtle (0 is invisible with /showspelleffects off). Not affected by replace changes.
+  - **Example:** `/spelleffects classic`: Changes the global spell effects to use the classic ("old") style with working particle level milestones at levels 1, 24, and 39.
+  - **Example:** `/spelleffects default`: Reverts the global spell effects to the modern ("new) style used by default by the client. Level milestone particle effects for most spells are locked at level 24 regardless of character level.
+  - **Example:** `/spelleffects buff classic`: Changes spell effects only for the effects commonly associated with the shielding buff category (e.g. Minor Shielding, Shield of the Magi, Dead Man Floating, Rune III, etc.) to the classic ("old") style with working particle level milestones at levels 1 (green particles), 24 (green + orange), and 39 (green + orange + blue).
+  - **Example:** `/spelleffects heal default`: Reverts spell effects only for the effects commonly associated with the healing and regen category (e.g. Minor Healing, Complete Healing, Chloroplast, etc.) to the default ("new") style. Level milestone particle effects for all heals in this category will remain at level 1 regardless of level (simple blue particles from the hand).
+  - **Example:** `/spelleffects lookup Ice C`: Returns the spell ids for all spells that have names that start with "Ice C" (like Ice Comet = 732).
+  - **Example:** `/spelleffects override 732 classic`: Sets spell id 732's effects to use classic (overrides global setting)
+  - **Example:** `/spelleffects override 732 384`: Sets spell id 732 to use the effects from 384 (uses classic or default based on current global setting)
+  - **Example:** `/spelleffects override reset`: Reverts all individual spell override to use the global / group settings.
 
 - `/spellset`
   - **Arguments:** `save <name>`, `load <name>`, `delete <name>`, `list`
