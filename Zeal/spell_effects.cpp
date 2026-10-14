@@ -84,7 +84,7 @@ std::string NormalizeSpellName(const std::string& input_name) {
   bool in_whitespace = false;
   for (unsigned char c : input_name) {
     // normalize apostrophes/backticks to backtick
-    if (c == '\'' || c == '`' || c == 0x2019 /* right single quote */) c = '`';
+    if (c == '\'' || c == '`') c = '`';
     if (std::isspace(c)) {
       if (!in_whitespace) {
         out.push_back(' ');
@@ -108,8 +108,8 @@ std::string NormalizeSpellName(const std::string& input_name) {
 }  // namespace
 
 SpellEffects::SpellEffects() {
-  original_spell_effects.assign(GAME_NUM_SPELLS, std::nullopt);
-  individual_spell_effects.assign(GAME_NUM_SPELLS, std::nullopt);
+  std::fill(original_spell_effects.begin(), original_spell_effects.end(), std::nullopt);
+  std::fill(individual_spell_effects.begin(), individual_spell_effects.end(), std::nullopt);
 
   // First set the critical patch for the dpvs.dll crash. This can happen immediately.
   SyncDisableSprites();
@@ -184,7 +184,7 @@ bool SpellEffects::SyncBardEffects() {
 
 // Create a local copy of the original unmodified spell effects for later restoration during SyncSpellEffects() call.
 void SpellEffects::CacheOriginalEffects() {
-  original_spell_effects.assign(GAME_NUM_SPELLS, std::nullopt);
+  std::fill(original_spell_effects.begin(), original_spell_effects.end(), std::nullopt);
 
   const auto* spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr) return;
@@ -331,8 +331,7 @@ bool SpellEffects::ParseSpellEffectOverrideLine(const std::string& line) {
 
 // Retrieves spell effects from the persistent storage file.
 void SpellEffects::LoadSpellEffectOverrides() {
-  individual_spell_effects.assign(GAME_NUM_SPELLS,
-                                  std::nullopt);  // Ensure correct vector size and initialize to all empty.
+  std::fill(individual_spell_effects.begin(), individual_spell_effects.end(), std::nullopt);
 
   std::filesystem::path file_path = get_spell_effects_overrides_filename();
   if (file_path.empty() || !std::filesystem::exists(file_path)) return;  // Nothing to load so bail out.

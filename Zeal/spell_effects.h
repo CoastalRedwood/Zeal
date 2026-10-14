@@ -1,9 +1,9 @@
 #pragma once
 // Supports patching the dpvs.dll sprites crash and the customization of spell effects.
 
+#include <array>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "game_structures.h"
 #include "zeal_settings.h"
@@ -51,6 +51,8 @@ class SpellEffects {
   ZealSetting<int> setting_healing_effects = {-1, "SpellEffects", "HealingEffects", false};
 
   bool initialized = false;
-  std::vector<std::optional<OriginalSpellEffect>> original_spell_effects;    // Cached original spell effects.
-  std::vector<std::optional<SpellEffectOverride>> individual_spell_effects;  // Individual (per spell) overrides.
+  std::array<std::optional<OriginalSpellEffect>, GAME_NUM_SPELLS>
+      original_spell_effects;  // Cached original spell effects.
+  std::array<std::optional<SpellEffectOverride>, GAME_NUM_SPELLS>
+      individual_spell_effects;  // Individual (per spell) overrides.
 };

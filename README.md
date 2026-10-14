@@ -54,6 +54,7 @@ from the repo source, providing full transparency on the release contents.
 5. `<name>_protected.ini`: Per character saved /protect item list
 6. `<name>_bandolier.ini`: Per character saved /bandolier sets
 7. `<name>-Triggers.txt`: Manually created source for /triggers
+8. `zeal_spell_effects_override.ini`: Optional individual spell effects overrides.
 
 ### Chat % Replacements
 - %n or %mana for mana%
