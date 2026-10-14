@@ -254,6 +254,35 @@ NamePlate::NamePlate(ZealService *zeal) {
                              if (update_options_ui_callback) update_options_ui_callback();
                              return true;
                            });
+
+  // Command to control showing the server tick overlay on mana bars for preview.
+  // Usage: /showtickbar 1  (default progression indicator)
+  //        /showtickbar 2  (legacy full-height thin indicator)
+  //        /showtickbar off (disable)
+  zeal->commands_hook->Add("/showtickbar", {}, "Toggles showing the server tick overlay on mana bars.",
+                           [this](std::vector<std::string> &args) {
+                             int mode = setting_mana_tick_overlay.get();
+                             if (args.size() <= 1) {
+                               // No argument: toggle between off(0) and mode 1 for backwards compatibility.
+                               mode = (mode == 0) ? 1 : 0;
+                             } else {
+                               if (args[1].starts_with("off") || args[1] == "0")
+                                 mode = 0;
+                               else {
+                                 int parsed = 1;
+                                 if (!Zeal::String::tryParse(args[1], &parsed, true)) parsed = 1;
+                                 if (parsed < 0 || parsed > 2) parsed = 1;
+                                 mode = parsed;
+                               }
+                             }
+                             setting_mana_tick_overlay.set(mode);
+                             if (mode == 0)
+                               Zeal::Game::print_chat("Nameplate: Mana tick overlay disabled.");
+                             else
+                               Zeal::Game::print_chat("Nameplate: Mana tick overlay enabled (style %d).", mode);
+                             return true;
+                           });
+
   zeal->chat_hook->add_incoming_gsay_callback([this](const char *msg) { handle_tag_message(msg); });
   zeal->chat_hook->add_incoming_rsay_callback([this](const char *msg) { handle_tag_message(msg); });
   zeal->chat_hook->add_incoming_chat_callback(
@@ -496,7 +525,11 @@ void NamePlate::render_ui() {
     }
 
     auto nameplate_color = info.color | 0xff000000;
-    if (!full_text.empty()) sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
+    if (!full_text.empty()) {
+      bool is_self = (entity == Zeal::Game::get_self());
+      sprite_font->set_is_self(is_self);
+      sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
+    }
 
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
     if (!is_corpse && info.tag_color != TagArrowColor::Off) {
