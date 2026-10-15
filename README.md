@@ -283,7 +283,7 @@ ___
   - **Arguments:** `on`, `off`, `width [pixels]`, `height [pixels]`, `shiftscroll [always|smart]`
   - **Example:** `/mouseover width 400` sets the maximum tooltip width to 400 pixels.
   - **Example:** `/mouseover height 0` resets the maximum tooltip height to the default.
-  - **Example:** `/mouseover shiftscroll smart` lets the mouse wheel scroll tooltips without Shift for windows without a scroll bar (e.g. Merchant window).
+  - **Example:** `/mouseover shiftscroll smart` lets the mouse wheel scroll tooltips without Shift, unless the parent window has a scroll bar (e.g. Merchant window).
   - **Description:** Toggles mouseover tooltips and shows or sets their maximum size. By default, shift + mouse wheel scrolls long tooltips.
 
 - `/mystats`
