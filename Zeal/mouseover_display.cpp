@@ -455,11 +455,22 @@ static void show_mouseover_spell(int spell_id, int mouse_x, int mouse_y, bool is
   });
 }
 
+// Inspect window items receive incomplete data from the server (only the name/icon), alt-click still works.
+// Use the native tooltip instead.
+static bool is_inspect_slot(Zeal::GameUI::BasicWnd *wnd) {
+  auto *inspect = Zeal::Game::Windows ? Zeal::Game::Windows->Inspect : nullptr;
+  for (auto *parent = (inspect && wnd) ? wnd->ParentWnd : nullptr; parent; parent = parent->ParentWnd) {
+    if (parent == inspect) return true;
+  }
+  return false;
+}
+
 // Hooked HandleMouseMove for inventory slots: shows a tooltip for the item in `wnd`, or
 // closes the tooltip if the slot is empty.
 static int __fastcall InvSlotWnd_HandleMouseMove(Zeal::GameUI::InvSlotWnd *wnd, int unused_edx, int mouse_x,
                                                  int mouse_y, unsigned int flags) {
-  bool mouseover_enabled = ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get();
+  bool mouseover_enabled = ZealService::get_instance()->item_displays->setting_mouseover_tooltips.get() &&
+                           !is_inspect_slot(reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd));
   // Suppress before calling through: the original handler can trigger the native tooltip itself.
   if (mouseover_enabled && s_mouseover_wnd) suppress_native_tooltip(true);
 
@@ -670,7 +681,8 @@ static void mouseover_process_frame() {
     return;
   }
 
-  bool is_inv_slot = (hovered->vtbl == Zeal::GameUI::InvSlotWnd::default_vtable);
+  bool is_inv_slot = hovered->vtbl->HandleMouseMove == reinterpret_cast<LPVOID>(InvSlotWnd_HandleMouseMove) &&
+                     !is_inspect_slot(hovered);
 
   bool is_spell_gem = s_original_spell_gem_wnd_mouse_move &&
                       hovered->vtbl->HandleMouseMove == reinterpret_cast<LPVOID>(SpellGemWnd_HandleMouseMove);
