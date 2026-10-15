@@ -87,6 +87,8 @@ class ZoneMap {
   ZealSetting<bool> setting_add_speed_text = {false, "Zeal", "MapAddSpeedText", false};
   ZealSetting<bool> setting_show_all_player_headings = {false, "Zeal", "MapShowPlayerHeadings", false};
   ZealSetting<bool> setting_show_ring_heading = {false, "Zeal", "MapShowRingHeading", false};
+  ZealSetting<bool> setting_heading_use_far_ring = {false, "Zeal", "MapHeadingUseFarRing", false};
+  ZealSetting<bool> setting_heading_use_ring_color = {false, "Zeal", "MapHeadingUseRingColor", false};
 
   bool is_external_enabled() const { return external_enabled; }
 
@@ -321,7 +323,7 @@ class ZoneMap {
   bool map_show_all = false;                // PVP mode level playing field (show everything).
   bool map_show_grid = false;
   int map_grid_pitch = kDefaultGridPitch;  // Pitch when grid is visible.
-  int map_ring_radius = 0;
+  std::vector<int> map_ring_radius = {0};
   int map_name_length = kDefaultNameLength;  // Number of characters in name labels.
   bool map_show_raid = false;
   bool map_show_all_names_override = false;  // Overrides modes to show names of all visible members.

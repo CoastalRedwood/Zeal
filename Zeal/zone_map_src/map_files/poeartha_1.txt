@@ -30,12 +30,12 @@ P 767.3441, 436.7795, 24.6501, 240, 240, 0, 2, TRAP:_Frog_Spawn
 P 663.5223, 1056.7567, 1.5447, 240, 240, 0, 2, TRAP:_Frog_Spawn
 P 730.1604, 854.9804, 35.4771, 240, 240, 0, 2, TRAP:_Frog_Spawn
 P 198.5917, 1441.4801, -26.4773, 0, 0, 0, 2, a_dusty_warder
-P -483.8300, 827.6668, 30.3144, 240, 127, 0, 2, Derugoak_Bloodwalker_(Raid)
+P -482.9900, 837.1700, 33.7500, 240, 127, 0, 2, Derugoak_Bloodwalker
 P -332.3532, -97.3271, 69.5452, 240, 127, 0, 2, A_Monstrous_Mudwalker_(Raid)
 P -1478.0000, 2781.0000, 44.0000, 240, 127, 0, 2, A_Mystical_Arbitor_of_Earth_(Raid)
 P 623.1457, 267.0950, 87.5382, 240, 127, 0, 2, Peregrin_Rockskull_(Raid)
 P 3.5886, 567.1659, 28.3144, 240, 127, 0, 2, A_Perfected_Warder_of_Earth_(Raid)
-P -170.0000, 1968.0000, 28.0000, 240, 127, 0, 2, Tantisala_Jaggedtooth_(Raid)
+P 140.0000, 1876.0000, 73.2500, 240, 127, 0, 2, Tantisala_Jaggedtooth
 P 17.9669, 1691.7188, 32.0019, 128, 64, 0, 2, An_Ancient_Vekerchiki_Champion_(Hunter,Trap_Spawn)
 P -276.4332, 554.6900, 8.0019, 127, 64, 0, 2, Calris_Bristlebranch_(Hunter)
 P 432.9696, 1227.5496, -43.1295, 127, 64, 0, 2, Calris_Bristlebranch_(Hunter,Trap_Spawn)

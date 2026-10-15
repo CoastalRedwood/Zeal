@@ -83,4 +83,5 @@ class Chat {
   std::function<bool(int key, bool down, int modifier)> key_press_callback;
   DWORD pending_consent_timeout_ms = 0;
   std::string pending_consent_name;
+  std::string consented_name;  // Name of last player auto-consented (used to handle one retry on a denial)
 };

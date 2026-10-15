@@ -6,7 +6,7 @@ P -258.3767, -90.5437, -70.3419, 0, 0, 0, 2, Bishop_Toluwon
 P -307.0404, -315.0179, -72.4903, 0, 0, 0, 2, High_Priest_Ultor_Szanvon
 P -39.0000, 16.0000, -290.0000, 240, 127, 0, 2, Bertoxxulous_(Raid)
 P -325.0000, -275.0000, -72.0000, 240, 127, 0, 2, High_Priest_Ultor_Szanvon_(Raid)
-P -190.0000, 429.0000, -54.0000, 240, 127, 0, 2, Overlord_Banord_Paffa_(Raid)
+P -140.0000, 431.0000, -54.2000, 240, 127, 0, 2, #Banord_Paffa
 P 105.3888, -793.6334, -66.6525, 127, 64, 0, 2, Assassin_Kakoo
 P 77.1089, -411.2828, -80.4131, 127, 64, 0, 2, Bubonian_Death_Caster_(Hunter)
 P -380.6229, -510.3115, -42.1413, 127, 64, 0, 2, Bubonian_Great_Mystic_(Hunter)
@@ -20,7 +20,7 @@ P -392.9541, -170.8297, -63.9979, 127, 64, 0, 2, Elite_Corrupted_Knight_(Hunter)
 P -324.9534, -223.4252, -72.4221, 127, 64, 0, 2, Elite_Death_Knight_(Hunter)
 P -433.7193, -288.3852, -76.7552, 127, 64, 0, 2, Elite_Death_Knight_(Hunter)
 P -262.5972, -139.7350, -67.8093, 127, 64, 0, 2, Elite_Knight_of_Decay_(Hunter)
-P -266.3945, -103.8658, -69.3247, 127, 64, 0, 2, Elite_Necromancer_of_Decay_(Hunter)
+P -270.0000, -96.0000, -67.6200, 127, 64, 0, 2, Magus_of_Decay
 P -296.6621, -246.3081, -67.0515, 127, 64, 0, 2, Elite_Priest_of_Decay_(Hunter)
 P -130.4195, -632.0317, -53.7391, 127, 64, 0, 2, Eviscerator_Fwexar_(Hunter)
 P -449.2653, -142.9557, -63.9979, 127, 64, 0, 2, Firebone_Archmagus_(Hunter)

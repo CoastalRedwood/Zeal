@@ -28,7 +28,7 @@ from the repo source, providing full transparency on the release contents.
 - Integrated map (see In-game Map section below)
 - Additional ui support (new gauges, bag control & locking, looting, spellsets, targetrings,
   nameplates, right click to equip, skill window sorting, ctrl for context menus/looting,
-  tagging (text and shapes), raidbars, etc)
+  tagging (text and shapes), raidbars, target of target, etc)
 - Autostand on move/cast, autosit on camp with export inventory/spellbook option,
   enhanced autorun behavior option
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
@@ -86,6 +86,19 @@ ___
   - **Description:** In addition to adding per character support, a second option will generate warnings
     and clear the target if the assist fails (assistee out of range).
 
+- `/assistbar`
+  - **Arguments:** `on`, `off`, `toggle`:  Enables or disables the assistbar (target of target, ToT) \
+                   `position <left> <top>`: Specifies left top of the target of target name and health bar \
+                   `font <size>`: Sets the font size (8,9,10,12,14,16,20,24,28,32) \
+                   `mode <assist | defend>`: Shows target of my target (assist) or who hit my target (defend) \
+                   `window <ms>`: Sets time window (in milliseconds) of combat damage history used for targeting information \
+                   `refresh <on | off> [interval_ms]`: Enables/disables a silent auto-poll using /assist of your target
+  - **Example:** `/assistbar position 1000 100` Sets (x, y) = (left, top) = (1000, 100).
+  - **Example:** `/assistbar refresh on 5000` Enables a silent /assist poll every 5 seconds.
+  - **Description:** Shows the "assist candidate" for your current target (name & health bar) at a configurable
+          on screen position. Uses either damage inference (assist = target of target = who my target last damaged and
+          defend = who last damaged my target), the results of a manual /assist poll, or by an optional auto-poll interval.
+
 - `/autobank`
   - **Aliases:** `/autoba`, `/ab`
   - **Description:** Drops whatever is on your cursor into your bank. [requires you to be at a banker] (not fully functional atm)
@@ -123,6 +136,8 @@ ___
   - **Description:** Allows you to save and load bandolier sets
     - Works for primary, secondary, range and ammo slots
     - Primary and secondary always swap but range and ammo will not change if you save a set with both of them empty
+    - All bandolier messages go to the Zeal->Bandolier chat filter, so a chat window can take them apart from
+      Other; failed swaps (casting, cursor busy, no empty slot, item not found, etc.) print there in red
     - The item getting swapped out first tries to store in the slot of the swap in item, then in the location
       it was originally swapped in from (if available), then in the preferred bag if there is room, then in
       any inventory bag (starting from last) if there is room, then in a pack slot
@@ -134,8 +149,9 @@ ___
   - **Description:** Changes the blue con color to Zeal Color Button #15 which is in the Zeal Options window, Colors Tab.
 
 - `/cancelbuff`
-  - **Arguments:** `spellid`
-  - **Description:** Removes an effect of a beneficial spell that matches spellid
+  - **Arguments:** `spellid [spellid] ...` (up to 5)
+  - **Example:** `/cancelbuff 278 39 145` removes each listed buff
+  - **Description:** Removes effects of beneficial spells that match the listed spellids
 
 - `/classchatcolors`
   - **Aliases** `/clc`
@@ -210,6 +226,10 @@ ___
 
 - `/inspect target`
   - **Description:** adds target argument to /inspect, this just inspects your current target.
+
+- `/labels`
+  - **Arguments:** `showtargetspawnid` (toggles visibility of the spawn id in the target name eqtype 28)
+  - **Description:** UI label settings.
 
 - `/lead`
   - **Arguments:** none, `open` (reports raid groups with open slots), `all` (lists all raid groups)
@@ -409,7 +429,11 @@ ___
   - **Description:** Shows you your current loot lockouts on supporting servers.
 
 - `/shownames`
-  - **Description:** Default commmand extended to support options 5, 6, and 7.
+  - **Arguments:** `off`, `1` (first only), `2` (first+last), `3` (first+last+guild), `4` (everything), `5` (title+first), `6` (title+first+last), `7` (first+guild) 
+  - **Arguments:** `raid` + any of the above arguments
+  - **Description:** Extends default `/shownames` command to support options 5, 6, and 7. It also adds an optional `raid` mode that sets the
+          `/shownames` mode automatically when joining a raid and then switches back to the normal setting when leaving a raid.
+  - **Example:** `/shownames raid 1` Sets the nameplates of everyone to first name only when joining a raid.
 
 - `/singleclick`
   - **Arguments:** none, `bag #` where 0 disables and 1-8 sets inventory bag #
@@ -601,6 +625,8 @@ Manual editing of the ini file is required to copy from old section to the new s
 - Toggle target nameplate color on and off
 - Toggle target nameplate marker on and off
 - Toggle target nameplate health on and off
+- Hotbar Page 10 Slot 1 through Slot 10 (presses a page 10 hotbutton without changing the visible page)
+- Social Page 10 Slot 1 through Slot 12 (runs a page 10 social macro without changing the visible page)
 
 ---
 ### Advanced input (/zealinput) including tab completion
@@ -615,7 +641,7 @@ Manual editing of the ini file is required to copy from old section to the new s
 
 ## Chat filtering
 - Adds additional chat filtering options under the Zeal submenu that includes things like:
-  - Random, loot, money, Pet chat & damage, Melee specials, Other damage shield, Zeal Spam
+  - Random, loot, money, Pet chat & damage, Melee specials, Other damage shield, Zeal Spam, Bandolier
 - Supports reporting damage taken by NPCs from damage shields and spell damage from other
   players if the 'Others non-melee' option is enabled
   - Spell damage by others is routed to the Spells->Others channel
@@ -665,8 +691,9 @@ Manual editing of the ini file is required to copy from old section to the new s
 - Requires enabling both Nameplates Zeal fonts and tags (`/tag on`)
 - Tagged NPC nameplates use either the dedicated `Tagged` color or if targeted the `Target` color
 - Tagged nameplates have a matching implicit colored arrow added if `Default tag arrow` is set
-- Tags can be set with locally or broadcast through rsay, gsay, or a joined chat channel
-  - `/tag <rsay | gsay | chat | local> <tag_text>`
+- Tags can be set locally or broadcast to others through rsay, gsay, or a joined chat channel.
+  - The `rsgs` option will broadcast to rsay if in a raid, else gsay if in a group, else to local (self only). 
+  - `/tag <rsay | gsay | rsgs | chat | local> <tag_text>`
   - Note: % replacement commands (%t, %n) aren't supported in `<tag_text>`
   - A <tag_text> == `clear` will clear the tags of everyone receiving it
   - The <tag_text> message supports special prefixes:
@@ -800,6 +827,35 @@ ___
 ### Zeal pipes
 - Zeal supports creating a namedpipe for streaming game updates to third party applications
 - C# example: https://github.com/OkieDan/ZealPipes
+
+#### Spawn ids
+Messages that describe an entity carry that entity's spawn id, so a consumer can
+key on a stable identity instead of a display name. This matters because spawns
+of the same type share an identical name (`an orc warrior`), and the gauge
+stream describes a target or pet with only a name and an HP per-mille value.
+
+- `raid` (type 5) and `group` (type 6) members each carry `spawn_id`
+- the `player` message carries `spawn_id` for yourself, plus:
+  - `target_id` - the spawn id of your current target
+  - `pet_id` - the spawn id of your pet
+
+`target_id` and `pet_id` are omitted entirely when there is no target or no pet.
+
+#### Target descriptors
+The `player` message also describes the current target, so that a consumer can
+tell apart two spawns that share a name but are backed by different server
+database rows (different level, class or loot). The spawn id alone cannot do
+this, since it identifies a live entity rather than a database row.
+
+- `target_name` - trimmed name, matching what eqtype 28 shows by default
+- `target_type` - 0 player, 1 NPC, 2 NPC corpse, 3 player corpse
+- `target_level`, `target_class`, `target_race` - the client's spawn descriptors
+- `target_loc` - the target's current position, same `{x, y, z}` shape as `location`.
+  Only included while the target is within 250 units of the player; omitted otherwise
+
+These are omitted along with `target_id` when there is no target. `target_name`
+is provided so that a consumer never has to parse eqtype 28, whose text is
+formatting dependent (see `/labels showtargetspawnid`).
 
 ---
 ### Tick Timer
@@ -1049,7 +1105,11 @@ A simple distance ring around the current position is available. The distance ca
 based on the tracking skill for rangers, druids, and bards, so they can simply toggle the ring
 on and off with `/map ring` (or explicitly on or off with `ring on` or `ring off`). The
 `/map ring heading` command toggles on and off a setting to add a line from your position to
-the ring radius in the direction of your heading.
+the ring radius in the direction of your heading. Up to four radius values can be provided,
+to have multiple rings shown on the map at the same time. If you wish to mix radius numbers,
+with the automatic track range, use the word `track` for the value. Radius values cannot go
+below 10, or above 10000. Ring color settings are respective to the order in which the value
+is entered, not from innermost to outtermost rings.
 
 * Command examples:
   - `/map ring` if visible or a non-tracker, turns ring off
@@ -1057,6 +1117,8 @@ the ring radius in the direction of your heading.
   - `/map ring on` sets the ring at max tracking distance per skill level
   - `/map ring off` turns ring off
   - `/map ring 500` sets the ring around the player at a distance of 500 (all classes)
+  - `/map ring 250 track` sets the ring around the player at a distance of 250 AND sets another ring using tracking distance
+  - `/map ring 100 200 300 400` sets four rings around the player at the distances of 100, 200, 300 and 400
 
 #### Showing group and raid members
 The map supports showing the live position of other group and raid members. The group

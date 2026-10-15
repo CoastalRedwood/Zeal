@@ -8,6 +8,7 @@
 #include "game_ui.h"
 #include "hook_wrapper.h"
 #include "memory.h"
+#include "string_util.h"
 #include "tick.h"
 #include "zeal.h"
 
@@ -23,6 +24,17 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
     return ZealService::get_instance()->hooks->hook_map["GetLabel"]->original(GetLabelFromEq)(type, str, override_color,
                                                                                               color);
   switch (type) {
+    case 28:
+      if (str && Zeal::Game::get_target() && zeal->labels_hook->setting_show_target_spawn_id.get()) {
+        // Append the spawn ID if enabled.
+        const char *name = Zeal::Game::trim_name(Zeal::Game::get_target()->Name);
+        char *global_target_buffer = reinterpret_cast<char *>(0x00630884);  // Hard-coded 0x100 global buffer.
+        snprintf(global_target_buffer, 0x100, "%s (%d)", name, Zeal::Game::get_target()->SpawnId);
+        str->Set(global_target_buffer);  // Native client code copies to the global buffer then does the set.
+        if (override_color) *override_color = false;
+        return true;
+      }
+      break;
     case 29:
       if (str && (!Zeal::Game::get_target() || Zeal::Game::get_target()->Type > 1)) {
         str->Set("");  // Clear the "0" when there is no target or a corpse.
@@ -346,21 +358,30 @@ Labels::~Labels() {}
 
 Labels::Labels(ZealService *zeal) {
   zeal->commands_hook->Add("/labels", {}, "prints all labels", [this](std::vector<std::string> &args) {
-    for (int i = 0; i < 200; i++) {
-      Zeal::GameUI::CXSTR tmp("");
-      bool override = false;
-      ULONG color = 0;
-      GetLabelFromEq(i, (Zeal::GameUI::CXSTR *)&tmp, &override, &color);
-      if (tmp.Data) {
-        Zeal::Game::print_chat("label: %i value: %s", i, tmp.CastToCharPtr());
-        tmp.FreeRep();
-      }
+    if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "showtargetspawnid")) {
+      setting_show_target_spawn_id.toggle();
+      Zeal::Game::print_chat("Show target spawn id: %s", setting_show_target_spawn_id.get() ? "ON" : "OFF");
+      return true;
     }
-    return true;  // return true to stop the game from processing any further on this command,
-                  // false if you want to just add features to an existing cmd
+    if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "print")) {
+      for (int i = 0; i < 200; i++) {
+        Zeal::GameUI::CXSTR tmp("");
+        bool override = false;
+        ULONG color = 0;
+        GetLabelFromEq(i, (Zeal::GameUI::CXSTR *)&tmp, &override, &color);
+        if (tmp.Data) {
+          Zeal::Game::print_chat("label: %i value: %s", i, tmp.CastToCharPtr());
+          tmp.FreeRep();
+        }
+      }
+      return true;
+    }
+
+    Zeal::Game::print_chat("Usage: /labels print (prints out all labels and values)");
+    Zeal::Game::print_chat("       /labels showtargetspawnid (toggles the spawn id visibility)");
+    return true;
   });
-  // zeal->callbacks->add_generic([this]() { callback_main(); }); //causes a crash because callback_main is empty
-  // zeal->hooks->Add("FinalizeLoot", Zeal::Game::GameInternal::fn_finalizeloot, finalize_loot, hook_type_detour);
+
   zeal->hooks->Add("GetLabel", Zeal::Game::GameInternal::fn_GetLabelFromGame, GetLabelFromEq, hook_type_detour);
   zeal->hooks->Add("GetGauge", Zeal::Game::GameInternal::fn_GetGaugeLabelFromGame, GetGaugeFromEq, hook_type_detour);
 }

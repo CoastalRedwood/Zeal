@@ -42,7 +42,6 @@ static constexpr char kDefaultSoundNone[] = "None";
 
 // Returns a player name if the message matches a cross-zone raid invite
 std::string GetCrossZoneInviteName(const std::string &data) {
-
   static const char raid_invite_ending[] = " a raid.";
   if (!data.ends_with(raid_invite_ending)) return "";
 
@@ -67,7 +66,7 @@ std::string GetCrossZoneInviteName(const std::string &data) {
   } else {
     // Handle normal messages
     first_space = data.find_first_of(" ", start_pos);
-    inviter = data.substr(start_pos, first_space);
+    inviter = data.substr(start_pos, first_space - start_pos);
   }
 
   std::string invite_msg = data.substr(first_space + 1);
@@ -100,17 +99,24 @@ int GetSensitivityForSlider(ZealSetting<float> &value) {
     return 0;
 }
 
-int Shownames_Combobox_dropdown() {
+int GetShownamesComboboxValue() {
   // Update shownames dropdown - check both the boolean and the value
   bool names_enabled = *(int *)0x798af4 != 0;  // ShowPCNamesGUIButton
-  int current_shownames = std::clamp(Zeal::Game::get_showname(), 1, 7);
+  int current_shownames = std::clamp(ZealService::get_instance()->nameplate->get_shownames(), 1, 7);
+  return names_enabled ? current_shownames : 0;
+}
+
+int GetShownamesRaidComboboxValue() {
+  // Update shownames dropdown - check both the boolean and the value
+  bool names_enabled = *(int *)0x798af4 != 0;  // ShowPCNamesGUIButton
+  int current_shownames = std::clamp(ZealService::get_instance()->nameplate->setting_raid_shownames.get(), 0, 7);
   return names_enabled ? current_shownames : 0;
 }
 
 void ui_options::AddOutputText(Zeal::GameUI::ChatWnd *wnd, std::string &msg, short &channel) {
   if (channel == USERCOLOR_TELL) PlayTellSound();
 
-  //const auto &setting_invite_dialog = ZealService::get_instance()->ui->options->setting_invite_dialog;
+  // const auto &setting_invite_dialog = ZealService::get_instance()->ui->options->setting_invite_dialog;
   if (channel == CHATCOLOR_YELLOW && setting_invite_dialog.get()) {
     std::string cross_zone_raid_inviter = GetCrossZoneInviteName(msg);
     if (!cross_zone_raid_inviter.empty()) {
@@ -217,6 +223,8 @@ int __fastcall WndNotification(Zeal::GameUI::BasicWnd *wnd, int unused, Zeal::Ga
     if (message == 0x1E && ui->clicked_button) {
       ui->clicked_button->TextColor.ARGB = data | 0xff000000;  // Ensure alpha = 0xff.
       ui->options->SaveColors();
+      ui->options->SaveRingColors();
+      ui->options->SaveHeadingColor();
     }
   }
   return reinterpret_cast<int(__thiscall *)(Zeal::GameUI::BasicWnd * wnd, Zeal::GameUI::BasicWnd * sender, int message,
@@ -274,6 +282,14 @@ static constexpr std::array<ColorButtonEntry, num_color_buttons> color_button_de
     {"MyBitHits", D3DCOLOR_XRGB(0xf9, 0x9b, 0xff)},      // 40: Pink
 }};
 
+static constexpr int num_ring_buttons = 4;
+static constexpr std::array<ColorButtonEntry, num_ring_buttons> ring_button_defaults = {{
+    {"Ring0", D3DCOLOR_XRGB(183, 225, 161)},  // Ring 1, grey-green
+    {"Ring1", D3DCOLOR_XRGB(183, 225, 161)},
+    {"Ring2", D3DCOLOR_XRGB(183, 225, 161)},
+    {"Ring3", D3DCOLOR_XRGB(183, 225, 161)},  // Ring 4
+}};
+
 void ui_options::SaveColors() const {
   IO_ini *ini = ZealService::get_instance()->ini.get();
   for (auto i = 0; i < color_buttons.size(); ++i) {
@@ -298,6 +314,53 @@ void ui_options::LoadColors() {
     color_buttons[i]->TextColor.ARGB =
         ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : color_button_defaults[i].color;
   }
+}
+
+void ui_options::SaveRingColors() const {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  for (auto i = 0; i < ring_buttons.size(); ++i) {
+    if (!ring_buttons[i]) continue;
+    ini->setValue("ZealColors", "Ring" + std::to_string(i), std::to_string(ring_buttons[i]->TextColor.ARGB));
+  }
+}
+
+DWORD ui_options::GetRingColor(int index) const {
+  if (index >= 0 && index < ring_buttons.size()) {
+    return ring_buttons[index] ? ring_buttons[index]->TextColor.ARGB : ring_button_defaults[index].color;
+  }
+
+  return D3DCOLOR_XRGB(183, 225, 161);
+}
+
+void ui_options::LoadRingColors() {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  const std::string section = "ZealColors";
+  for (int i = 0; i < ring_buttons.size(); ++i) {
+    if (!ring_buttons[i]) continue;
+    std::string name = "Ring" + std::to_string(i);
+    ring_buttons[i]->TextColor.ARGB =
+        ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : ring_button_defaults[i].color;
+  }
+}
+
+void ui_options::SaveHeadingColor() const {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  ini->setValue("ZealColors", "HeadingColor", std::to_string(heading_button->TextColor.ARGB));
+}
+
+DWORD ui_options::GetHeadingColor() const {
+  if (heading_button) return heading_button->TextColor.ARGB;
+
+  return D3DCOLOR_XRGB(183, 255, 161);
+}
+
+void ui_options::LoadHeadingColor() {
+  IO_ini *ini = ZealService::get_instance()->ini.get();
+  const std::string section = "ZealColors";
+  const std::string name = "HeadingColor";
+  if (!heading_button) return;
+  heading_button->TextColor.ARGB =
+      ini->exists(section, name) ? ini->getValue<DWORD>(section, name) : D3DCOLOR_XRGB(183, 255, 161);
 }
 
 void ui_options::InitUI() {
@@ -681,6 +744,7 @@ void ui_options::InitCamera() {
 
 void ui_options::InitMap() {
   if (!wnd) return;
+
   ui->AddCheckboxCallback(wnd, "Zeal_Map", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->set_enabled(wnd->Checked, true);
   });
@@ -708,6 +772,13 @@ void ui_options::InitMap() {
   ui->AddCheckboxCallback(wnd, "Zeal_MapShowPlayerHeadings", [](Zeal::GameUI::BasicWnd *wnd) {
     ZealService::get_instance()->zone_map->setting_show_all_player_headings.set(wnd->Checked);
   });
+  ui->AddCheckboxCallback(wnd, "Zeal_MapUseFarRing", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->zone_map->setting_heading_use_far_ring.set(wnd->Checked);
+  });
+  ui->AddCheckboxCallback(wnd, "Zeal_MapHeadingUsesRingColor", [](Zeal::GameUI::BasicWnd *wnd) {
+    ZealService::get_instance()->zone_map->setting_heading_use_ring_color.set(wnd->Checked);
+  });
+
   ui->AddComboCallback(wnd, "Zeal_MapShowGroup_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
     ZealService::get_instance()->zone_map->set_show_group_mode(value);
   });
@@ -755,6 +826,28 @@ void ui_options::InitMap() {
   ui->AddSliderCallback(wnd, "Zeal_MapGridPitch_Slider", [this](Zeal::GameUI::SliderWnd *wnd, int value) {
     ZealService::get_instance()->zone_map->set_grid_pitch(value * ZoneMap::kMaxGridPitch / 100);
   });
+
+  // Like the color buttons, the ring buttons is loaded here with the max number of buttons (nullptr if not present)
+  ring_buttons.clear();
+  for (int i = 0; i < num_ring_buttons; i++) {
+    if (!ring_button_defaults[i].name) {
+      ring_buttons.push_back(nullptr);
+    } else {
+      ring_buttons.push_back(ui->AddButtonCallback(
+          wnd, "Zeal_Ring" + std::to_string(i),
+          [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); },
+          false));
+    }
+  }
+
+  LoadRingColors();
+
+  heading_button = ui->AddButtonCallback(
+      wnd, "Zeal_MapHeadingColor",
+      [](Zeal::GameUI::BasicWnd *wnd) { Zeal::Game::Windows->ColorPicker->Activate(wnd, wnd->TextColor.ARGB); }, false);
+
+  LoadHeadingColor();
+
   ui->AddLabel(wnd, "Zeal_MapZoom_Value");
   ui->AddLabel(wnd, "Zeal_MapPositionSize_Value");
   ui->AddLabel(wnd, "Zeal_MapMarkerSize_Value");
@@ -938,7 +1031,9 @@ void ui_options::InitNameplate() {
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateShownames_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
-    // Sync the ComboBox with /shownames command
+    // If somehow an invalid number is passed in, just default to 4 to show everything.
+    if (value < 0 || value > 7) value = 4;
+
     std::vector<std::string> args = {"shownames"};
     if (value == 0) {
       args.push_back("off");
@@ -946,23 +1041,22 @@ void ui_options::InitNameplate() {
       args.push_back(std::to_string(value));
     }
 
-    // PR Reviewed to add clamp value since someone putting in any 4 digit value number could cause a crash here.
-    // If player puts in high number beyond 7, it will default to 4 to show everything
-    if (value > 7) value = 4;
+    ZealService::get_instance()->nameplate->handle_shownames_command(args);
+  });
 
-    // Create arg_buffer for /shownames call. Static buffer: "off" = 4 bytes (3 chars + null terminator)
-    static char arg_buffer[4];
+  ui->AddComboCallback(wnd, "Zeal_NameplateShownamesRaid_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
+    // If somehow an invalid number is passed in, just default to 0 to disable raid mode.
+    if (value < 0 || value > 7) value = 0;
+
+    // Directly execute the command line handler in nameplates.
+    std::vector<std::string> args = {"shownames", "raid"};
     if (value == 0) {
-      strcpy_s(arg_buffer, "off");
+      args.push_back("off");
     } else {
-      sprintf_s(arg_buffer, "%d", value);
+      args.push_back(std::to_string(value));
     }
 
-    // Call the original game function /shownames with value selected from ComboBox
-    reinterpret_cast<void(__cdecl *)(char, BYTE *)>(0x4ff84f)(0, (BYTE *)arg_buffer);
-
-    // Update UI immediately after execution (NO DELAYS)
-    UpdateOptionsNameplate();
+    ZealService::get_instance()->nameplate->handle_shownames_command(args);
   });
 
   ui->AddComboCallback(wnd, "Zeal_NameplateLocalAATitle_Combobox", [this](Zeal::GameUI::BasicWnd *wnd, int value) {
@@ -1050,8 +1144,10 @@ void ui_options::UpdateOptionsGeneral() {
   ui->SetChecked("Zeal_AltContainerTooltips", ZealService::get_instance()->tooltips->all_containers.get());
   ui->SetChecked("Zeal_SpellbookAutoStand", ZealService::get_instance()->movement->SpellBookAutoStand.get());
   ui->SetChecked("Zeal_CastAutoStand", ZealService::get_instance()->movement->CastAutoStand.get());
-  ui->SetChecked("Zeal_ClickFromInventory", ZealService::get_instance()->equip_item_hook->setting_click_from_inventory.get());
-  ui->SetChecked("Zeal_UseAltForClicky", ZealService::get_instance()->equip_item_hook->setting_use_alt_for_clicky.get());
+  ui->SetChecked("Zeal_ClickFromInventory",
+                 ZealService::get_instance()->equip_item_hook->setting_click_from_inventory.get());
+  ui->SetChecked("Zeal_UseAltForClicky",
+                 ZealService::get_instance()->equip_item_hook->setting_use_alt_for_clicky.get());
   ui->SetChecked("Zeal_RightClickToEquip", ZealService::get_instance()->equip_item_hook->Enabled.get());
   ui->SetChecked("Zeal_BuffTimers", ZealService::get_instance()->ui->buffs->BuffTimers.get());
   ui->SetChecked("Zeal_RecastTimers", ZealService::get_instance()->ui->buffs->RecastTimers.get());
@@ -1206,9 +1302,8 @@ void ui_options::UpdateOptionsNameplate() {
   std::string current_font = ZealService::get_instance()->nameplate->setting_fontname.get();
   UpdateComboBox("Zeal_NameplateFont_Combobox", current_font, BitmapFont::kDefaultFontName);
 
-  int shownames_dropdown_value = Shownames_Combobox_dropdown();
-  ui->SetComboValue("Zeal_NameplateShownames_Combobox", shownames_dropdown_value);
-
+  ui->SetComboValue("Zeal_NameplateShownames_Combobox", GetShownamesComboboxValue());
+  ui->SetComboValue("Zeal_NameplateShownamesRaid_Combobox", GetShownamesRaidComboboxValue());
   ui->SetComboValue("Zeal_NameplateLocalAATitle_Combobox",
                     ZealService::get_instance()->nameplate->setting_local_aa_title.get());
 }
@@ -1245,6 +1340,9 @@ void ui_options::UpdateOptionsMap() {
   ui->SetChecked("Zeal_MapAddSpeedText", ZealService::get_instance()->zone_map->setting_add_speed_text.get());
   ui->SetChecked("Zeal_MapShowPlayerHeadings",
                  ZealService::get_instance()->zone_map->setting_show_all_player_headings.get());
+  ui->SetChecked("Zeal_MapUseFarRing", ZealService::get_instance()->zone_map->setting_heading_use_far_ring.get());
+  ui->SetChecked("Zeal_MapHeadingUsesRingColor",
+                 ZealService::get_instance()->zone_map->setting_heading_use_ring_color.get());
   ui->SetComboValue("Zeal_MapShowGroup_Combobox", ZealService::get_instance()->zone_map->get_show_group_mode());
   ui->SetComboValue("Zeal_MapBackground_Combobox", ZealService::get_instance()->zone_map->get_background());
   ui->SetComboValue("Zeal_MapAlignment_Combobox", ZealService::get_instance()->zone_map->get_alignment());
@@ -1377,6 +1475,15 @@ void ui_options::UpdateDynamicUI() {
     ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
   }
 
+  cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateShownamesRaid_Combobox");
+  if (cmb) {
+    std::vector<std::string> shownames_options = {"Off (no raid setting)", "1 - First Names", "2 - First+Last Names",
+                                                  "3 - First+Last+Guild",  "4 - Everything",  "5 - Title+First",
+                                                  "6 - Title+First+Last",  "7 - First+Guild"};
+    cmb->DeleteAll();
+    ZealService::get_instance()->ui->AddListItems(cmb, shownames_options);
+  }
+
   cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem("Zeal_NameplateLocalAATitle_Combobox");
   if (cmb) {
     cmb->DeleteAll();
@@ -1390,10 +1497,15 @@ void ui_options::UpdateDynamicUI() {
 void ui_options::CleanDynamicUI() {
   if (!wnd) return;
 
-  std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox",  "Zeal_MapFont_Combobox",
-                                       "Zeal_FloatingFont_Combobox",       "Zeal_NameplateFont_Combobox",
-                                       "Zeal_TellSound_Combobox",          "Zeal_InviteSound_Combobox",
-                                       "Zeal_NameplateShownames_Combobox", "Zeal_NameplateLocalAATitle_Combobox"};
+  std::vector<std::string> box_list = {"Zeal_TargetRingTexture_Combobox",
+                                       "Zeal_MapFont_Combobox",
+                                       "Zeal_FloatingFont_Combobox",
+                                       "Zeal_NameplateFont_Combobox",
+                                       "Zeal_TellSound_Combobox",
+                                       "Zeal_InviteSound_Combobox",
+                                       "Zeal_NameplateShownames_Combobox",
+                                       "Zeal_NameplateShownamesRaid_Combobox",
+                                       "Zeal_NameplateLocalAATitle_Combobox"};
   for (const auto &box_name : box_list) {
     Zeal::GameUI::ComboWnd *cmb = (Zeal::GameUI::ComboWnd *)wnd->GetChildItem(box_name.c_str());
     if (cmb) {

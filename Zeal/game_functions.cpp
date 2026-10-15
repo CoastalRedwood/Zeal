@@ -3089,9 +3089,10 @@ int get_avoidance(bool include_combat_agility) {
 Era get_era() {
   auto char_info = Zeal::Game::get_char_info();
   BYTE expansions = char_info ? char_info->Expansions : 0;
-  // TODO: Server is setting both the char_info field and global values so that all
-  // expansions are active instead of the currently active expansion.
-  expansions = 0x07;  // TODO: Hard-coded to Luclin. Check if server is now working.
+  // NOTE: The Quarm Server was setting both the char_info field and global values so that all
+  // expansions are active instead of the currently active expansion. Up until PoP had to
+  // hard-code override it like below.
+  // expansions = 0x07;  // Temporary hard-code to Luclin.
 
   // Alternative: Use globals set by OP_ExpansionInfo to determine expansion:
   // expansions = 0;

@@ -15,6 +15,8 @@
 #define CHANNEL_OTHER_MELEE_CRIT 1008
 #define CHANNEL_OTHER_DAMAGE_SHIELD 1009
 #define CHANNEL_ZEAL_SPAM 1010
+#define CHANNEL_BANDOLIER 1011
+#define CHANNEL_BANDOLIER_FAILURE 1012
 
 struct CustomFilter {
   std::string name;                     // String name - Appears in the Menu

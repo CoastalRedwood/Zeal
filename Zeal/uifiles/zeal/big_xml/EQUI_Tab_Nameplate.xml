@@ -284,7 +284,7 @@
       <CX>300</CX>
       <CY>28</CY>
     </Size>
-    <Text>/Shownames Value</Text>
+    <Text>/shownames value</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -317,18 +317,18 @@
     <Choices>Off</Choices>
   </Combobox>
   
-  <Label item="Zeal_NameplateLocalAATitle_Label">
-    <ScreenID>Zeal_NameplateLocalAATitle_Label</ScreenID>
+  <Label item="Zeal_NameplateShownamesRaid_Label">
+    <ScreenID>Zeal_NameplateShownamesRaid_Label</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
       <X>20</X>
-      <Y>578</Y>
+      <Y>584</Y>
     </Location>
     <Size>
       <CX>300</CX>
       <CY>28</CY>
     </Size>
-    <Text>Local AA Title Choice</Text>
+    <Text>/shownames raid value</Text>
     <TextColor>
       <R>255</R>
       <G>255</G>
@@ -339,12 +339,12 @@
     <AlignRight>false</AlignRight>
   </Label>
   
-  <Combobox item="Zeal_NameplateLocalAATitle_Combobox">
-    <ScreenID>Zeal_NameplateLocalAATitle_Combobox</ScreenID>
+  <Combobox item="Zeal_NameplateShownamesRaid_Combobox">
+    <ScreenID>Zeal_NameplateShownamesRaid_Combobox</ScreenID>
     <DrawTemplate>WDT_Inner</DrawTemplate>
     <Location>
       <X>20</X>
-      <Y>618</Y>
+      <Y>616</Y>
     </Location>
     <Size>
       <CX>300</CX>
@@ -714,6 +714,50 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  
+  <Label item="Zeal_NameplateLocalAATitle_Label">
+    <ScreenID>Zeal_NameplateLocalAATitle_Label</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>370</X>
+      <Y>584</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>28</CY>
+    </Size>
+    <Text>Local AA Title Choice</Text>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <NoWrap>true</NoWrap>
+    <AlignCenter>false</AlignCenter>
+    <AlignRight>false</AlignRight>
+  </Label>
+  
+  <Combobox item="Zeal_NameplateLocalAATitle_Combobox">
+    <ScreenID>Zeal_NameplateLocalAATitle_Combobox</ScreenID>
+    <DrawTemplate>WDT_Inner</DrawTemplate>
+    <Location>
+      <X>370</X>
+      <Y>616</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>48</CY>
+    </Size>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ListHeight>140</ListHeight>
+    <Button>BDT_Combo</Button>
+    <Style_Border>true</Style_Border>
+    <Choices>Off</Choices>
+  </Combobox>
 
   
   <Button item="Zeal_TagEnable">
@@ -1024,6 +1068,8 @@
     <Pieces>Zeal_NameplateExtended</Pieces>
     <Pieces>Zeal_NameplateShownames_Label</Pieces>
     <Pieces>Zeal_NameplateShownames_Combobox</Pieces>
+    <Pieces>Zeal_NameplateShownamesRaid_Label</Pieces>
+    <Pieces>Zeal_NameplateShownamesRaid_Combobox</Pieces>
     <Pieces>Zeal_NameplateLocalAATitle_Label</Pieces>
     <Pieces>Zeal_NameplateLocalAATitle_Combobox</Pieces>
     <Pieces>Zeal_NameplateInlineGuild</Pieces>

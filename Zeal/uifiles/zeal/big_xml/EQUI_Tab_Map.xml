@@ -1029,6 +1029,216 @@
       <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
     </ButtonDrawTemplate>
   </Button>
+  <Button item="Zeal_Ring0">
+    <ScreenID>Zeal_Ring0</ScreenID>
+    <RelativePosition>true</RelativePosition>
+  <Location>
+    <X>394</X>
+    <Y>1004</Y>
+  </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>Ring 1 Color</Text>
+    <TooltipReference>Color for first ring value</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_Ring1">
+    <ScreenID>Zeal_Ring1</ScreenID>
+    <RelativePosition>true</RelativePosition>
+  <Location>
+    <X>394</X>
+    <Y>1048</Y>
+  </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>Ring 2 Color</Text>
+    <TooltipReference>Color for second ring value</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_Ring2">
+    <ScreenID>Zeal_Ring2</ScreenID>
+    <RelativePosition>true</RelativePosition>
+  <Location>
+    <X>394</X>
+    <Y>1092</Y>
+  </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>Ring 3 Color</Text>
+    <TooltipReference>Color for third ring value</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_Ring3">
+    <ScreenID>Zeal_Ring3</ScreenID>
+    <RelativePosition>true</RelativePosition>
+  <Location>
+    <X>394</X>
+    <Y>1136</Y>
+  </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>Ring 4 Color</Text>
+    <TooltipReference>Color for fourth ring value</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_MapUseFarRing">
+    <ScreenID>Zeal_MapUseFarRing</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>1180</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <Text>Heading Line Uses Far</Text>
+    <TooltipReference>Heading line uses furthest (pressed) or closest (unpressed) ring size</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_MapHeadingColor">
+    <ScreenID>Zeal_MapHeadingColor</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>1224</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>false</Style_Checkbox>
+    <Text>Heading Color</Text>
+    <TooltipReference>Heading line color</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
+  <Button item="Zeal_MapHeadingUsesRingColor">
+    <ScreenID>Zeal_MapHeadingUsesRingColor</ScreenID>
+    <RelativePosition>true</RelativePosition>
+    <Location>
+      <X>394</X>
+      <Y>1268</Y>
+    </Location>
+    <Size>
+      <CX>300</CX>
+      <CY>40</CY>
+    </Size>
+    <Style_VScroll>false</Style_VScroll>
+    <Style_HScroll>false</Style_HScroll>
+    <Style_Transparent>false</Style_Transparent>
+    <Style_Checkbox>true</Style_Checkbox>
+    <Text>Heading Uses Ring Color</Text>
+    <TooltipReference>Heading line uses color from ring</TooltipReference>
+    <TextColor>
+      <R>255</R>
+      <G>255</G>
+      <B>255</B>
+    </TextColor>
+    <ButtonDrawTemplate>
+      <Normal>A_BtnNormal</Normal>
+      <Pressed>A_BtnPressed</Pressed>
+      <Flyby>A_BtnFlyby</Flyby>
+      <Disabled>A_BtnDisabled</Disabled>
+      <PressedFlyby>A_BtnPressedFlyby</PressedFlyby>
+    </ButtonDrawTemplate>
+  </Button>
 
   
   <Page item="Tab_Map">
@@ -1079,6 +1289,13 @@
     <Pieces>Zeal_MapAutoFadeEnable</Pieces>
     <Pieces>Zeal_MapAddLocText</Pieces>
     <Pieces>Zeal_MapAddSpeedText</Pieces>
+	<Pieces>Zeal_Ring0</Pieces>
+	<Pieces>Zeal_Ring1</Pieces>
+	<Pieces>Zeal_Ring2</Pieces>
+	<Pieces>Zeal_Ring3</Pieces>
+	<Pieces>Zeal_MapUseFarRing</Pieces>
+	<Pieces>Zeal_MapHeadingColor</Pieces>
+	<Pieces>Zeal_MapHeadingUsesRingColor</Pieces>
     <Pieces>Zeal_MapNamesLength_Label</Pieces>
     <Pieces>Zeal_MapNamesLength_Slider</Pieces>
     <Pieces>Zeal_MapNamesLength_Value</Pieces>

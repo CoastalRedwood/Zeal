@@ -2,8 +2,6 @@ P -71.0000, 630.0000, 0.0000, 240, 0, 0, 3, to_Cobalt_Scar
 P 89.0000, -225.0000, 0.0000, 240, 0, 0, 3, to_The_Western_Wastes
 P 33.0000, -196.0000, 0.0029, 240, 0, 0, 2, Succor
 P 169.4163, 584.2920, -115.2962, 240, 240, 0, 2, Underwater_Entrance_to_Castle
-P 60.7201, -24.7367, -137.9353, 0, 0, 0, 2, Faleniel_of_Darkwater
-P 140.4266, 207.5861, 0.4186, 0, 0, 0, 2, Wygrish
 P 11.7505, -260.7650, -137.9353, 127, 64, 0, 2, an_alluring_siren_(Hunter)
 P -35.0598, -138.3151, -82.9666, 127, 64, 0, 2, an_alluring_siren_(Hunter,Roam)
 P 175.0631, -136.6645, -137.9344, 127, 64, 0, 2, an_allluring_siren_(Hunter)

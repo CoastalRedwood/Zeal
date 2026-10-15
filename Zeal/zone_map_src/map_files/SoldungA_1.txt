@@ -47,9 +47,9 @@ P 593.1188, 365.4107, 35.0018, 240, 240, 0, 2, Fake_Wall
 P 572.4963, 348.9244, 35.0018, 240, 240, 240, 2, Well
 P 713.3551, 792.5165, 53.9705, 0, 0, 0, 2, Fire_Goblin_Drunkard
 P 365.2658, 795.6020, 53.9705, 0, 0, 0, 2, Lord_Gimblox_(CLR-1.0)
-P 657.9443, 1002.2763, 38.1580, 0, 0, 0, 2, Lynada_the_Exiled
-P 1071.9892, 305.7884, 33.1580, 0, 128, 0, 2, Marlen_Binkdirple_(Merchant)
-P 437.4654, 754.4031, 54.1268, 0, 128, 0, 2, goblin_merchant_(Merchant)
+P 657.0000, 1001.0000, 41.1000, 0, 0, 0, 2, Lynada_the_exiled
+P 1071.0000, 305.0000, 34.8000, 0, 128, 0, 2, Marfen_Binkdirple_(Merchant)
+P 436.0000, 752.0000, 57.7000, 0, 128, 0, 2, goblin_merchant_(Merchant)
 P 457.9149, 863.4883, 15.1580, 0, 0, 0, 2, Solusek_mage_(Roam)
 P 1101.6313, 301.1596, 46.9705, 127, 64, 0, 2, Captain_Bipnubble_(Hunter)
 P 894.8490, 318.9102, 32.1580, 127, 64, 0, 2, CWG_Model_EXG_(Hunter)
@@ -60,7 +60,7 @@ P 312.3074, 791.1626, 58.6620, 127, 64, 0, 2, Solusek_goblin_king_(Hunter)
 P 726.5044, 721.7385, 47.9705, 127, 64, 0, 2, fire_goblin_bartender_(Hunter)
 P 582.6663, 356.3622, 35.1580, 127, 64, 0, 2, flame_goblin_foreman_(Hunter)
 P 608.4791, 1002.0328, 43.9705, 127, 64, 0, 2, goblin_high_shaman_(Hunter)
-P 681.8077, -70.7602, 40.9705, 127, 64, 0, 2, inferno_goblin_captain_(Hunter)
+P 683.0000, -81.0000, 44.7000, 127, 64, 0, 2, inferno_goblin_captain
 P 322.8793, 848.1047, 29.0018, 127, 64, 0, 2, inferno_goblin_torturer_(Hunter)
 P 536.0036, 359.4248, 52.1268, 127, 64, 0, 2, inferno_goblin_torturer_(Hunter)
 P 963.9700, 116.8791, 46.9705, 127, 64, 0, 2, lava_elemental_(Hunter)

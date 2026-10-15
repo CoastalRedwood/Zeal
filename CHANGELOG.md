@@ -2,6 +2,94 @@
 
 Summarizes notable changes to Zeal
 
+
+## [1.4.8] - 2026/10/01
+
+### New features
+
+* Removed era override so `/mystats` will now use PoP formulas
+
+* Added new "Zeal>Bandolier" chat channel filter for routing bandolier messages
+
+* Added a new `raid` option (`/showname raid <option>`) to allow auto-switching between the
+  normal mode and a raid-specific mode when entering and exiting raids
+  - Can also be set with a new UI combobox in Zeal options->Nameplate tab
+
+* Added `rsgs` option (`/tag rsgs <message>`) that will broadcast to rsay if in a raid else
+  to gsay in a group else to local (self)
+
+
+## [1.4.7] - 2026/09/10
+
+### New features
+
+* Added `/assistbar` for Target of Target name and healthbar
+  - New raidbar like HUD element that shows the target of your target in assist mode or shows
+    the mob that most recently damaged your target in defend mode
+
+* Added `/labels showtargetspawnid` to optionally append the target's spawnid to EQType 28
+
+
+## [1.4.6] - 2026/09/07
+
+### New features
+
+* Named pipe: upgraded to output spawn ids for raid, group, self, target and pet
+
+
+## [1.4.5] - 2026/07/16
+
+### Compatibilty fix
+
+* Fixes a new exception crash caused by Windows Update KB101650
+  - Zeal now ignores (whitelists) a new midi driver exception (Kernelbase.dll 0x6ef)
+
+
+## [1.4.4] - 2026/07/09
+
+### New features
+
+* Added support for 22 new keybind options (10 x page 10 hotbar + 12 x page 10 socials)
+  - Keybinds are set under game options / keyboard / macros
+  - These are dedicated to those page 10's which do not have to be visible to use
+
+* Upgraded `/tellconsent` (`/tc`) to retry and to prevent opening of new tell windows
+  - If the sender has `/autoconsent` set to ON, doing a `/tc` will not open a new tell window
+  - If the recipient toggles consent off in response to a `/tc`, the recipient will automatically retry
+    to toggle consent back on
+
+* Enhanced the `/map ring` to support up to four rings with adjustable colors
+  - New command option is `/map ring radius 1 radius2 radius3 radius4`
+  - Zeal options / map tab now has UI settings for colors and the heading line radius
+
+* Updated the map POI labels to match Quarm PoP era (database npc locations, removed out of era)
+  - Hat tip to murmurs/anotheregostar
+  - `https://github.com/anotheregostar/projectmiragulmaps/releases/tag/Quarm_v1` for the `_1.txt` label files
+
+
+## [1.4.3] - 2026/07/03
+
+### New features
+
+* Item display window: Highlight item Class/Race/Deity in green/red based on player
+* Add ability to hide fake inventory slots for All-Bags-In-One UIs (new general options setting)
+* Add tradeskill section to `/outputfile quarmy` export
+* Updated `/cancelbuff` to support up to 5 spell ids in a single command
+
+## Fixes
+
+* Fix cross-zone raid invites when timestamps are enabled
+
+
+## [1.4.2] - 2026/05/03
+
+### New features
+
+* Suppressed the raid invite password spam sent to raid leaders (routes to default chat instead of a tell window) (1.4.1)
+  - Per popular request, removed the raid leader check for /ari responses (trivial change for 1.4.2)
+  - If you aren't a raid leader, 1.4.0, 1.4.1, 1.4.2 are all equivalent
+
+
 ## [1.4.0] - 2026/04/18
 
 ### New features

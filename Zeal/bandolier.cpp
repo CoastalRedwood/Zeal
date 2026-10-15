@@ -5,6 +5,7 @@
 #include <format>
 
 #include "callbacks.h"
+#include "chatfilter.h"
 #include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
@@ -16,7 +17,7 @@
 // Verify the bandolier name is valid.
 static bool is_valid_name(const std::string &name) {
   if (name.empty() || name.size() > 32) {
-    Zeal::Game::print_chat("Invalid bandolier name");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "Invalid bandolier name");
     return false;
   }
   return true;
@@ -33,7 +34,7 @@ void Bandolier::save(const std::string &name) {
   if (!is_valid_name(name)) return;
 
   initialize_ini_filename();
-  Zeal::Game::print_chat("Saving bandolier set [%s]", name.c_str());
+  Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Saving bandolier set [%s]", name.c_str());
 
   auto *char_info = Zeal::Game::get_char_info();
   if (!char_info) return;
@@ -47,14 +48,18 @@ void Bandolier::save(const std::string &name) {
 // Removes (deletes) the bandolier set from the ini file.
 void Bandolier::remove(const std::string &name) {
   initialize_ini_filename();
-  Zeal::Game::print_chat("Removing bandolier set [%s]", name.c_str());
-  if (!ini.deleteSection(name)) Zeal::Game::print_chat("Error removing bandolier set [%s]", name.c_str());
+  Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Removing bandolier set [%s]", name.c_str());
+  if (!ini.deleteSection(name))
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "Error removing bandolier set [%s]", name.c_str());
 }
 
 // Loads a bandolier set from the ini file and initiates memorization.
+// Every bandolier message goes to the Zeal->Bandolier chat filter so weaving with sets does not
+// flood "Other"; failures print on CHANNEL_BANDOLIER_FAILURE (spell-failure red) so a swap that did
+// not happen stands out in that window.
 void Bandolier::load(const std::string &name) {
   if (!steps.empty()) {
-    Zeal::Game::print_chat("Already swapping bandolier sets, please wait");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Already swapping bandolier sets, please wait");
     return;
   }
 
@@ -62,10 +67,10 @@ void Bandolier::load(const std::string &name) {
 
   initialize_ini_filename();
   if (!ini.exists(name, "0")) {
-    Zeal::Game::print_chat("The bandolier set [%s] does not exist", name.c_str());
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "The bandolier set [%s] does not exist", name.c_str());
     return;
   }
-  Zeal::Game::print_chat("Loading bandolier set [%s]", name.c_str());
+  Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Loading bandolier set [%s]", name.c_str());
 
   Zeal::GameStructures::GAMECHARINFO *char_info = Zeal::Game::get_char_info();
   if (!char_info) return;
@@ -105,8 +110,8 @@ void Bandolier::load(const std::string &name) {
       for (const auto &moved_item : moved_items) reserved_slots.push_back(moved_item.slot_id);
       int store_slot = find_empty_inventory_slot(char_info, equipped[i], reserved_slots);
       if (store_slot == -1) {
-        Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "No empty inventory slot to unequip [%s], canceling set load.",
-                               equipped[i]->Name);
+        Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE,
+                               "No empty inventory slot to unequip [%s], canceling set load.", equipped[i]->Name);
         steps.clear();
         return;
       }
@@ -161,7 +166,7 @@ void Bandolier::load(const std::string &name) {
         }
       }
       if (load_slot == -1) {
-        Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE,
+        Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE,
                                "Item with ID [%d] not found in inventory for bandolier set [%s], canceling set load.",
                                item_id, name.c_str());
         steps.clear();
@@ -178,8 +183,8 @@ void Bandolier::load(const std::string &name) {
       for (const auto &moved_item : moved_items) reserved_slots.push_back(moved_item.slot_id);
       store_slot = can_swap ? load_slot : find_empty_inventory_slot(char_info, equipped[i], reserved_slots);
       if (store_slot == -1) {
-        Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "No empty inventory slot to unequip [%s], canceling set load.",
-                               equipped[i]->Name);
+        Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE,
+                               "No empty inventory slot to unequip [%s], canceling set load.", equipped[i]->Name);
         steps.clear();
         return;
       }
@@ -196,7 +201,7 @@ void Bandolier::load(const std::string &name) {
   }
 
   if (steps.empty()) {
-    Zeal::Game::print_chat("Bandolier set [%s] is already equipped", name.c_str());
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Bandolier set [%s] is already equipped", name.c_str());
     return;
   }
 }
@@ -208,7 +213,7 @@ void Bandolier::tick() {
 
   const char *error = Zeal::Game::swap_inventory_slot_items_through_cursor(step->from_slot_id, step->to_slot_id, true);
   if (error) {
-    Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, error);
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, error);
     steps.clear();
     return;
   }
@@ -216,7 +221,7 @@ void Bandolier::tick() {
   steps.erase(step);
 
   if (steps.empty()) {
-    Zeal::Game::print_chat("Bandolier set swap complete");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Bandolier set swap complete");
   }
 }
 
@@ -259,33 +264,33 @@ bool Bandolier::check_player_can_swap(Zeal::GameStructures::GAMECHARINFO *char_i
   auto *self = Zeal::Game::get_self();
 
   if (!Zeal::Game::Windows->Quantity || Zeal::Game::Windows->Quantity->Activated) {
-    Zeal::Game::print_chat("You are too busy to swap items!");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "You are too busy to swap items!");
     return false;
   }
 
   if (!self || !self->ActorInfo || !char_info || char_info->StunnedState || !Zeal::Game::get_game() ||
       !Zeal::Game::get_game()->IsOkToTransact() || !Zeal::Game::get_display()) {
-    Zeal::Game::print_chat("You are too busy to equip bandolier set!");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "You are too busy to equip bandolier set!");
     return false;
   }
 
   // Block swapping when casting unless it's a bard singing a song.
   if ((self->ActorInfo->CastingSpellId != kInvalidSpellId) &&
       !Zeal::Game::GameInternal::IsPlayerABardAndSingingASong()) {
-    Zeal::Game::print_chat("You cannot swap items when casting!");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "You cannot swap items when casting!");
     return false;
   }
 
   // We swap through the cursor to ensure proper server synchronization, so it must be empty.
   if (char_info->CursorItem || char_info->CursorCopper || char_info->CursorGold || char_info->CursorPlatinum ||
       char_info->CursorSilver) {
-    Zeal::Game::print_chat("You cannot swap items when holding something in the cursor!");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "You cannot swap items when holding something in the cursor!");
     return false;
   }
 
   // The InvSlot::HandleLButtonUp() also blocked moves in some cases when CursorAttachment was active.
   if (!Zeal::Game::Windows->CursorAttachment || Zeal::Game::Windows->CursorAttachment->Activated) {
-    Zeal::Game::print_chat("You cannot swap items when the cursor is busy!");
+    Zeal::Game::print_chat(CHANNEL_BANDOLIER_FAILURE, "You cannot swap items when the cursor is busy!");
     return false;
   }
 
@@ -318,11 +323,11 @@ Bandolier::Bandolier(ZealService *zeal) {
         if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "list")) {
           initialize_ini_filename();
           std::vector<std::string> sets = ini.getSectionNames();
-          Zeal::Game::print_chat("--- bandolier sets (%i) ---", sets.size());
+          Zeal::Game::print_chat(CHANNEL_BANDOLIER, "--- bandolier sets (%i) ---", sets.size());
           for (auto &set : sets) {
-            Zeal::Game::print_chat(set);
+            Zeal::Game::print_chat(CHANNEL_BANDOLIER, "%s", set.c_str());
           }
-          Zeal::Game::print_chat("--- end of bandolier sets ---", sets.size());
+          Zeal::Game::print_chat(CHANNEL_BANDOLIER, "--- end of bandolier sets ---");
           return true;
         }
         if (args.size() == 3 && Zeal::Game::get_self() && Zeal::Game::get_char_info()) {
@@ -342,11 +347,12 @@ Bandolier::Bandolier(ZealService *zeal) {
           int slot = 0;
           if (Zeal::String::compare_insensitive(args[1], "bag") && Zeal::String::tryParse(args[2], &slot, true) &&
               slot > 0 && slot <= GAME_NUM_INVENTORY_PACK_SLOTS) {
-            Zeal::Game::print_chat("Preferred Bandolier bag set to pack slot %d", slot);
+            Zeal::Game::print_chat(CHANNEL_BANDOLIER, "Preferred Bandolier bag set to pack slot %d", slot);
             setting_bag_slot.set(slot);
           }
         }
-        Zeal::Game::print_chat("usage: /band save/load/delete <name>, /band list, /band bag <1 to 8>");
+        Zeal::Game::print_chat(CHANNEL_BANDOLIER,
+                               "usage: /band save/load/delete <name>, /band list, /band bag <1 to 8>");
         return true;
       });
 }

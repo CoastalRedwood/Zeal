@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define ZEAL_VERSION "1.4.2"
+#define ZEAL_VERSION "1.4.8"
 #ifndef ZEAL_BUILD_VERSION               // Set by github actions
 #define ZEAL_BUILD_VERSION "UNOFFICIAL"  // Local build
 #endif
@@ -53,12 +53,12 @@ class ZealService {
   std::unique_ptr<class CameraMods> camera_mods = nullptr;
   std::unique_ptr<class Raid> raid_hook = nullptr;
   std::unique_ptr<class Tooltip> tooltips = nullptr;
-  std::unique_ptr<class Assist> assist = nullptr;
   std::unique_ptr<class OutputFile> outputfile = nullptr;
   std::unique_ptr<class PlayerMovement> movement = nullptr;
   std::unique_ptr<class MusicManager> music = nullptr;
   std::unique_ptr<class Alarm> alarm = nullptr;
   std::unique_ptr<class Melody> melody = nullptr;
+  std::unique_ptr<class Page10Binds> page10_binds = nullptr;
   std::unique_ptr<class AutoFire> autofire = nullptr;
   std::unique_ptr<class Netstat> netstat = nullptr;
   std::unique_ptr<class Tick> tick = nullptr;
@@ -66,6 +66,8 @@ class ZealService {
   std::unique_ptr<class HelmManager> helm = nullptr;
 
   std::unique_ptr<class RaidBars> raid_bars = nullptr;
+  std::unique_ptr<class AssistTarget> assist_target = nullptr;  // Must construct after raid_bars (LMouseUp chain).
+  std::unique_ptr<class Assist> assist = nullptr;  // Must construct after assist_target (assist response swallowing).
   std::unique_ptr<class Triggers> triggers = nullptr;
   std::unique_ptr<class TargetRing> target_ring = nullptr;
   std::unique_ptr<class FloatingDamage> floating_damage = nullptr;

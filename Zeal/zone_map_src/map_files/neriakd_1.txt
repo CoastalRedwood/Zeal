@@ -9,8 +9,6 @@ P 1213.3263, 1694.6841, 113.4133, 240, 240, 240, 2, Queen`s_Bedchambers
 P 1871.4137, 1378.0873, 74.4189, 240, 240, 240, 2, Stone_Statue
 P 1735.6337, 1510.9180, 72.6320, 240, 240, 240, 2, Stone_Statue
 P 708.6998, 679.7438, 3.1452, 240, 240, 240, 2, Palace_Barracks
-P 1196.3899, -541.9900, 22.1700, 0, 127, 127, 2, Rozz_T`Ver_(Heroic_Adventures)
-P 1802.2366, -591.2733, 64.3685, 0, 127, 127, 2, Lark_D`Tradis_(Heroic_Adventures)
 P 705.1600, 791.2800, 3.8200, 0, 240, 240, 2, Prince_Tarant_Thex_(Mission,Raid,Roam)
 P 1675.4301, 705.3400, 71.0700, 0, 128, 128, 2, Evrik_Dmizza_(Quest)
 P -578.3799, -776.6200, -33.3300, 0, 128, 128, 2, Arch_Lich_Eliza_(Quest)

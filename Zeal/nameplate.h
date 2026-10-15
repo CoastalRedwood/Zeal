@@ -89,6 +89,10 @@ class NamePlate {
                                                       mem::write<BYTE>(0x004ff8ff, 0x05);  // Restore original value
                                                     }
                                                   }};
+
+  // Raid shownames (allows different setting for /shownames 0-7 when in raid)
+  ZealSetting<int> setting_raid_shownames = {0, "Zeal", "NameplateRaidShownames", false};
+
   // Local AA Title Choice
   ZealSetting<int> setting_local_aa_title = {3, "Zeal", "NameplateLocalAATitle", true};
 
@@ -112,6 +116,8 @@ class NamePlate {
   bool handle_SetNameSpriteState(void *this_display, Zeal::GameStructures::Entity *entity, int show);
   void handle_targetwnd_postdraw(Zeal::GameUI::SidlWnd *wnd) const;
   void handle_entity_destructor(Zeal::GameStructures::Entity *entity);
+  bool handle_shownames_command(const std::vector<std::string> &args);
+  int get_shownames() const;
 
  private:
   struct NamePlateInfo {
@@ -138,7 +144,6 @@ class NamePlate {
   bool is_group_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_hp_updated(const Zeal::GameStructures::Entity *entity) const;
-  bool handle_shownames_command(const std::vector<std::string> &args);
   void handle_tag_command(const std::vector<std::string> &args);
   bool handle_tag_target(const std::string &target_text);
   bool handle_zeal_spam_filter(short &channel, std::string &msg);
@@ -151,6 +156,8 @@ class NamePlate {
   void send_tag_message_to_channel(const std::string &message);
   bool check_for_tag_channel_message(const char *message, int color_index);
   void synchronize_pretty_print() const;
+  void check_raid_shownames();
+  void set_shownames_value(int value, bool update_ui);
 
   void clean_ui();
   void render_ui();
@@ -162,4 +169,6 @@ class NamePlate {
   std::function<void()> update_options_ui_callback;
   std::function<unsigned int(int)> get_color_callback;
   int tag_channel_number = -1;
+  int normal_shownames = -1;           // Cached value of overridden /shownames setting.
+  bool raid_shownames_active = false;  // Tracks whether raid override is active.
 };

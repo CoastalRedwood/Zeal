@@ -138,6 +138,9 @@
     <ClInclude Include="melody.h">
       <Filter>Header Files\hooks</Filter>
     </ClInclude>
+    <ClInclude Include="page10_binds.h">
+      <Filter>Header Files\hooks</Filter>
+    </ClInclude>
     <ClInclude Include="camera_math.h">
       <Filter>Header Files\helpers</Filter>
     </ClInclude>
@@ -270,6 +273,9 @@
     <ClInclude Include="assist.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
+    <ClInclude Include="assist_target.h">
+      <Filter>Header Files\other</Filter>
+    </ClInclude>
     <ClInclude Include="miniz.h">
       <Filter>Header Files\other</Filter>
     </ClInclude>
@@ -389,6 +395,9 @@
     <ClCompile Include="melody.cpp">
       <Filter>Source Files\hooks</Filter>
     </ClCompile>
+    <ClCompile Include="page10_binds.cpp">
+      <Filter>Source Files\hooks</Filter>
+    </ClCompile>
     <ClCompile Include="string_util.cpp">
       <Filter>Source Files\helpers</Filter>
     </ClCompile>
@@ -489,6 +498,9 @@
       <Filter>Source Files\other</Filter>
     </ClCompile>
     <ClCompile Include="assist.cpp">
+      <Filter>Source Files\other</Filter>
+    </ClCompile>
+    <ClCompile Include="assist_target.cpp">
       <Filter>Source Files\other</Filter>
     </ClCompile>
     <ClCompile Include="game_functions.cpp">

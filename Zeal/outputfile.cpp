@@ -354,7 +354,19 @@ void OutputFile::export_quarmy(const std::vector<std::string> &args) {
     }
   }
 
-  // Section 4: CRC32 checksum for tamper detection.
+  // Section 4: Tradeskills (SkillID and current value; 255 = untrained).
+  oss << "SkillID" << t << "Value" << std::endl;
+  constexpr Zeal::GameEnums::SkillType kTradeskills[] = {
+      Zeal::GameEnums::SkillFishing,       Zeal::GameEnums::SkillMakePoison,
+      Zeal::GameEnums::SkillTinkering,     Zeal::GameEnums::SkillResearch,
+      Zeal::GameEnums::SkillAlchemy,       Zeal::GameEnums::SkillBaking,
+      Zeal::GameEnums::SkillTailoring,     Zeal::GameEnums::SkillBlacksmithing,
+      Zeal::GameEnums::SkillFletching,     Zeal::GameEnums::SkillBrewing,
+      Zeal::GameEnums::SkillJewelryMaking, Zeal::GameEnums::SkillPottery};
+  for (auto skill : kTradeskills)
+    oss << static_cast<int>(skill) << t << self->CharInfo->Skills[skill] << std::endl;
+
+  // Section 5: CRC32 checksum for tamper detection.
   std::string content = oss.str();
   mz_ulong crc = mz_crc32(MZ_CRC32_INIT, reinterpret_cast<const unsigned char *>(content.c_str()), content.size());
   content += "Checksum\t" + std::to_string(crc) + "\n";

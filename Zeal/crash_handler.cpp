@@ -29,7 +29,8 @@ std::vector<DWORD> nonCrashExceptionCodes = {
     STATUS_STACK_OVERFLOW,         // 0xC00000FD, Stack overflow occurred but might be recoverable
     0x406D1388,                    // Exception used to set thread names for debugging
     0x80000007,                    // Used to wake up the system debugger
-    0xe06d7363                     // C++ exception, funny enough in ascii this code is 'MSC'
+    0xe06d7363,                    // C++ exception, funny enough in ascii this code is 'MSC'
+    0x000006ef,                    // Generated in the midi system after Windows update KB101650.
 };
 
 // Define a map to store exception codes and their descriptions

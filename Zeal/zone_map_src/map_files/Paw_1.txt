@@ -4,11 +4,11 @@ P -222.9540, -416.9968, 10.0018, 240, 240, 0, 2, Pull_Levers_to_Open_Jail_Cells
 P -224.2084, -557.4495, 10.2623, 240, 240, 0, 2, Pull_Lever_to_Open_Door
 P -210.1982, -526.4961, 10.2623, 240, 240, 0, 2, Pull_Lever_to_Open_Door
 P 104.5365, -970.6637, 0.2623, 240, 240, 0, 2, Pull_Lever_to_Open_Door
-P -5.7153, 10.3522, 0.5330, 0, 128, 128, 2, Gillamina_Garstobidokis_(Quest)
+P -7.0000, 2.0000, 0.8800, 0, 128, 128, 2, #Gillamina_Garstobidokis
 P -178.1226, -1214.8194, 0.0019, 0, 0, 0, 2, Blazemaster_Arnab
 P 135.0841, -865.5080, -24.4855, 0, 0, 0, 2, Earthmaster_Grundag
 P 212.2901, -817.9805, -28.1375, 0, 0, 0, 2, Fire_Elemental_Brigand_(Roam)
-P -284.5030, -405.8888, 9.0019, 0, 0, 0, 2, Retharg
+P -284.0000, -406.0000, 13.0000, 0, 0, 0, 2, #Retharg
 P -218.5394, -736.1715, -22.6945, 0, 0, 0, 2, Tidemaster_Aquinius
 P -89.8537, -1107.1994, -2.1892, 0, 0, 0, 2, Water_Elemental_Officer_(Roam)
 P 57.5144, -1072.9362, -0.9979, 0, 0, 0, 2, Windlord_Brizoris

@@ -10,6 +10,7 @@
 
 #include "alarm.h"
 #include "assist.h"
+#include "assist_target.h"
 #include "autofire.h"
 #include "bandolier.h"
 #include "binds.h"
@@ -43,6 +44,7 @@
 #include "netstat.h"
 #include "npc_give.h"
 #include "outputfile.h"
+#include "page10_binds.h"
 #include "patches.h"
 #include "physics.h"
 #include "player_movement.h"
@@ -132,12 +134,12 @@ ZealService::ZealService() {
   camera_mods = MakeCheckedUnique(CameraMods);
   raid_hook = MakeCheckedUnique(Raid);
   tooltips = MakeCheckedUnique(Tooltip);
-  assist = MakeCheckedUnique(Assist);
   outputfile = MakeCheckedUnique(OutputFile);
   movement = MakeCheckedUnique(PlayerMovement);
   music = MakeCheckedUnique(MusicManager);
   alarm = MakeCheckedUnique(Alarm);
   melody = MakeCheckedUnique(Melody);
+  page10_binds = MakeCheckedUnique(Page10Binds);
   autofire = MakeCheckedUnique(AutoFire);
   netstat = MakeCheckedUnique(Netstat);
   tick = MakeCheckedUnique(Tick);
@@ -158,6 +160,8 @@ ZealService::ZealService() {
   chatfilter_hook = MakeCheckedUnique(chatfilter);  // Uses new UI ChatWnd
   chat_hook = MakeCheckedUnique(Chat);              // Uses chatfilter.
   raid_bars = MakeCheckedUnique(RaidBars);          // Uses entity_manager, callbacks.
+  assist_target = MakeCheckedUnique(AssistTarget);  // Uses entity_manager, callbacks. After raid_bars (LMouseUp chain).
+  assist = MakeCheckedUnique(Assist);               // Register after assist_target so that can swallow auto-assist responses if necessary.
   triggers = MakeCheckedUnique(Triggers);           // Uses chat_hook.
   ui_hide_fake_slots = MakeCheckedUnique(UI_HideFakeSlots);
   nameplate = MakeCheckedUnique(NamePlate);         // Uses target ring blink rate, chat, chatfilter.
@@ -1051,6 +1055,12 @@ void ZealService::AddBinds() {
       }
     }
   });
+  binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target,
+                       [this](int key_down) {
+                         if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
+                           // Suppressed: updates the AssistBar ToT without switching your target.
+                           assist_target->FireAssistRequest(true);
+                       });
 
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,
                        [](int key_down) {
@@ -1065,4 +1075,25 @@ void ZealService::AddBinds() {
                            }
                          }
                        });
+
+  // Page 10 hotbutton and social binds (page10_binds.cpp). Indices 131 - 152 sit in the unused
+  // gap between the last known client bind (130) and the hidden client binds guarded in binds.cpp.
+  for (int slot = 0; slot < 10; ++slot) {
+    char name[64];
+    snprintf(name, sizeof(name), "Hotbar Page 10 Slot %d", slot + 1);
+    char short_name[64];
+    snprintf(short_name, sizeof(short_name), "HotbarPage10Slot%d", slot + 1);
+    binds_hook->add_bind(131 + slot, name, short_name, key_category::Macros, [this, slot](int key_down) {
+      if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) page10_binds->press_hotbutton(slot);
+    });
+  }
+  for (int button = 0; button < 12; ++button) {
+    char name[64];
+    snprintf(name, sizeof(name), "Social Page 10 Slot %d", button + 1);
+    char short_name[64];
+    snprintf(short_name, sizeof(short_name), "SocialPage10Slot%d", button + 1);
+    binds_hook->add_bind(141 + button, name, short_name, key_category::Macros, [this, button](int key_down) {
+      if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) page10_binds->execute_social(button + 1);
+    });
+  }
 }
