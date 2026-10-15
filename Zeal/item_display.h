@@ -25,6 +25,8 @@ class ItemDisplay {
   // 0 = no override; the tooltip window's native/default size is the max.
   ZealSetting<int> setting_mouseover_max_width = {0, "Zeal", "MouseoverMaxWidth", false};
   ZealSetting<int> setting_mouseover_max_height = {0, "Zeal", "MouseoverMaxHeight", false};
+  // false = only Shift+wheel scrolls the tooltip; true = plain wheel too, except in scrollable lists.
+  ZealSetting<bool> setting_mouseover_smart_scroll = {false, "Zeal", "MouseoverSmartScroll", false};
   void set_mouseover_tooltips(bool enabled);
 
  private:

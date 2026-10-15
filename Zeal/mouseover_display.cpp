@@ -147,6 +147,38 @@ static void forward_wheel_to_tooltip(int mouse_x, int mouse_y, int wheel_delta, 
   }
 }
 
+
+// Style_VScroll; CXWnd::HandleWheelMove scrolls a window with this bit set, otherwise passes the wheel to its parent
+static constexpr DWORD kWindowStyleVScrollBit = 0x01;
+
+// Whether wnd sits inside a scrollable window (e.g. the merchant item list)
+static bool has_scrollable_parent(Zeal::GameUI::BasicWnd *wnd) {
+  for (auto *parent = wnd ? wnd->ParentWnd : nullptr; parent; parent = parent->ParentWnd) {
+    if (parent->WindowStyleFlags & kWindowStyleVScrollBit) return true;
+  }
+  return false;
+}
+
+// Scrolls the tooltip and returns true, or returns false to leave the wheel to the hovered window.
+// Shift always scrolls the tooltip; smart mode also does without Shift outside scrollable lists.
+static bool route_wheel_to_tooltip(Zeal::GameUI::BasicWnd *wnd, int mouse_x, int mouse_y, int wheel_delta,
+                                   int unknown) {
+  if (!s_mouseover_wnd || s_mouseover_slot_index == -1 || !s_mouseover_wnd->ItemDescription) return false;
+
+  auto *wnd_mgr = Zeal::Game::get_wnd_manager();
+  auto &item_displays = ZealService::get_instance()->item_displays;
+  bool shift = wnd_mgr && wnd_mgr->ShiftKeyState;
+  bool smart = item_displays && item_displays->setting_mouseover_smart_scroll.get();
+  bool in_scrollable_list = has_scrollable_parent(wnd);
+
+  if (shift || (smart && !in_scrollable_list)) {
+    forward_wheel_to_tooltip(mouse_x, mouse_y, wheel_delta, unknown);
+    return true;
+  }
+  if (in_scrollable_list) hide_mouseover_window();  // The list moves, so the hovered item changes
+  return false;
+}
+
 // CItemDisplayWnd's internal text/layout refresh, also used after SetItem/SetSpell
 static void trigger_item_display_redraw(Zeal::GameUI::ItemDisplayWnd *wnd) {
   reinterpret_cast<void(__thiscall *)(Zeal::GameUI::ItemDisplayWnd *)>(0x0042359a)(wnd);
@@ -448,12 +480,9 @@ static int __fastcall InvSlotWnd_HandleMouseMove(Zeal::GameUI::InvSlotWnd *wnd, 
 // Hooked HandleWheelMove for items that scrolls the tooltip
 static int __fastcall InvSlotWnd_HandleWheelMove(Zeal::GameUI::InvSlotWnd *wnd, int unused_edx, int mouse_x,
                                                  int mouse_y, int wheel_delta, int unknown) {
-  // Mouseover, forward the scroll to the tooltip
-  if (s_mouseover_wnd && s_mouseover_slot_index != -1 && s_mouseover_wnd->ItemDescription) {
-    forward_wheel_to_tooltip(mouse_x, mouse_y, wheel_delta, unknown);
+  if (route_wheel_to_tooltip(reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd), mouse_x, mouse_y, wheel_delta, unknown))
     return 1;  // Consumed - prevents zoom.
-  }
-  // No mouseover, allow default behavior
+  // Not for the tooltip, allow default behavior (e.g. scrolling the merchant list)
   return reinterpret_cast<int(__thiscall *)(Zeal::GameUI::InvSlotWnd *, int, int, int, int)>(
       s_original_inv_slot_wheel_move)(wnd, mouse_x, mouse_y, wheel_delta, unknown);
 }
@@ -495,10 +524,8 @@ static int __fastcall SpellGemWnd_HandleMouseMove(Zeal::GameUI::SpellGemWnd *wnd
 // Hooked HandleWheelMove for spells that scrolls the tooltip
 static int __fastcall SpellGemWnd_HandleWheelMove(Zeal::GameUI::SpellGemWnd *wnd, int unused_edx, int mouse_x,
                                                   int mouse_y, int wheel_delta, int unknown) {
-  if (s_mouseover_wnd && s_mouseover_slot_index != -1 && s_mouseover_wnd->ItemDescription) {
-    forward_wheel_to_tooltip(mouse_x, mouse_y, wheel_delta, unknown);
+  if (route_wheel_to_tooltip(reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd), mouse_x, mouse_y, wheel_delta, unknown))
     return 1;
-  }
   return 0;
 }
 
@@ -622,10 +649,7 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
 // Hooked HandleWheelMove for other spells (buffs/songs/spellbook) that scrolls the tooltip
 static int __fastcall ButtonWnd_HandleWheelMove(Zeal::GameUI::SidlWnd *wnd, int unused_edx, int mouse_x, int mouse_y,
                                                 int wheel_delta, int unknown) {
-  if (s_mouseover_wnd && s_mouseover_slot_index != -1 && s_mouseover_wnd->ItemDescription) {
-    forward_wheel_to_tooltip(mouse_x, mouse_y, wheel_delta, unknown);
-    return 1;
-  }
+  if (route_wheel_to_tooltip(wnd, mouse_x, mouse_y, wheel_delta, unknown)) return 1;
   return 0;
 }
 
@@ -804,6 +828,21 @@ static void print_mouseover_usage() {
   Zeal::Game::print_chat("  /mouseover width|height - shows the current maximum width or height");
   Zeal::Game::print_chat("  /mouseover width <pixels> - sets the maximum width (0 to reset)");
   Zeal::Game::print_chat("  /mouseover height <pixels> - sets the maximum height (0 to reset)");
+  Zeal::Game::print_chat("  /mouseover shiftscroll always|smart - Smart only needs shift + scroll wheel for windows "
+    "that already have a scroll bar (e.g. merchant)");
+}
+
+// Handler for /mouseover shiftscroll [always|smart]
+static void handle_mouseover_shiftscroll_command(std::vector<std::string> &args, ZealSetting<bool> &smart_scroll) {
+  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[2], "always")) {
+    smart_scroll.set(false);
+  } else if (args.size() >= 3 && Zeal::String::compare_insensitive(args[2], "smart")) {
+    smart_scroll.set(true);
+  } else if (args.size() >= 3) {
+    Zeal::Game::print_chat("Invalid value, usage: /mouseover shiftscroll always|smart");
+    return;
+  }
+  Zeal::Game::print_chat("Mouseover shiftscroll: %s", smart_scroll.get() ? "smart" : "always");
 }
 
 // Shared handler for the /mouseover width and /mouseover height subcommands.
@@ -850,6 +889,10 @@ static bool handle_mouseover_command(std::vector<std::string> &args) {
   }
   if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "height")) {
     handle_mouseover_size_command(args, "height", item_displays->setting_mouseover_max_height, s_native_max_height);
+    return true;
+  }
+  if (args.size() >= 2 && Zeal::String::compare_insensitive(args[1], "shiftscroll")) {
+    handle_mouseover_shiftscroll_command(args, item_displays->setting_mouseover_smart_scroll);
     return true;
   }
 
