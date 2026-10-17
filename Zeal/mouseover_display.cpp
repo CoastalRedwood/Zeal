@@ -31,9 +31,12 @@ static LPVOID s_original_inv_slot_mouse_move = nullptr;
 static LPVOID s_original_inv_slot_wheel_move = nullptr;
 
 // Pointers / Vtables for patching and restoration
+// The originals are kept after cleanup: vtable copies made while patched may still call our hooks
 static LPVOID s_original_spell_gem_wnd_mouse_move = nullptr;
+static LPVOID s_original_spell_gem_wnd_wheel_move = nullptr;
 static Zeal::GameUI::BaseVTable *s_hooked_spell_gem_vtbl = nullptr;
 static LPVOID s_original_buff_button_wnd_mouse_move = nullptr;
+static LPVOID s_original_buff_button_wnd_wheel_move = nullptr;
 static Zeal::GameUI::BaseVTable *s_hooked_buff_btn_vtbl = nullptr;
 
 // The ItemDisplayWnd re-used to render mouseover tooltips.
@@ -52,9 +55,6 @@ static std::unordered_map<Zeal::GameUI::BasicWnd *, int> s_spell_book_icon_slot_
 // Off-screen position to move the window to when hiding
 static constexpr int kOffscreenX = -10000;
 static constexpr int kOffscreenY = -10000;
-
-// Base CXWnd::HandleWheelMove, restored on cleanup
-static LPVOID const kDefaultHandleWheelMove = reinterpret_cast<LPVOID>(0x574ec0);
 
 // Default max tooltip size, taken from the game's item window (0 until captured)
 static int s_native_max_width = 0;
@@ -370,6 +370,15 @@ static void fit_mouseover_window_to_content() {
     longest_line_px = max(longest_line_px, px);
   }
 
+  // The title bar shows the item/spell name, so keep the window wide enough for it too
+  if (s_mouseover_wnd->Text.Data) {
+    auto *title_font = reinterpret_cast<Zeal::GameUI::CTextureFont *>(s_mouseover_wnd->FontPointer);
+    int title_height = title_font ? title_font->GetHeight() : 0;
+    float title_px =
+        estimate_line_width_px(std::string(s_mouseover_wnd->Text), title_height > 0 ? title_height : line_height);
+    longest_line_px = max(longest_line_px, title_px);
+  }
+
   int horizontal_padding = static_cast<int>(line_height * kHorizontalPaddingRatio);
   int width_safety_margin = max(static_cast<int>(line_height * kWidthSafetyMarginRatio), kMinWidthSafetyMarginPx);
   int height_safety_margin = static_cast<int>(line_height * kHeightSafetyMarginRatio);
@@ -537,7 +546,9 @@ static int __fastcall SpellGemWnd_HandleWheelMove(Zeal::GameUI::SpellGemWnd *wnd
                                                   int mouse_y, int wheel_delta, int unknown) {
   if (route_wheel_to_tooltip(reinterpret_cast<Zeal::GameUI::BasicWnd *>(wnd), mouse_x, mouse_y, wheel_delta, unknown))
     return 1;
-  return 0;
+  // Not for the tooltip, pass to the game's handler
+  return reinterpret_cast<int(__thiscall *)(Zeal::GameUI::SpellGemWnd *, int, int, int, int)>(
+      s_original_spell_gem_wnd_wheel_move)(wnd, mouse_x, mouse_y, wheel_delta, unknown);
 }
 
 // Handler for BuffWindowButton (buff bar, song window, & spell book icons) which share a vtable.
@@ -661,7 +672,9 @@ static int __fastcall ButtonWnd_HandleMouseMove(Zeal::GameUI::SidlWnd *wnd, int 
 static int __fastcall ButtonWnd_HandleWheelMove(Zeal::GameUI::SidlWnd *wnd, int unused_edx, int mouse_x, int mouse_y,
                                                 int wheel_delta, int unknown) {
   if (route_wheel_to_tooltip(wnd, mouse_x, mouse_y, wheel_delta, unknown)) return 1;
-  return 0;
+  // Shared by all plain buttons, so pass the wheel on (e.g. to scroll a parent like the Zeal Colours tab)
+  return reinterpret_cast<int(__thiscall *)(Zeal::GameUI::SidlWnd *, int, int, int, int)>(
+      s_original_buff_button_wnd_wheel_move)(wnd, mouse_x, mouse_y, wheel_delta, unknown);
 }
 
 // Per-frame check to close the tooltip when not needed. This catches the case where the mouse leaves a hooked button
@@ -729,18 +742,14 @@ void ItemDisplay::set_mouseover_tooltips(bool enabled) {
 
 // Sets up everything mouseover tooltips need: borrows the dedicated tooltip window, patches the
 // shared vtables for buff/song buttons, spell book icons, and spell gems, and builds the spell book
-// icon slot map. Resets all mouseover state first, so this is safe to call again (e.g. on zoning)
+// icon slot map. Resets the tooltip state first, so this is safe to call again (e.g. on zoning)
 // after mouseover_clean_ui().
 void mouseover_init_ui() {
   Zeal::Game::print_debug("[Mouseover] mouseover_init_ui called");
-  s_hooked_buff_btn_vtbl = nullptr;
-  s_hooked_spell_gem_vtbl = nullptr;
   s_mouseover_wnd = nullptr;
   s_mouseover_slot_index = -1;
   s_song_wnd = nullptr;
   s_spell_book_icon_slot_map.clear();
-  s_original_spell_gem_wnd_mouse_move = nullptr;
-  s_original_buff_button_wnd_mouse_move = nullptr;
 
   auto &item_displays = ZealService::get_instance()->item_displays;
 
@@ -757,6 +766,7 @@ void mouseover_init_ui() {
         auto *btn_vtbl = buff_wnd_live->BuffButtonWnd[i]->vtbl;
         if (btn_vtbl->HandleMouseMove != reinterpret_cast<LPVOID>(ButtonWnd_HandleMouseMove)) {
           s_original_buff_button_wnd_mouse_move = btn_vtbl->HandleMouseMove;
+          s_original_buff_button_wnd_wheel_move = btn_vtbl->HandleWheelMove;
           s_hooked_buff_btn_vtbl = btn_vtbl;
           mem::unprotect_memory(btn_vtbl, sizeof(*btn_vtbl));
           btn_vtbl->HandleMouseMove = ButtonWnd_HandleMouseMove;
@@ -777,6 +787,7 @@ void mouseover_init_ui() {
         if (gem_vtbl->HandleMouseMove != reinterpret_cast<LPVOID>(SpellGemWnd_HandleMouseMove)) {
           s_hooked_spell_gem_vtbl = gem_vtbl;
           s_original_spell_gem_wnd_mouse_move = gem_vtbl->HandleMouseMove;
+          s_original_spell_gem_wnd_wheel_move = gem_vtbl->HandleWheelMove;
           mem::unprotect_memory(gem_vtbl, sizeof(*gem_vtbl));
           gem_vtbl->HandleMouseMove = SpellGemWnd_HandleMouseMove;
           gem_vtbl->HandleWheelMove = SpellGemWnd_HandleWheelMove;
@@ -808,8 +819,7 @@ void mouseover_clean_ui() {
   if (s_hooked_buff_btn_vtbl && s_original_buff_button_wnd_mouse_move) {
     mem::unprotect_memory(s_hooked_buff_btn_vtbl, sizeof(*s_hooked_buff_btn_vtbl));
     s_hooked_buff_btn_vtbl->HandleMouseMove = s_original_buff_button_wnd_mouse_move;
-    // Restore the base CXWnd::HandleWheelMove
-    s_hooked_buff_btn_vtbl->HandleWheelMove = kDefaultHandleWheelMove;
+    s_hooked_buff_btn_vtbl->HandleWheelMove = s_original_buff_button_wnd_wheel_move;
     mem::reset_memory_protection(s_hooked_buff_btn_vtbl);
     s_hooked_buff_btn_vtbl = nullptr;
   }
@@ -817,8 +827,7 @@ void mouseover_clean_ui() {
   if (s_hooked_spell_gem_vtbl && s_original_spell_gem_wnd_mouse_move) {
     mem::unprotect_memory(s_hooked_spell_gem_vtbl, sizeof(*s_hooked_spell_gem_vtbl));
     s_hooked_spell_gem_vtbl->HandleMouseMove = s_original_spell_gem_wnd_mouse_move;
-    // See the equivalent restore above - same shared default wheel handler.
-    s_hooked_spell_gem_vtbl->HandleWheelMove = kDefaultHandleWheelMove;
+    s_hooked_spell_gem_vtbl->HandleWheelMove = s_original_spell_gem_wnd_wheel_move;
     mem::reset_memory_protection(s_hooked_spell_gem_vtbl);
     s_hooked_spell_gem_vtbl = nullptr;
   }
@@ -826,8 +835,6 @@ void mouseover_clean_ui() {
   release_mouseover_wnd();
   s_spell_book_icon_slot_map.clear();
   s_song_wnd = nullptr;
-  s_original_spell_gem_wnd_mouse_move = nullptr;
-  s_original_buff_button_wnd_mouse_move = nullptr;
 }
 
 // Release when loading/zoning etc
