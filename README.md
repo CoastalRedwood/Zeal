@@ -34,6 +34,7 @@ from the repo source, providing full transparency on the release contents.
 - Enhanced chat (% replacements, additional filters and colors, tell windows,
   tab completion, copy and paste, per character autojoin channels)
 - Optional enhanced spell info (spells, scrolls, items) on info displays
+- Optional mouseover tooltips for items, spells, buffs and songs
 - Notification sounds (tells, group invites)
 - Third party tool support (silent log messages, direct ZealPipes)
 - Various client bug fixes and patches (crash fixes, helm graphical glitches, etc)
@@ -277,6 +278,13 @@ ___
   - **Example:** `/melody 1 4 2 3`
   - **Example:** `/melody resume` - Resumes an interrupted melody at the interrupted song index.
   - **Description:** plays songs in order until interrupted in any fashion.
+
+- `/mouseover`
+  - **Arguments:** `on`, `off`, `width [pixels]`, `height [pixels]`, `shiftscroll [always|smart]`
+  - **Example:** `/mouseover width 400` sets the maximum tooltip width to 400 pixels.
+  - **Example:** `/mouseover height 0` resets the maximum tooltip height to the default.
+  - **Example:** `/mouseover shiftscroll smart` lets the mouse wheel scroll tooltips without Shift, unless the parent window has a scroll bar (e.g. Merchant window).
+  - **Description:** Toggles mouseover tooltips and shows or sets their maximum size. By default, shift + mouse wheel scrolls long tooltips.
 
 - `/mystats`
   - **Arguments:** `none`, `info`, `<item_link>`
