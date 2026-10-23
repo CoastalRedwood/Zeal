@@ -911,6 +911,15 @@ tracks spawns (for example timers on mobs) cannot rely on the log to know when a
 - `killer_id` - the killer's spawn id, or 0 when the server reported no killer (e.g. a damage over time tick)
 - `killer_name` - omitted when there is no killer or the client did not know it
 
+#### Item displays
+An `item` message (type 8) is sent each time an item display window is filled: clicking an item
+link in chat, or inspecting an item in an inventory, bank, loot or merchant slot. It carries only
+what the window itself shows, so a consumer can look the item up in its own database.
+
+```json
+{ "item_id": 13073, "name": "Bone Chips" }
+```
+
 ---
 ### Tick Timer
 

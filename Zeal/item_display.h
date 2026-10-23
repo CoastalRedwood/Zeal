@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -20,6 +21,11 @@ class ItemDisplay {
   bool close_latest_window();
   void add_to_cache(const Zeal::GameStructures::GAMEITEMINFO *item);
   const Zeal::GameStructures::GAMEITEMINFO *get_cached_item(int item_id) const;
+  // Notifies registered listeners each time an item display window is filled with an item.
+  void add_set_item_callback(std::function<void(const Zeal::GameStructures::GAMEITEMINFO *item)> callback) {
+    set_item_callbacks.push_back(callback);
+  }
+  void handle_set_item(const Zeal::GameStructures::GAMEITEMINFO *item);
   ZealSetting<bool> setting_enhanced_spell_info = {true, "Zeal", "EnhancedSpellInfo", false};
   ZealSetting<bool> setting_mouseover_tooltips = {false, "Zeal", "MouseoverTooltips", false};
   // 0 = no override; the tooltip window's native/default size is the max.
@@ -42,4 +48,5 @@ class ItemDisplay {
   Zeal::GameUI::ItemDisplayWnd *mouseover_window = nullptr;
 
   std::unordered_map<int, Zeal::GameStructures::GAMEITEMINFO> item_cache;  // Cache of all displayed items.
+  std::vector<std::function<void(const Zeal::GameStructures::GAMEITEMINFO *item)>> set_item_callbacks;
 };
