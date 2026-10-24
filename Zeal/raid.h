@@ -12,7 +12,7 @@ class Raid {
 
  private:
   void callback_main();
-  bool handle_ari(std::vector<std::string>& args);
+  bool handle_raidmanagement(std::vector<std::string>& args);
   RaidAutoRejoin autorejoin_;
   uint64_t last_ari_check_ = 0;
 };

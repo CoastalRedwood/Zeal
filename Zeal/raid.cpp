@@ -37,23 +37,22 @@ void Raid::callback_main() {
 
   const auto moves = autorejoin_.observe(info->Id, roster, info->IsLeader != 0, now);
   for (const auto& move : moves) {
-    Zeal::Game::print_chat("ARI: restoring %s to raid group %d", move.name.c_str(), move.group);
+    Zeal::Game::print_chat("Raid management: restoring %s to raid group %d", move.name.c_str(), move.group);
     // Existing Zeal raid-management operation. Does not send keyboard events.
     Zeal::Game::do_say(true, "#raidmove %s %d", move.name.c_str(), move.group);
   }
 }
 
-bool Raid::handle_ari(std::vector<std::string>& args) {
-  if (args.size() == 3 && args[1] == "rejoin" &&
-      (args[2] == "on" || args[2] == "off")) {
-    autorejoin_.enable(args[2] == "on");
+bool Raid::handle_raidmanagement(std::vector<std::string>& args) {
+  if (args.size() == 2 && (args[1] == "on" || args[1] == "off")) {
+    autorejoin_.enable(args[1] == "on");
     last_ari_check_ = 0;
-    Zeal::Game::print_chat("ARI: raid auto-rejoin %s", autorejoin_.enabled() ? "ON" : "OFF");
+    Zeal::Game::print_chat("Raid management: automatic group restoration %s", autorejoin_.enabled() ? "ON" : "OFF");
     if (autorejoin_.enabled())
-      Zeal::Game::print_chat("ARI: learning current raid groups; only the raid leader can auto-restore members.");
+      Zeal::Game::print_chat("Raid management: learning current groups; only the raid leader can restore members.");
   } else {
-    Zeal::Game::print_chat("Usage: /ari rejoin on | /ari rejoin off");
-    Zeal::Game::print_chat("ARI: raid auto-rejoin is %s", autorejoin_.enabled() ? "ON" : "OFF");
+    Zeal::Game::print_chat("Usage: /raidmanagement on | /raidmanagement off");
+    Zeal::Game::print_chat("Raid management: automatic group restoration is %s", autorejoin_.enabled() ? "ON" : "OFF");
   }
   return true;
 }
@@ -104,8 +103,8 @@ Raid::Raid(ZealService *zeal) {
   zeal->hooks->Add("SetLootTypeResponse", 0x49dbc1, SetLootTypeResponse,
                    hook_type_detour);  // add extra prints for new loot types
   zeal->callbacks->AddGeneric([this]() { callback_main(); });
-  zeal->commands_hook->Add("/ari", {}, "Raid auto-rejoin: /ari rejoin on | off",
-                           [this](std::vector<std::string>& args) { return handle_ari(args); });
+  zeal->commands_hook->Add("/raidmanagement", {}, "Restore returning raid members to their saved group: /raidmanagement on | off",
+                           [this](std::vector<std::string>& args) { return handle_raidmanagement(args); });
   zeal->commands_hook->Add("/raidmove", {"/rm"}, "Moves your current target in the raid. Usage: /raidmove [groupnumber]",
                            [](std::vector<std::string> &args) { return handle_raidmove(args); });
   zeal->commands_hook->Add("/raidpromote", {"/rp"}, "Promotes your current target to raid leader. Usage: /raidpromote",
