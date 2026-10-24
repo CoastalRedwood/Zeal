@@ -83,11 +83,9 @@
     <ClInclude Include="items.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="helm_manager.h" />
-    <ClInclude Include="hide_ui_cursor.h" />
     <ClInclude Include="music.h" />
     <ClInclude Include="raid_bars.h" />
     <ClInclude Include="raid_bars_manage.h" />
-    <ClInclude Include="spell_effects.h" />
     <ClInclude Include="survey.h" />
     <ClInclude Include="tag_arrows.h" />
     <ClInclude Include="tick.h" />
@@ -140,6 +138,7 @@
     <ClInclude Include="netstat.h" />
     <ClInclude Include="outputfile.h" />
     <ClInclude Include="raid.h" />
+    <ClInclude Include="raid_autorejoin.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="spell_categories.h" />
     <ClInclude Include="spellsets.h" />
@@ -171,12 +170,10 @@
     <ClCompile Include="equip_item.cpp" />
     <ClCompile Include="floating_damage.cpp" />
     <ClCompile Include="helm_manager.cpp" />
-    <ClCompile Include="hide_ui_cursor.cpp" />
     <ClCompile Include="items.cpp" />
     <ClCompile Include="music.cpp" />
     <ClCompile Include="raid_bars.cpp" />
     <ClCompile Include="raid_bars_manage.cpp" />
-    <ClCompile Include="spell_effects.cpp" />
     <ClCompile Include="survey.cpp" />
     <ClCompile Include="tag_arrows.cpp" />
     <ClCompile Include="tick.cpp" />
