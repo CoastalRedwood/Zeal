@@ -1,16 +1,72 @@
 name: Build Zeal ARI (experimental)
+
 on:
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
-      - uses: microsoft/setup-msbuild@v2
-      - name: Build Zeal Release x86
+      - name: Checkout your ARI changes
+        uses: actions/checkout@v4
+        with:
+          path: ari
+
+      - name: Prepare matching Zeal 1.4.8 source
         shell: pwsh
-        run: msbuild Zeal.sln /m /p:Configuration=Release /p:Platform=x86 /p:LanguageStandard=stdcpp20 /p:ExportHeader="" /p:ScanDependencies=""
-      - uses: actions/upload-artifact@v4
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --quiet https://github.com/CoastalRedwood/Zeal.git ZealBase
+          if ($LASTEXITCODE -ne 0) { throw 'Could not clone upstream Zeal.' }
+
+          Push-Location ZealBase
+          try {
+            $tags = @(git tag --list)
+            $releaseTag = @('1.4.8', 'v1.4.8') | Where-Object { $tags -contains $_ } | Select-Object -First 1
+            if (-not $releaseTag) {
+              throw 'Cannot find the Zeal 1.4.8 release tag. Available version tags: ' + (($tags | Where-Object { $_ -match '1\.4\.' }) -join ', ')
+            }
+            git checkout --quiet --detach "refs/tags/$releaseTag"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to check out Zeal tag $releaseTag." }
+            Write-Host "Building from upstream Zeal release tag: $releaseTag"
+          }
+          finally { Pop-Location }
+
+          # ARI was developed against Zeal 1.4.8, not the upstream development main branch.
+          $ariFiles = @(
+            'Zeal/raid.cpp',
+            'Zeal/raid.h',
+            'Zeal/raid_autorejoin.h',
+            'Zeal/Zeal.vcxproj'
+          )
+          foreach ($file in $ariFiles) {
+            $source = Join-Path 'ari' $file
+            $destination = Join-Path 'ZealBase' $file
+            if (-not (Test-Path -LiteralPath $source)) { throw "Missing ARI source: $source" }
+            Copy-Item -LiteralPath $source -Destination $destination -Force
+            Write-Host "Applied: $file"
+          }
+
+          # Check that the required fix from the earlier compiler error is present.
+          $raidSource = Get-Content -LiteralPath 'ZealBase/Zeal/raid.cpp' -Raw
+          if ($raidSource -notmatch '#include\s+"game_addresses\.h"') {
+            throw 'The ARI raid.cpp in this fork is missing the game_addresses.h fix. Upload the corrected raid.cpp before rebuilding.'
+          }
+
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Zeal 1.4.8 ARI (Release x86)
+        working-directory: ZealBase
+        shell: pwsh
+        run: |
+          msbuild Zeal.sln /m /p:Configuration=Release /p:Platform=x86 /p:LanguageStandard=stdcpp20 /p:ExportHeader="" /p:ScanDependencies=""
+          if ($LASTEXITCODE -ne 0) { throw "Zeal compilation failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath 'Release/Zeal.asi')) { throw 'Build finished, but Release/Zeal.asi does not exist.' }
+
+      - name: Upload experimental Zeal.asi
+        uses: actions/upload-artifact@v4
         with:
           name: Zeal-1.4.8-ARI-experimental
-          path: Release/Zeal.asi
+          path: ZealBase/Release/Zeal.asi
+          if-no-files-found: error
