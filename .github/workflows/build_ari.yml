@@ -32,12 +32,12 @@ jobs:
           }
           finally { Pop-Location }
 
-          # ARI was developed against Zeal 1.4.8, not the upstream development main branch.
+          # Compile with the genuine Zeal 1.4.8 project configuration.
+          # Do not overwrite it with the fork's newer main-branch project file.
           $ariFiles = @(
             'Zeal/raid.cpp',
             'Zeal/raid.h',
-            'Zeal/raid_autorejoin.h',
-            'Zeal/Zeal.vcxproj'
+            'Zeal/raid_autorejoin.h'
           )
           foreach ($file in $ariFiles) {
             $source = Join-Path 'ari' $file
