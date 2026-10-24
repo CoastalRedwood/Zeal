@@ -1,7 +1,7 @@
 #pragma once
 
-// Built into Zeal. No Book_Keeper process, network transport, or keyboard simulation.
-// Portable state tracker kept separate from EQ memory access for isolated testing.
+// Internal Zeal raid-state tracker; no external process or keyboard simulation.
+// State tracking is isolated from game memory access to permit portable tests.
 
 #include <algorithm>
 #include <cctype>
