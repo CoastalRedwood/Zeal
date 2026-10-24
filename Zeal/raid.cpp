@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstring>
 #include "commands.h"
+#include "game_addresses.h"
 #include "game_functions.h"
 #include "hook_wrapper.h"
 #include "memory.h"
