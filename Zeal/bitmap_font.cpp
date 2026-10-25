@@ -216,7 +216,7 @@ BitmapFontBase::BitmapFontBase(IDirect3DDevice8 &device, std::span<const uint8_t
     return;
   }
 
-  // We customize four special glyph indices to support the stats bars. The background glyph's
+  // We customize some special glyph indices to support the stats bars. The background glyph's
   // advance is set to measure "zero" width so the value bar starts at the same location while
   // the value glyphs' advance is set to the full width size for the centering calcs.
   // The create_texture has created a solid 4x4 block at the end for the stats bars to use.
@@ -232,6 +232,8 @@ BitmapFontBase::BitmapFontBase(IDirect3DDevice8 &device, std::span<const uint8_t
       .character = kManaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
   glyph_table[kStaminaBarValue] = {
       .character = kStaminaBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
+  glyph_table[kTickBarValue] = {
+      .character = kTickBarValue, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 1, .x_advance = stats_bar_width};
   glyph_table[kBackgroundRect] = {
       .character = kBackgroundRect, .sub_rect = sub_rect, .x_offset = 0, .y_offset = 0, .x_advance = 0};
 }
@@ -377,7 +379,8 @@ void BitmapFontBase::queue_lines(const std::vector<Lines> &lines, D3DCOLOR color
     Vec2 upper_left = line.upper_left + offset;
     for_each_glyph(line.text.c_str(), [&](const Glyph *glyph, float x, float y) {
       if ((glyph->character == kStatsBarBackground || glyph->character == kHealthBarValue ||
-           glyph->character == kManaBarValue || glyph->character == kStaminaBarValue) &&
+           glyph->character == kManaBarValue || glyph->character == kStaminaBarValue ||
+           glyph->character == kTickBarValue) &&
           color == kDropShadowColor)
         return;  // Skip drop shadow for the health bar.
       glyph_queue.push_back({glyph, upper_left + Vec2(x, y), color, hp_percent});
@@ -456,7 +459,7 @@ Vec3 BitmapFontBase::measure_string(const char *text) const {
     float w = static_cast<float>(glyph->sub_rect.right - glyph->sub_rect.left);
     float h = static_cast<float>(glyph->sub_rect.bottom - glyph->sub_rect.top);
     if (glyph->character == kHealthBarValue || glyph->character == kManaBarValue ||
-        glyph->character == kStaminaBarValue) {
+        glyph->character == kStaminaBarValue || glyph->character == kTickBarValue) {
       w = glyph->x_advance;
       h = stats_bar_height;
       line_height = stats_bar_height + 1;
@@ -757,7 +760,8 @@ void SpriteFont::queue_string(const char *text, const Vec3 &position, bool cente
                                 .stop_index = stop_index,
                                 .hp_percent = hp_percent,
                                 .mana_percent = mana_percent,
-                                .stamina_percent = stamina_percent});
+                                .stamina_percent = stamina_percent,
+                                .tick_percent = tick_percent});
 }
 
 // Renders all queued glyphs to the screen.
@@ -825,6 +829,7 @@ void SpriteFont::render_queue() {
     hp_percent = entry.hp_percent;  // Recall the stats for access in a sub-method.
     mana_percent = entry.mana_percent;
     stamina_percent = entry.stamina_percent;
+    tick_percent = entry.tick_percent;
 
     int read_index = entry.start_index;
     while (read_index < entry.stop_index) {
@@ -904,6 +909,11 @@ void SpriteFont::calculate_glyph_vertices(const GlyphQueueEntry &entry, Glyph3DV
     width = stamina_percent * ((1.f / 100.f) * stats_bar_width);
     height = stats_bar_height;
     color = D3DCOLOR_XRGB(240, 190, 11);  // Yellow / honey.
+  } else if (entry.glyph->character == kTickBarValue) {
+    z = -0.5f;  // Slightly more in front.
+    width = tick_percent * ((1.f / 100.f) * stats_bar_width);
+    height = stats_bar_height * 0.5f;      // Half-height for tick bar.
+    color = D3DCOLOR_XRGB(240, 240, 240);  // White.
   }
 
   glyph_vertices[0].x = entry.position.x;

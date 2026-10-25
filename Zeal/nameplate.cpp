@@ -16,6 +16,7 @@
 #include "string_util.h"
 #include "tag_arrows.h"
 #include "target_ring.h"
+#include "tick.h"
 #include "zeal.h"
 
 // Test cases:
@@ -292,6 +293,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
       {"healthbars", &setting_health_bars},
       {"manabars", &setting_mana_bars},
       {"staminabars", &setting_stamina_bars},
+      {"tickbar", &setting_tick_bar},
       {"zealfont", &setting_zeal_fonts},
       {"dropshadow", &setting_drop_shadow},
       {"extendedshownames", &setting_extended_shownames},
@@ -330,7 +332,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /nameplate option where option is one of");
   Zeal::Game::print_chat("tint:  colors, concolors, targetcolor, targetblink, attackonly, charselect");
   Zeal::Game::print_chat("text:  hideself, x, hideraidpets, showpetownername, targetmarker, targethealth, inlineguild");
-  Zeal::Game::print_chat("font:  zealfont, dropshadow, healthbars, manabars, staminabars");
+  Zeal::Game::print_chat("font:  zealfont, dropshadow, healthbars, manabars, staminabars, tickbar");
   Zeal::Game::print_chat("misc:  extendedshownames");
   Zeal::Game::print_chat("shadows: /nameplate shadowfactor <float> (0.005 to 0.1 range)");
 }
@@ -493,6 +495,11 @@ void NamePlate::render_ui() {
       const char staminabar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kStaminaBarValue, 0};
       full_text += staminabar;
       sprite_font->set_stamina_percent(stamina_percent);
+    }
+    if (entity == self && setting_tick_bar.get()) {
+      const char tickbar[4] = {'\n', BitmapFontBase::kTickBarValue, 0};  // Draw without a background.
+      full_text += tickbar;
+      sprite_font->set_tick_percent( ZealService::get_instance()->tick->GetTickPercent());
     }
 
     auto nameplate_color = info.color | 0xff000000;

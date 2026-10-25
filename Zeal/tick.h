@@ -9,8 +9,9 @@
 
 class Tick {
  public:
-  DWORD GetTimeUntilTick();
-  DWORD GetTickGauge(struct Zeal::GameUI::CXSTR *str);
+  DWORD GetTimeUntilTick() const;
+  DWORD GetTickGauge(struct Zeal::GameUI::CXSTR *str) const;
+  DWORD GetTickPercent() const;
 
   void OnServerTick();
 
