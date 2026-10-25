@@ -293,7 +293,8 @@ ___
 
 - `/nameplate`
   - **Arguments:** `colors`, `concolors`, `targetcolor`, `charselect`, `hideself`, `x`, `hideraidpets`, `showpetownername`, `targetmarker`, `targethealth`, `inlineguild`
-  - **Description:** toggles nameplate modes for adjusting colors (tints) and text
+  - **Arguments:** `targetblink`, `attackonly`, `healthbars`, `manabars`, `tickbar`, `zealfont`, `dropshadow`, `extendedshownames`
+  - **Description:** toggles nameplate modes for adjusting colors (tints), text, and font as well as enabling hp and mana bars
 
 - `/optchat`
   - **Arguments:** `rs`, `gs`, `rsgs` (sends to raid if in raid else group if in group)

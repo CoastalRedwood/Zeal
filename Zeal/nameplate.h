@@ -101,6 +101,7 @@ class NamePlate {
   ZealSetting<bool> setting_raid_health_bars = {false, "Zeal", "NameplateRaidHealthBars", false};
   ZealSetting<bool> setting_mana_bars = {false, "Zeal", "NameplateManaBars", false};
   ZealSetting<bool> setting_stamina_bars = {false, "Zeal", "NameplateStaminaBars", false};
+  ZealSetting<bool> setting_tick_bar = {false, "Zeal", "NameplateTickBar", false};
   ZealSetting<bool> setting_zeal_fonts = {false, "Zeal", "NamePlateZealFonts", false, [this](bool val) { clean_ui(); }};
   ZealSetting<bool> setting_drop_shadow = {false, "Zeal", "NamePlateDropShadow", false,
                                            [this](bool val) { clean_ui(); }};
