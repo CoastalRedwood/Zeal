@@ -315,6 +315,9 @@
     <ClInclude Include="bandolier.h">
       <Filter>Header Files\hooks</Filter>
     </ClInclude>
+    <ClInclude Include="mouseover_display.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="spell_effects.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -556,6 +559,9 @@
     </ClCompile>
     <ClCompile Include="bandolier.cpp">
       <Filter>Source Files\hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="mouseover_display.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="spell_effects.cpp">
       <Filter>Source Files</Filter>

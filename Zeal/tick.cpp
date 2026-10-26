@@ -14,7 +14,7 @@ constexpr DWORD kGaugeScale = 1000;
 
 UINT64 LastKnownServerTick = 0;
 
-DWORD Tick::GetTimeUntilTick() {
+DWORD Tick::GetTimeUntilTick() const {
   if (LastKnownServerTick != 0)  // Don't calculate until tick is known
   {
     DWORD now_point = GetTickCount64() % kAverageTickDuration;
@@ -26,7 +26,7 @@ DWORD Tick::GetTimeUntilTick() {
   return 0;
 }
 
-DWORD Tick::GetTickGauge(Zeal::GameUI::CXSTR *str) {
+DWORD Tick::GetTickGauge(Zeal::GameUI::CXSTR *str) const {
   DWORD value = GetTimeUntilTick();
 
   // The seconds remaining (1-6)
@@ -42,6 +42,20 @@ DWORD Tick::GetTickGauge(Zeal::GameUI::CXSTR *str) {
 
   return value;
 }
+
+DWORD Tick::GetTickPercent() const {
+  DWORD value = GetTimeUntilTick();
+
+  // Scales the gauge from 0-100
+  value = value * 100 / kAverageTickDuration;
+  value = (value <= 100) ? value : 100;
+
+  // Toggle can reverse the gauge display (drain / fill)
+  if (ReverseDirection.get()) value = 100 - value;
+
+  return value;
+}
+
 
 void Tick::OnServerTick() {
   LastKnownServerTick = GetTickCount64();
