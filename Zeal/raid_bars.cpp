@@ -12,6 +12,8 @@
 #include "string_util.h"
 #include "zeal.h"
 
+static constexpr int kUngrouped = 12;  // Group 12 is ungrouped.
+
 // Checks if the user clicked on one of the raid bars.
 static void __fastcall LMouseUp(void *game, int unused_edx, short x, short y) {
   auto zeal = ZealService::get_instance();
@@ -30,7 +32,7 @@ RaidBars::RaidBars(ZealService *zeal) {
   // Listen for OP_RaidUpdate packets to immediately trigger a visible list refresh.
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {
-        if (opcode == Zeal::Packets::RaidUpdate) raid_update_dirty = true;
+        if (opcode == Zeal::Packets::RaidUpdate) HandleRaidUpdate(buffer, len);
         return false;
       },
       callback_type::WorldMessage);
@@ -67,6 +69,7 @@ void RaidBars::Clean() {
   bitmap_font.reset();  // Releases all DX and other resources.
   visible_list.clear();
   for (auto &class_group : raid_classes) class_group.clear();  // Drop all entity references.
+  removed_members.clear();
   manage.Clean();
 }
 
@@ -184,6 +187,18 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
     return;
   }
 
+  if (args.size() >= 2 && args[1] == "autoregroup") {
+    if (args.size() == 3 && (args[2] == "on" || args[2] == "off"))
+      setting_auto_regroup.set(args[2] == "on");
+    else if (args.size() == 3 && args[2] == "toggle")
+      setting_auto_regroup.toggle();
+    else if (args.size() != 2)
+      Zeal::Game::print_chat("Usage: /raidbars autoregroup <on | off | toggle>");
+
+    Zeal::Game::print_chat("Raidbars autoregroup is set to %s", setting_auto_regroup.get() ? "on" : "off");
+    return;
+  }
+
   if (args.size() >= 2 && args[1] == "clickable") {
     if (args.size() == 3 && (args[2] == "on" || args[2] == "off")) setting_clickable.set(args[2] == "on");
     Zeal::Game::print_chat("Raidbars clickable is set to %s", setting_clickable.get() ? "on" : "off");
@@ -241,6 +256,7 @@ void RaidBars::ParseArgs(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /raidbars clickable <on | off>");
   Zeal::Game::print_chat("Usage: /raidbars groups <on | off | toggle>");
   Zeal::Game::print_chat("Usage: /raidbars showall <on | off | toggle>");
+  Zeal::Game::print_chat("Usage: /raidbars autoregroup <on | off | toggle>");
   Zeal::Game::print_chat("Usage: /raidbars always <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars never <class list> where list is like 'WAR PAL SHD'");
   Zeal::Game::print_chat("Usage: /raidbars priority <class list> where list is like 'WAR PAL SHD ENC'");
@@ -459,6 +475,7 @@ void RaidBars::UpdateRaidMembers() {
 
   Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
   if (!raid_info->is_in_raid()) {
+    if (removed_members.size()) removed_members.clear();
     return;
   }
 
@@ -478,12 +495,44 @@ void RaidBars::UpdateRaidMembers() {
                                         .color = class_color,
                                         .group_number = member.GroupNumber,
                                         .is_group_leader = (member.IsGroupLeader != 0)});
+
+    // Support auto-adding members that rejoined the raid to their previous groups.
+    // This will just send a request to the server which will trigger a subsequent update.
+    CheckForReturningRaidMember(class_group.back().name, member.GroupNumber);
   }
 
   // And then alphabetically sort all class groups.
   for (auto &class_group : raid_classes) {
     std::sort(class_group.begin(), class_group.end(),
               [](const RaidMember &a, const RaidMember &b) { return a.name < b.name; });
+  }
+}
+
+void RaidBars::CheckForReturningRaidMember(const std::string &name, int current_group) {
+  if (removed_members.empty()) return;
+
+  auto it = std::ranges::find(removed_members, name, &RaidMember::name);
+  if (it == removed_members.end()) return;
+
+  int dest_group = it->group_number;
+  removed_members.erase(it);  // Remove the cached member (only attempt a move once).
+
+  if (current_group != kUngrouped) return;
+
+  // Raid leadership can change. We keep the cache intact for everyone but only send out
+  // group moves if this client is the leader.
+  Zeal::GameStructures::RaidInfo *raid_info = Zeal::Game::RaidInfo;
+  if (!raid_info->IsLeader || !raid_info->is_in_raid()) return;
+
+  // Attempt to auto-regroup.
+  if (dest_group >= 0 && dest_group < kUngrouped) {
+    int group_count = Zeal::Game::get_raid_group_count(dest_group);
+    if (group_count >= 6) {
+      Zeal::Game::print_chat("Cannot auto-regroup %s to the full group %d).", name.c_str(), dest_group + 1);
+      return;
+    }
+    Zeal::Game::print_chat("Auto-regrouping %s to group %d.", name.c_str(), dest_group + 1);
+    Zeal::Game::do_say(true, "#raidmove %s %d", name.c_str(), dest_group + 1);
   }
 }
 
@@ -628,7 +677,7 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
 
   // Scan through all possible raid groups (0 to 11) plus the ungrouped.
   for (int i = 0; i < 13; ++i) {
-    const bool ungrouped = (i == 12);
+    const bool ungrouped = (i == kUngrouped);
     const int group_index = ungrouped ? Zeal::GameStructures::RaidMember::kRaidUngrouped : i;
 
     // Do an unoptimized sweep through all raid members looking for members of group_index.
@@ -693,6 +742,46 @@ void RaidBars::QueueByGroup(const float x_min, const float y_min, const float x_
       visible_list.push_back(nullptr);
       bitmap_font->queue_string("Empty", Vec3(x, y, 0), false, empty_color);
       y += grid_height;
+    }
+  }
+}
+
+void RaidBars::HandleRaidUpdate(const char *buffer, UINT len) {
+  raid_update_dirty = true;
+
+  if (!setting_auto_regroup.get()) return;
+
+  // Update the list of removed members if it was a remove member action.
+  static constexpr int RaidCommandRemoveMember = 1;
+  const auto *packet = reinterpret_cast<const Zeal::Packets::RaidGeneral_Struct *>(buffer);
+  if (buffer && len >= sizeof(Zeal::Packets::RaidGeneral_Struct) && packet->action == RaidCommandRemoveMember) {
+    auto self = Zeal::Game::get_self();
+    if (!self) return;
+
+    const char *removed_player = packet->leader_name;  // The client checks this field (emu sets both the same).
+    if (!_stricmp(self->Name, removed_player)) {       // The player's own name is sent when removed from a raid.
+      removed_members.clear();
+      return;
+    }
+
+    // Removing a different raid member so update the list.
+    const std::string name = std::string(removed_player);
+    for (const auto &class_group : raid_classes) {
+      for (const auto &member : class_group) {
+        if (member.name == name) {
+          auto it = std::ranges::find(removed_members, name, &RaidMember::name);
+          if (it != removed_members.end()) {  // Shouldn't typically happen but handle just in case.
+            if (member.group_number == kUngrouped)
+              removed_members.erase(it);  // No longer grouped, purge.
+            else
+              it->group_number = member.group_number;  // Update group number.
+          } else if (member.group_number != kUngrouped) {
+            removed_members.push_back(member);        // Add to the list.
+            removed_members.back().entity = nullptr;  // Null the reference which could become stale.
+          }
+          return;
+        }
+      }
     }
   }
 }
