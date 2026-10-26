@@ -273,11 +273,17 @@ ___
   - **Description:** controls map enable, size, labels, zoom, and markers
 
 - `/melody`
-  - **Arguments:** `song gem #'s (maximum of 5)`, `resume`
+  - **Arguments:** `song gem #'s (maximum of 5) and item steps (up to 10 steps in all)`, `resume`
   - **Aliases:** `/mel`
   - **Example:** `/melody 1 4 2 3`
+  - **Example:** `/melody 1 2 3 i22 4` - clicks the item in inventory slot 22 (`/useitem` numbering) as the fourth step, every loop.
+  - **Example:** `/melody 1 2 i2.3 3` - bag 2, slot 3. `/melody 1 2 iBreath 3` - the first ready clicky whose name starts with `Breath`; `iComposers_Chestplate` - an underscore stands for a space.
   - **Example:** `/melody resume` - Resumes an interrupted melody at the interrupted song index.
-  - **Description:** plays songs in order until interrupted in any fashion.
+  - **Description:** plays songs in order until interrupted in any fashion. An item step is
+    played by the same path as a queued `/useitem`: an instant bard clicky (Breath of Harmony)
+    goes straight to the next song; a clicky with a cast time is waited out. An item that is
+    missing is skipped with a note. Item steps do not count toward the five-song limit. Bag
+    steps and name matching need `Click from inventory` enabled.
 
 - `/mouseover`
   - **Arguments:** `on`, `off`, `width [pixels]`, `height [pixels]`, `shiftscroll [always|smart]`
