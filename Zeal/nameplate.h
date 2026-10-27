@@ -1,7 +1,9 @@
 #pragma once
 #include <Windows.h>
 
+#include <filesystem>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -58,6 +60,7 @@ class NamePlate {
                                             [this](bool val) { synchronize_pretty_print(); }};
   ZealSetting<bool> setting_tag_prettyprint = {false, "Zeal", "NameplateTagPrettyPrint", false};
   ZealSetting<bool> setting_tag_default_arrow = {true, "Zeal", "NameplateTagDefaultArrow", false};
+  ZealSetting<bool> setting_tag_persist = {false, "Zeal", "NameplateTagPersist", false};
   ZealSetting<bool> setting_tag_alternate_symbols = {false, "Zeal", "NameplateTagAlternateSymbols", false};
   ZealSetting<std::string> setting_tag_channel = {"", "Zeal", "NameplateTagChannel", false};
 
@@ -128,6 +131,15 @@ class NamePlate {
     std::string tag_text;
     DWORD color;
     DWORD tag_color;
+    bool corpse_tag = false;  // The tag was set on the corpse (a tag from before the death stays hidden).
+    bool tag_synced = false;  // Matched against the saved tags since this entry was created.
+  };
+
+  struct SavedTag {
+    std::string name;  // Stripped entity name, so a reused spawn id with another name is not restored.
+    std::string text;  // Without the trailing newline.
+    DWORD color;
+    int minute;  // Minutes since the epoch when last seen, for expiry.
   };
 
   struct CastInfo {
@@ -169,6 +181,9 @@ class NamePlate {
   void synchronize_pretty_print() const;
   void check_raid_shownames();
   void set_shownames_value(int value, bool update_ui);
+  void sync_saved_tags();
+  void load_saved_tags();
+  void write_saved_tags();
 
   void clean_ui();
   void render_ui();
@@ -183,4 +198,10 @@ class NamePlate {
   int tag_channel_number = -1;
   int normal_shownames = -1;           // Cached value of overridden /shownames setting.
   bool raid_shownames_active = false;  // Tracks whether raid override is active.
+
+  std::map<std::string, SavedTag> saved_tags;  // Keyed by "zone:spawn id", or by name for players.
+  std::filesystem::path saved_tags_filename;
+  std::string saved_tags_character;  // The character saved_tags_filename belongs to.
+  bool saved_tags_dirty = false;
+  ULONGLONG saved_tags_next_sync = 0;
 };
