@@ -22,8 +22,8 @@ enum opcodes {
   Assist = 0x4200,
   Stamina = 0x4157,
   RequestClientZoneChange = 0x414d,
+  RaidUpdate = 0x4260,
   ItemLinkResponse = 0x4264,
-  RaidUpdate = 0x4062,
 };
 
 struct Animation_Struct {
@@ -142,6 +142,13 @@ struct Illusion_Struct {
   /*020*/
 };
 
+struct RaidGeneral_Struct {
+  /*00*/ INT32 action;          // RaidCommandRemoveMember = 1, RaidCommandSendDisband = 10
+  /*04*/ char player_name[64];  // should both be the player's name
+  /*68*/ char leader_name[64];
+  /*132*/ UINT32 parameter;
+};
+
 struct Stamina_Struct {
   /*00*/ INT16 food;    // clamped to 0 - 32000
   /*02*/ INT16 water;   // clamped to 0 - 32000
@@ -154,10 +161,10 @@ struct ItemViewRequest_Struct {
 };
 
 struct ConsentResponse_Struct {
-	char grantname[64];
-	char ownername[64];
-	UINT8 permission;
-	char zonename[32];
+  char grantname[64];
+  char ownername[64];
+  UINT8 permission;
+  char zonename[32];
 };
 
 }  // namespace Packets

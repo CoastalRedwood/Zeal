@@ -359,6 +359,7 @@ ___
                    `clickable <on | off>`: Enables or disables click targeting with raidbars \
                    `groups <on | off | toggle>`: Switches between listing by class prioritization or by groups \
                    `showall <on | off>`: Class mode: Disables health thresholding, Group mode: Shows empty slots \
+                   `autoregroup <on | off>`: Auto-regroups raid members to their former group when they rejoin the raid \
                    `never <classes list>`: Never shows classes in the list (class prio mode only) \
                    `always <classes list>`: Like showall but only applies to classes in list (class prio mode only) \
                    `priority <classes list>`: Sets listing order of classes (class prio mode only) \

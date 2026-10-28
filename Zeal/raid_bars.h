@@ -32,6 +32,8 @@ class RaidBars {
   ZealSetting<int> setting_bar_height = {0, "RaidBars", "BarHeight", false, [this](int) { Clean(); }};
   ZealSetting<bool> setting_show_all = {false, "RaidBars", "ShowAll", false};
   ZealSetting<bool> setting_group_sort = {false, "RaidBars", "GroupSort", false};
+  ZealSetting<bool> setting_auto_regroup = {false, "RaidBars", "AutoRegroup", false,
+                                            [this](const bool &) { SyncAutoRegroup(); }};
   ZealSetting<int> setting_show_threshold = {100, "RaidBars", "ShowThreshold", false};
   ZealSetting<int> setting_background_alpha = {0, "RaidBars", "BackgroundAlpha", false};
   ZealSetting<std::string> setting_class_priority = {std::string(), "RaidBars", "ClassPriority", false,
@@ -72,10 +74,15 @@ class RaidBars {
   void SyncClassAlways();
   void SyncClassNever();
   void SyncClassFilter();
+
+  void SyncAutoRegroup() { removed_members.clear(); }  // Just purge cache.
+
   void DumpClassSettings() const;
   void UpdateRaidMembers();
   void QueueByClass(const float x_min, const float y_min, const float x_max, const float y_max);
   void QueueByGroup(const float x_min, const float y_min, const float x_max, const float y_max);
+  void HandleRaidUpdate(const char *buffer, UINT len);
+  void CheckForReturningRaidMember(const std::string &name, int current_group);
 
   // Returns the visible_list index for screen coordinates, or -1 if out of bounds.
   int CalcClickIndex(short x, short y) const;
@@ -93,6 +100,7 @@ class RaidBars {
   std::array<bool, kNumClasses> class_never;                      // Boolean flag to show never for class types.
   std::array<bool, kNumClasses> class_filter;                     // Boolean flag to filter class types by threshold.
   std::vector<Zeal::GameStructures::Entity *> visible_list;       // List of visible names (for clicking).
+  std::vector<RaidMember> removed_members;                        // List of former members (left the raid).
 
   // Maps group slot (12 groups plus ungrouped) to its visible list label index.
   std::array<int, kNumGroupLabelSlots> visible_group_index;
