@@ -67,6 +67,9 @@ void Patches::SetBrownSkeletons() {
 static int get_hand_to_hand_delay_ms() { return Zeal::Game::get_hand_to_hand_delay() * 100; }
 
 Patches::Patches() {
+  // match the social editor's 15-character limit when loading names from ini
+  mem::write<BYTE>(0x00548822, 15); // change push 8 to push 15, bounded truncation remains
+
   const char sit_stand_patch[] = {(char)0xEB, (char)0x1A};
   mem::write(0x42d14d, sit_stand_patch);  // fix pet sit shortcut crash (makes default return of function the sit/stand
                                           // button not sure why its passing in 0)
