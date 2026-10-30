@@ -517,7 +517,7 @@ void RaidBars::CheckForReturningRaidMember(const std::string &name, int current_
   int dest_group = it->group_number;
   removed_members.erase(it);  // Remove the cached member (only attempt a move once).
 
-  if (current_group != kUngrouped) return;
+  if (current_group == dest_group) return;  // Nothing to do.
 
   // Raid leadership can change. We keep the cache intact for everyone but only send out
   // group moves if this client is the leader.
