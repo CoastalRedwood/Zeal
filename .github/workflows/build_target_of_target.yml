@@ -1,0 +1,61 @@
+name: Build Zeal - Target of Target Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout selected synced Zeal branch
+        uses: actions/checkout@v4
+
+      - name: Verify Target of Target integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @(
+            'Zeal.sln',
+            'Zeal/Zeal.vcxproj',
+            'Zeal/zeal.cpp',
+            'Zeal/assist.cpp',
+            'Zeal/assist_target.cpp',
+            'Zeal/assist_target.h',
+            'Zeal/hybrid_assist_gate.h',
+            'Zeal/passive_target_tracker.h'
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path -LiteralPath $file)) { throw "Required file missing: $file" }
+            Write-Host "Found: $file"
+          }
+          $assist = Get-Content -LiteralPath 'Zeal/assist_target.cpp' -Raw
+          if ($assist -notmatch 'compare_insensitive\(args\[1\], "hybrid"\)') {
+            throw 'Wrong AssistBar source: missing /assistbar hybrid command. Upload the complete ZIP source files.'
+          }
+          $service = Get-Content -LiteralPath 'Zeal/zeal.cpp' -Raw
+          if ($service -notmatch 'assist_target') {
+            throw 'This upstream zeal.cpp has no AssistTarget registration. A compatible upstream integration is required; do not copy raid-era zeal.cpp over live source.'
+          }
+          $project = Get-Content -LiteralPath 'Zeal/Zeal.vcxproj' -Raw
+          if ($project -notmatch 'assist_target.cpp') {
+            throw 'Zeal.vcxproj does not compile assist_target.cpp. The current Zeal branch lacks the expected AssistBar integration.'
+          }
+          Write-Host 'Target of Target source and normal upstream registration found.'
+
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Zeal (Release x86)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild Zeal.sln /m /p:Configuration=Release /p:Platform=x86 /p:LanguageStandard=stdcpp20 /p:ExportHeader="" /p:ScanDependencies=""
+          if ($LASTEXITCODE -ne 0) { throw "Zeal compile failed with exit code $LASTEXITCODE. Check the FIRST compiler error above." }
+          if (-not (Test-Path -LiteralPath 'Release/Zeal.asi')) { throw 'Release/Zeal.asi was not produced.' }
+
+      - name: Upload Zeal.asi
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zeal-Target-of-Target-Only
+          path: Release/Zeal.asi
+          if-no-files-found: error
