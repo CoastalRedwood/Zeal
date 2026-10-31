@@ -15,6 +15,7 @@ class Labels {
   void callback_main();
 
   ZealSetting<bool> setting_show_target_spawn_id = {false, "Labels", "ShowTargetSpawnId"};
+  ZealSetting<bool> setting_show_target_distance = {false, "Labels", "ShowTargetDistance"};
 
  private:
 };

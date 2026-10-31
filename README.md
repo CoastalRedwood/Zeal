@@ -230,6 +230,7 @@ ___
 
 - `/labels`
   - **Arguments:** `showtargetspawnid` (toggles visibility of the spawn id in the target name eqtype 28)
+  - **Arguments:** `showtargetdistance` (toggles visibility of the target distance (if less than 250) in eqtype 28)
   - **Description:** UI label settings.
 
 - `/lead`
