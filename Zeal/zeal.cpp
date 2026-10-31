@@ -1047,6 +1047,7 @@ void ZealService::AddBinds() {
   });
   binds_hook->add_bind(250, "Assist", "Assist", key_category::Target, [this](int key_down) {
     if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck()) {
+      if (assist_target && assist_target->DeferKeybindAssist()) return;
       auto do_assist_fn = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
       do_assist_fn(Zeal::Game::get_self(), "");
     }
