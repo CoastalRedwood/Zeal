@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-
 #include "callbacks.h"
 #include "commands.h"
 #include "game_addresses.h"
@@ -14,6 +13,12 @@
 #include "hook_wrapper.h"
 #include "string_util.h"
 #include "zeal.h"
+
+// Zeal native original-command forwarder, defined in commands.cpp.
+void ForwardCommand(std::string cmd);
+
+static_assert(sizeof(Zeal::Packets::Animation_Struct) == 12,
+              "Zeal animation packet layout changed; recheck target field offsets");
 
 // Chains onto the existing LMouseUp detour (raid_bars owns "LMouseUp" at this address). Our hook wraps it, so
 // calling original() falls through to the raid bars handler and then into the game code.
@@ -24,50 +29,40 @@ static void __fastcall LMouseUp(void *game, int unused_edx, short x, short y) {
 }
 
 AssistTarget::AssistTarget(ZealService *zeal) {
-  // Track all visible combat: build attacker -> victim and victim -> attacker maps from OP_Damage.
+  // Observe passive packets and the response to our optional one-in-flight
+  // fallback. Only replies expected from our background poll can be swallowed.
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {
-        if (!setting_enabled.get()) return false;  // Off: the module does nothing at all.
-        if (opcode == Zeal::Packets::Damage && len >= sizeof(Zeal::Packets::Damage_Struct))
-          HandleDamagePacket(reinterpret_cast<Zeal::Packets::Damage_Struct *>(buffer));
-        return false;  // Never swallow damage packets.
-      },
-      callback_type::WorldMessage);
-
-  // Intercept OP_Assist responses (from our synthetic /assist or the user typing it): record the
-  // authoritative candidate for the bar. While a silent poll is pending, swallow the response so
-  // the client does not retarget us.
-  zeal->callbacks->AddPacket(
-      [this](UINT opcode, char *buffer, UINT len) {
-        if (!setting_enabled.get()) return false;  // Off: no recording and no swallowing at all.
-        if (opcode == Zeal::Packets::Assist && len >= sizeof(Zeal::Packets::EntityId_Struct)) {
-          auto pkt = reinterpret_cast<Zeal::Packets::EntityId_Struct *>(buffer);
-          const DWORD now = GetTickCount();
-          if (pkt->entity_id > 0) {
-            assist_response_id = pkt->entity_id;
-            assist_response_time = now;
-          }
-          if (now < suppress_until_ms && pending_suppress_count > 0) {
-            --pending_suppress_count;
-            return true;  // Swallow: skip native retarget handling (bar already recorded above).
+        if (opcode == Zeal::Packets::Assist &&
+            len >= sizeof(Zeal::Packets::EntityId_Struct)) {
+          uint16_t source = 0;
+          if (hybrid_.receive(source)) {
+            OnAssistResponse(reinterpret_cast<const Zeal::Packets::EntityId_Struct *>(buffer));
+            assist_response_source_ = source;
+            return true;
           }
         }
-        return false;
-      },
-      callback_type::WorldMessage);
+        if (!setting_enabled.get()) return false;
+        if (opcode == Zeal::Packets::Damage && len >= sizeof(Zeal::Packets::Damage_Struct)) {
+          HandleDamagePacket(reinterpret_cast<const Zeal::Packets::Damage_Struct *>(buffer));
+        } else if (opcode == Zeal::Packets::Animation &&
+                   len >= sizeof(Zeal::Packets::Animation_Struct)) {
+          HandleAnimationPacket(reinterpret_cast<const Zeal::Packets::Animation_Struct *>(buffer));
+        }
+        return false;  // Never swallow combat packets or normal assist replies.
+      }, callback_type::WorldMessage);
 
   zeal->callbacks->AddGeneric([this]() { CallbackRender(); }, callback_type::RenderUI);
   zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::EnterZone);
-  zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::CleanUI);  // Note: new_ui only call.
-  zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXReset);  // Just release all resources.
-  zeal->callbacks->AddGeneric([this]() { Clean(); }, callback_type::DXCleanDevice);
+  zeal->callbacks->AddGeneric([this]() { ReleaseDisplay(); }, callback_type::CleanUI);
+  zeal->callbacks->AddGeneric([this]() { ReleaseDisplay(); }, callback_type::DXReset);
+  zeal->callbacks->AddGeneric([this]() { ReleaseDisplay(); }, callback_type::DXCleanDevice);
 
 #if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
-  // Chain onto the existing LMouseUp detour (raid_bars owns "LMouseUp" at this address).
   zeal->hooks->Add("AssistTargetLMouseUp", 0x00531614, LMouseUp, hook_type_detour);
 #endif
 
-  zeal->commands_hook->Add("/assistbar", {}, "Always-up assist target bar (target of my target)",
+  zeal->commands_hook->Add("/assistbar", {}, "Hybrid Target-of-Target (selection assist + passive animation + idle fallback)",
                            [this](std::vector<std::string> &args) {
                              ParseArgs(args);
                              return true;
@@ -76,70 +71,141 @@ AssistTarget::AssistTarget(ZealService *zeal) {
 
 AssistTarget::~AssistTarget() {}
 
-void AssistTarget::Clean() {
+void AssistTarget::ReleaseDisplay() {
   candidate_entity = nullptr;
   drag_active = false;
   lmb_was_down = false;
-  assist_response_id = 0;
-  assist_response_time = 0;
-  last_poll_time = 0;
-  pending_suppress_count = 0;
-  suppress_until_ms = 0;
-  tracked_target_id = 0;
-  last_change_poll_time = 0;
-  victim_of.clear();
-  hit_by.clear();
   if (bitmap_font) {
     bitmap_font->release();
     bitmap_font.reset();
   }
 }
 
-void AssistTarget::HandleDamagePacket(const Zeal::Packets::Damage_Struct *dmg) {
-  // With the bar off nobody consumes this data: stay fully idle (no map churn, no log spam).
-  if (!setting_enabled.get()) return;
-  if (!dmg || dmg->target == 0 || dmg->source == 0) return;
-  const DWORD now = GetTickCount();
-  victim_of[dmg->source] = {dmg->target, now};  // attacker -> most recent victim it damaged.
-  hit_by[dmg->target] = {dmg->source, now};     // victim -> most recent attacker that damaged it.
+void AssistTarget::Clean() {
+  // Only zone transitions reset Spawn IDs and network response associations.
+  ReleaseDisplay();
+  observations_.clear();
+  hybrid_.reset();
+  assist_response_id_ = 0;
+  assist_response_source_ = 0;
+  assist_response_time_ = 0;
+}
 
-  if (setting_verbose.get()) {
-    auto src = Zeal::Game::get_entity_by_id(dmg->source);
-    auto dst = Zeal::Game::get_entity_by_id(dmg->target);
-    const char *src_name = src ? src->Name : "?";
-    const char *dst_name = dst ? dst->Name : "?";
-    Zeal::Game::print_chat("AssistBar: %s -> %s (%d)", src_name, dst_name, dmg->damage);
+bool AssistTarget::ValidLivingEntity(WORD id) {
+  if (!id || id == 0xffff) return false;
+  auto ent = Zeal::Game::get_entity_by_id(id);
+  return ent && ent->StructType == 0x03 && ent->Type != Zeal::GameEnums::NPCCorpse &&
+         ent->Type != Zeal::GameEnums::PlayerCorpse;
+}
+
+void AssistTarget::HandleDamagePacket(const Zeal::Packets::Damage_Struct *dmg) {
+  if (!dmg || !setting_enabled.get()) return;
+  // Only physical attack packets: spells, DoTs, procs and damage shields may
+  // indicate a victim but not the attacker's current selected target.
+  if (dmg->spellid >= 0 || !ValidLivingEntity(dmg->source) || !ValidLivingEntity(dmg->target) ||
+      dmg->source == dmg->target) return;
+  const DWORD now = GetTickCount();
+  observations_.observe(dmg->source, dmg->target, PassiveTargetTracker::Evidence::Melee, now);
+  // Only a NEW combat event by our actual selected target resets its idle timer.
+  // Other nearby attackers cannot indefinitely suppress the assist fallback.
+  auto selected = Zeal::Game::get_target();
+  if (setting_mode.get() == 0 && setting_hybrid_fallback.get() && selected &&
+      selected != Zeal::Game::get_self() && selected->SpawnId == dmg->source) {
+    SyncSelection(selected->SpawnId, now);
+    hybrid_.observed_passive(dmg->source, now);
   }
 
-  // Opportunistic prune of stale entries (map stays small; only visible combatants).
-  if (victim_of.size() + hit_by.size() > 64) {
-    const DWORD window = static_cast<DWORD>(setting_window_ms.get());
-    for (auto it = victim_of.begin(); it != victim_of.end();)
-      it = (now - it->second.timestamp_ms > window) ? victim_of.erase(it) : std::next(it);
-    for (auto it = hit_by.begin(); it != hit_by.end();)
-      it = (now - it->second.timestamp_ms > window) ? hit_by.erase(it) : std::next(it);
+}
+
+void AssistTarget::HandleAnimationPacket(const Zeal::Packets::Animation_Struct *anim) {
+  if (!anim || !setting_animation_enabled.get()) return;
+  if (!ValidLivingEntity(anim->spawnid) || !ValidLivingEntity(anim->target) ||
+      anim->spawnid == anim->target) return;
+  const DWORD now = GetTickCount();
+  // Zeal's packet declaration has `target` and `action`, but whether those
+  // carry reliable targeting data must be validated against live observations.
+  // Accept only suspected melee swing animations, not emotes/movement/hit reactions.
+  const bool suspected_swing = anim->action >= 1 && anim->action <= 11;
+  if (setting_animation_enabled.get() && suspected_swing) {
+    observations_.observe(anim->spawnid, anim->target,
+                          PassiveTargetTracker::Evidence::Animation, now);
+    auto selected = Zeal::Game::get_target();
+    if (setting_mode.get() == 0 && setting_hybrid_fallback.get() && selected &&
+        selected != Zeal::Game::get_self() && selected->SpawnId == anim->spawnid) {
+      SyncSelection(selected->SpawnId, now);
+      hybrid_.observed_passive(anim->spawnid, now);
+    }
+  }
+
+}
+
+void AssistTarget::SyncSelection(WORD id, DWORD now) {
+  if (!hybrid_.selection(id, now)) return;
+  // Ordinary refresh has no immediate-on-selection assist. Start its interval
+  // from the new selection instead of leaving the hybrid initial request due.
+  if (id && !setting_hybrid_fallback.get()) hybrid_.observed_passive(id, now);
+  // Old assist replies and displayed candidates must not be reused after
+  // switching targets (or clearing the selection).
+  assist_response_id_ = 0;
+  assist_response_source_ = 0;
+  assist_response_time_ = 0;
+  candidate_entity = nullptr;
+}
+
+void AssistTarget::OnAssistResponse(const Zeal::Packets::EntityId_Struct *pkt) {
+  const DWORD now = GetTickCount();
+  // Negative return means no target / out of range; do not reuse a stale result.
+  assist_response_id_ = (pkt && pkt->entity_id > 0) ? static_cast<WORD>(pkt->entity_id) : 0;
+  assist_response_time_ = now;
+}
+
+bool AssistTarget::DeferTypedAssist(const std::vector<std::string>& args) {
+  if (args.empty() || (!hybrid_.pending() &&
+      (!setting_enabled.get() || !setting_hybrid_fallback.get()))) return false;
+  // Preserve the base game's /assist on|off behavior.
+  if (args.size() > 1 && (Zeal::String::compare_insensitive(args[1], "on") ||
+                          Zeal::String::compare_insensitive(args[1], "off"))) return false;
+  std::string command = "/assist";
+  for (size_t i = 1; i < args.size(); ++i) command += " " + args[i];
+  return hybrid_.defer_manual(command, GetTickCount());
+}
+
+bool AssistTarget::DeferKeybindAssist() {
+  if (!hybrid_.pending() && (!setting_enabled.get() || !setting_hybrid_fallback.get())) return false;
+  return hybrid_.defer_manual(std::string(1, '\x01'), GetTickCount());
+}
+
+void AssistTarget::RunDeferredManualAssist() {
+  if (hybrid_.pending() || !hybrid_.has_deferred_manual()) return;
+  const std::string command = hybrid_.take_deferred_manual();
+  if (!Zeal::Game::is_in_game()) return;
+  auto self = Zeal::Game::get_self();
+  if (!self) return;
+  if (command == std::string(1, '\x01')) {
+    auto native_assist = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
+    native_assist(self, "");
+  } else {
+    // Forward directly into the original /assist interpreter. Do not reenter
+    // Zeal's /assist hook and accidentally re-defer this same command.
+    ForwardCommand(command);
   }
 }
 
 void AssistTarget::FireAssistRequest(bool suppress_retarget) {
-  if (!setting_enabled.get()) return;  // Off: no requests of any kind (hotkey / refresh-now too).
-  if (!Zeal::Game::is_in_game()) return;
-  auto self = Zeal::Game::get_self();
+  // The Assist Refresh keybind is a silent update only in explicit hybrid mode.
+  // Never send a native unsuppressed assist through the bar; /assist handles that.
+  if (!suppress_retarget || !setting_enabled.get() || !setting_hybrid_fallback.get() ||
+      !Zeal::Game::is_in_game() || setting_mode.get() != 0) return;
   auto target = Zeal::Game::get_target();
-  if (!self || !target) return;
-
+  auto self = Zeal::Game::get_self();
+  if (!target || !self || target == self) return;
   const DWORD now = GetTickCount();
-  if (suppress_retarget) {
-    ++pending_suppress_count;  // Each in-flight request owes us one swallowed response, so a
-    suppress_until_ms = now + 5000;  // double-pressed hotkey or poll+hotkey overlap can't leak
-                                    // through and retarget on the second answer.
-  } else {
-    pending_suppress_count = 0;     // Manual refresh always behaves like typing /assist: its
-    suppress_until_ms = 0;          // response must reach native retarget handling.
-  }
-
-  auto do_assist_fn = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
-  do_assist_fn(self, "");
+  SyncSelection(target->SpawnId, now);
+  const DWORD interval = static_cast<DWORD>(std::clamp(setting_refresh_interval_ms.get(), 500, 60000));
+  if (!hybrid_.try_start_initial(target->SpawnId, now) &&
+      !hybrid_.try_start_idle(target->SpawnId, now, interval)) return;
+  auto native_assist = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
+  native_assist(self, "");
 }
 
 // Sprite fonts available under uifiles/zeal/fonts (arial_NN).
@@ -150,87 +216,66 @@ static bool IsAvailableFontSize(int size) {
 }
 
 void AssistTarget::CallbackRender() {
-  if (!setting_enabled.get() || !Zeal::Game::is_in_game()) return;  // Off: nothing renders, polls,
-                                                                     // or drag-processes.
+  // Resolve in-flight replies and queued manual assists even if the bar has
+  // been hidden since sending the background request.
+  const DWORD now = GetTickCount();
+  hybrid_.check_timeout(now);  // Keep recovery/cooldown; stay silent.
+  RunDeferredManualAssist();
+  if (!Zeal::Game::is_in_game()) return;
+  if (!setting_enabled.get()) return;
   candidate_entity = nullptr;
+  auto target = Zeal::Game::get_target();
+  auto self = Zeal::Game::get_self();
+  const bool have_target = (target && self && target != self);
+  SyncSelection(have_target ? target->SpawnId : 0, now);
+  if (have_target && !setting_hybrid_fallback.get() && hybrid_.initial_due())
+    hybrid_.observed_passive(target->SpawnId, now);
+
+  // Both modes share the same one-in-flight request gate. Hybrid sends one
+  // initial assist and waits for silence between combat/animation observations;
+  // ordinary refresh sends one assist each configured interval instead.
+  // Neither mode changes the player's selected target.
+  if (setting_mode.get() == 0 && have_target &&
+      (setting_hybrid_fallback.get() || setting_auto_refresh.get())) {
+    const DWORD interval = static_cast<DWORD>(std::clamp(setting_refresh_interval_ms.get(), 500, 60000));
+    const bool initial = setting_hybrid_fallback.get() && hybrid_.try_start_initial(target->SpawnId, now);
+    if (initial || hybrid_.try_start_idle(target->SpawnId, now, interval)) {
+      auto native_assist = reinterpret_cast<void (*)(Zeal::GameStructures::Entity *, const char *)>(0x004fd7dc);
+      native_assist(self, "");
+    }
+  }
+
   auto display = Zeal::Game::get_display();
   if (!display || !Zeal::Game::is_gui_visible()) return;
 
-  const DWORD now = GetTickCount();
-  auto target = Zeal::Game::get_target();
-  const bool have_target = (target && target != Zeal::Game::get_self());
-
-  // Poll for an authoritative /assist answer. Two independent reasons feed ONE fire site per
-  // frame (responses are swallowed, so neither retargets you):
-  //   scheduled     - auto-refresh keeps the bar fresh at a fixed interval;
-  //   target change - a new target invalidates the previous answer (Source B), poll immediately
-  //                   for it to be authoritative within one round-trip; a cooldown stops spam
-  //                   during rapid /ta cycling. Skipped polls leave Source B cleared ("none")
-  //                   until something fresh arrives.
+  PassiveTargetTracker::Observation observation{};
   if (have_target) {
-    const bool target_changed = (target->SpawnId != tracked_target_id);
-    if (target_changed) {
-      tracked_target_id = target->SpawnId;
-      assist_response_id = 0;   // Stale answer belongs to the previous target - don't show it.
-      assist_response_time = 0;
-    }
-
-    const DWORD interval = std::max(5000, setting_refresh_interval_ms.get());
-    const bool due_scheduled = setting_auto_refresh.get() && (now - last_poll_time >= interval);
-    const bool due_change = target_changed && (now - last_change_poll_time >= kTargetChangePollCooldownMs);
-
-    if (due_scheduled || due_change) {
-      // Stamped unconditionally so both reasons are quiescent after one request.
-      last_poll_time = now;
-      last_change_poll_time = now;
-      FireAssistRequest(true);
-    }
-  } else {
-    tracked_target_id = 0;  // Self/no target: the next real retarget fires again from scratch.
+    observation = observations_.find(target->SpawnId, setting_mode.get() == 1, now,
+                                     static_cast<DWORD>(std::max(1000, setting_window_ms.get())));
   }
 
-  // Pick the freshest candidate from either source.
-  WORD candidate_id = 0;
-  DWORD candidate_ts = 0;
-  if (have_target) {
-    const DWORD window = static_cast<DWORD>(setting_window_ms.get());
-
-    // Source A: damage inference (who my target last hit / who last hit my target).
-    auto &map = (setting_mode.get() == 1) ? hit_by : victim_of;
-    auto it = map.find(target->SpawnId);
-    if (it != map.end()) {
-      const DWORD age = now - it->second.timestamp_ms;
-      if (age <= window && it->second.timestamp_ms > candidate_ts) {
-        candidate_id = it->second.other_id;
-        candidate_ts = it->second.timestamp_ms;
-      }
-    }
-
-    // Source B: authoritative OP_Assist response. Fresh for the damage window, or longer when
-    // auto-refresh is on so the bar stays up between polls.
-    if (assist_response_time != 0) {
-      const DWORD assist_window = setting_auto_refresh.get()
-                                      ? std::max(window, static_cast<DWORD>(setting_refresh_interval_ms.get()) + 5000)
-                                      : window;
-      const DWORD age = now - assist_response_time;
-      if (age <= assist_window && assist_response_time > candidate_ts) {
-        candidate_id = assist_response_id;
-        candidate_ts = assist_response_time;
-      }
-    }
+  WORD candidate_id = observation.other_id;
+  DWORD candidate_ts = observation.timestamp_ms;
+  // Cache each successful response for its original selected Spawn ID. Retargeting
+  // while waiting cannot make another entity inherit this response.
+  if (have_target && setting_mode.get() == 0 && assist_response_source_ == target->SpawnId &&
+      assist_response_time_ && now - assist_response_time_ <= 30000 &&
+      (!candidate_id || now - candidate_ts > 3000) && assist_response_id_) {
+    candidate_id = assist_response_id_;
+    candidate_ts = assist_response_time_;
   }
 
-  auto entity = (have_target && candidate_id) ? Zeal::Game::get_entity_by_id(candidate_id) : nullptr;
-  if (entity && (entity->StructType != 0x03 ||
-                 entity->Type == Zeal::GameEnums::NPCCorpse || entity->Type == Zeal::GameEnums::PlayerCorpse))
-    entity = nullptr;
+  auto entity = (have_target && candidate_id)
+                    ? Zeal::Game::get_entity_by_id(candidate_id) : nullptr;
+  if (entity && (entity->StructType != 0x03 || entity->Type == Zeal::GameEnums::NPCCorpse ||
+                 entity->Type == Zeal::GameEnums::PlayerCorpse)) entity = nullptr;
 
   LoadBitmapFont();
   if (!bitmap_font || !bitmap_font->is_valid()) return;
 
-  // Always-visible bar: the label prefix tells the user what it is and where it lives. When no
+  // The bar label identifies the target. When no
   // fresh candidate exists, a dim placeholder keeps the element in place (and still draggable).
-  const char *label = (setting_mode.get() == 1) ? "HitBy: " : "ToT: ";
+  const char *label = (setting_mode.get() == 1) ? "HitBy~: " : "ToT~: ";
   std::string line1;
   D3DCOLOR color = D3DCOLOR_XRGB(255, 255, 255);
   if (entity) {
@@ -239,15 +284,12 @@ void AssistTarget::CallbackRender() {
     bitmap_font->set_hp_percent(hp_percent);
     // Client's own proven name cleaning (global buffer - consume immediately, as below).
     const char *clean_name = Zeal::Game::strip_name(entity->Name);
-    line1 = std::string(label) + (*clean_name ? clean_name : entity->Name);  // Cosmetic only: click-to-
-                                                                             // target still uses the real
-                                                                             // pointer. Empty result (all-digit
-                                                                             // names) falls back to original.
+    line1 = std::string(label) + (*clean_name ? clean_name : entity->Name);
+    // Cosmetic label only; the display never changes the player's target.
   } else {
     color = D3DCOLOR_XRGB(160, 160, 160);  // Dim placeholder.
     line1 = std::string(label) + "none";
   }
-
   const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
   std::string full_text = line1;
   if (entity) full_text += healthbar;  // Placeholder is a single text line.
@@ -255,7 +297,6 @@ void AssistTarget::CallbackRender() {
   const float x = static_cast<float>(setting_position_left.get());
   const float y = static_cast<float>(setting_position_top.get());
   bitmap_font->queue_string(full_text.c_str(), Vec3(x, y, 0), false, color);
-
   // Cache the drawn rect for click/drag handling. measure_string() doesn't support multi-lines,
   // so measure line 1 only (same approach as raid_bars). The placeholder caches a rect too, so
   // the empty bar can be dragged; clicking it does nothing (candidate_entity stays nullptr).
@@ -267,9 +308,7 @@ void AssistTarget::CallbackRender() {
   const float bar_h = entity ? stats_bar_height + 2.f : 0.f;
   candidate_width = std::max(line_size.x + 0.25f, bar_w);
   candidate_height = std::max(bitmap_font->get_text_height(full_text) + 0.25f, bar_h);
-
   bitmap_font->flush_queue_to_screen();
-
 #if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
   UpdateDrag();  // LMB drag & drop repositioning (uses this frame's cached rect).
 #endif
@@ -281,7 +320,6 @@ void AssistTarget::CallbackRender() {
 // suppresses click-to-target because HandleLMouseUp checks drag_active/drag_moved_px.
 void AssistTarget::UpdateDrag() {
   const bool lmb = *Zeal::Game::is_left_mouse_down;
-
   if (drag_active) {
     if (!lmb || *Zeal::Game::is_right_mouse_look_down) {
       // Released (or RMB mouse-look took over): persist the final position once. HandleLMouseUp
@@ -327,25 +365,21 @@ void AssistTarget::LoadBitmapFont() {
 
   IDirect3DDevice8 *device = ZealService::get_instance()->dx->GetDevice();
   if (!device) return;
-
   // Font size is a setting (arial_NN sprite fonts); fall back to the default for invalid values.
   const int font_size = IsAvailableFontSize(setting_font_size.get()) ? setting_font_size.get() : 8;
   char font_name[16];
   std::snprintf(font_name, sizeof(font_name), "arial_%02d", font_size);
   bitmap_font = BitmapFont::create_bitmap_font(*device, std::string(font_name));
   if (!bitmap_font) {
-    Zeal::Game::print_chat("AssistBar: failed to load font %s", font_name);
     setting_enabled.set(false);
     return;
   }
-
   bitmap_font->set_drop_shadow(true);
   bitmap_font->set_outlined(true);  // Black outline keeps the bar readable over busy backgrounds.
   bitmap_font->set_full_screen_viewport(true);  // Allow rendering outside the reduced viewport.
 
   std::string text("Fakenametotest");  // 14 characters as maximum name length with average chars.
   auto text_only_size = bitmap_font->measure_string(text.c_str());
-
   float bar_width = std::roundf(text_only_size.x * 0.9);
   bar_width = std::max(10.f, std::min(150.f, bar_width));
   stats_bar_width = bar_width;
@@ -368,14 +402,12 @@ bool AssistTarget::HandleLMouseUp(short x, short y) {
     setting_position_top.set(setting_position_top.get(), true);
     return true;
   }
-
   // Copy some client call behavior to bail out upon certain conditions.
   if (*reinterpret_cast<int *>(0x007d0254) != 0) return false;   // Waiting for server ack to unfreeze UI.
   if (*reinterpret_cast<BYTE *>(0x007985ea) != 0) return false;  // RMB held down.
 
   if (x < candidate_x || x > candidate_x + candidate_width || y < candidate_y || y > candidate_y + candidate_height)
     return false;
-
   // Re-validate the cached entity before targeting it.
   auto entity = Zeal::Game::get_entity_by_id(candidate_entity->SpawnId);
   if (!entity || entity != candidate_entity) return false;
@@ -383,123 +415,172 @@ bool AssistTarget::HandleLMouseUp(short x, short y) {
   return true;
 }
 
+// Bar visibility and hybrid targeting are independent settings.
+// Routine feature activity is silent; bare /assistbar still displays usage.
 void AssistTarget::ParseArgs(const std::vector<std::string> &args) {
   if (args.size() < 2) {
-    Zeal::Game::print_chat("Usage: /assistbar on|off|toggle");
-    Zeal::Game::print_chat("       /assistbar position <left> <top>  (or drag the bar with LMB)");
-    Zeal::Game::print_chat("       /assistbar font <size>  (8,9,10,12,14,16,20,24,28,32)");
-    Zeal::Game::print_chat("       /assistbar mode <assist|defend>");
-    Zeal::Game::print_chat("       /assistbar window <ms>");
-#if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
-    Zeal::Game::print_chat("       /assistbar clickable <on|off>");
-#endif
-    Zeal::Game::print_chat("       /assistbar refresh <on|off> [interval_ms]");
+    Zeal::Game::print_chat("Usage: /assistbar on | off | toggle");
+    Zeal::Game::print_chat("       /assistbar hybrid on | off");
+    Zeal::Game::print_chat("       /assistbar refresh on <ms> | off");
+    Zeal::Game::print_chat("       /assistbar mode assist | defend");
+    Zeal::Game::print_chat("       /assistbar position <left> <top> | font <size> | window <ms>");
+    return;
+  }
+  if (Zeal::String::compare_insensitive(args[1], "hybrid")) {
+    if (args.size() != 3) {
+      Zeal::Game::print_chat("Usage: /assistbar hybrid on | off");
+      return;
+    }
+    const bool on = Zeal::String::compare_insensitive(args[2], "on");
+    const bool off = Zeal::String::compare_insensitive(args[2], "off");
+    if (!on && !off) {
+      Zeal::Game::print_chat("Usage: /assistbar hybrid on | off");
+      return;
+    }
+    if (on == setting_hybrid_fallback.get()) {
+      // Confirm repeat commands without resetting a custom refresh interval.
+      Zeal::Game::print_chat("AssistBar hybrid is already %s (delay %d ms).",
+                             on ? "ON" : "OFF", setting_refresh_interval_ms.get());
+      return;
+    }
+
+    // Do not abandon a request that has already been transmitted. Its reply
+    // contains no request ID and must be drained by the existing callback.
+    if (!hybrid_.pending()) hybrid_.reset();
+    else hybrid_.selection(0, GetTickCount());  // Cancel any UNSENT initial request.
+    observations_.clear();
+    assist_response_id_ = 0;
+    assist_response_source_ = 0;
+    assist_response_time_ = 0;
+    candidate_entity = nullptr;
+
+    if (on) {
+      // Hybrid is an ADDITION to AssistBar, not a replacement for its commands.
+      // Save original options; don't persist temporary overrides to zeal.ini.
+      refresh_before_hybrid_ = setting_auto_refresh.get();
+      animation_before_hybrid_ = setting_animation_enabled.get();
+      mode_before_hybrid_ = setting_mode.get();
+      setting_mode.set(0);  // Target of target, rather than defensive tracking.
+      setting_animation_enabled.set(true, false);
+      setting_auto_refresh.set(false, false);  // Prevent a competing legacy poller.
+      setting_refresh_interval_ms.set(1000);  // One second until inactivity fallback.
+      setting_hybrid_fallback.set(true);
+    } else {
+      setting_hybrid_fallback.set(false);
+      setting_animation_enabled.set(animation_before_hybrid_, false);
+      setting_auto_refresh.set(refresh_before_hybrid_);  // Restore ordinary refresh state.
+      if (setting_mode.get() == 0 && mode_before_hybrid_ != 0)
+        setting_mode.set(mode_before_hybrid_);
+      // Deliberately do NOT alter RefreshIntervalMs: keep the latest value.
+    }
+    // /assistbar on|off continues to control only bar visibility.
+    Zeal::Game::print_chat("AssistBar hybrid: %s (delay %d ms).",
+                           on ? "ON" : "OFF", setting_refresh_interval_ms.get());
     return;
   }
 
-  if (Zeal::String::compare_insensitive(args[1], "on") || Zeal::String::compare_insensitive(args[1], "toggle")) {
+  // Original visibility commands control only whether the bar is displayed.
+  if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "on")) {
     setting_enabled.set(true);
-    Zeal::Game::print_chat("AssistBar enabled");
+    Zeal::Game::print_chat("AssistBar: ON");
     return;
   }
-  if (Zeal::String::compare_insensitive(args[1], "off")) {
+  if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "off")) {
     setting_enabled.set(false);
-    // Behave as if the module were not loaded: clear all runtime tracking state so a later enable
-    // starts fresh and nothing from before (silent polls, candidates) can leak across the toggle.
-    victim_of.clear();
-    hit_by.clear();
-    pending_suppress_count = 0;
-    suppress_until_ms = 0;
-    assist_response_id = 0;
-    assist_response_time = 0;
-    last_poll_time = 0;
-    tracked_target_id = 0;
-    last_change_poll_time = 0;
-    drag_active = false;
-    lmb_was_down = false;
-    Zeal::Game::print_chat("AssistBar disabled");
+    observations_.clear();
+    // Reset the selected target, but retain any request already sent so its
+    // eventual reply cannot be mistaken for a different command.
+    SyncSelection(0, GetTickCount());
+    candidate_entity = nullptr;
+    Zeal::Game::print_chat("AssistBar: OFF");
     return;
   }
-
-  if (args.size() >= 4 && Zeal::String::compare_insensitive(args[1], "position")) {
-    const int left = atoi(args[2].c_str());
-    const int top = atoi(args[3].c_str());
-    setting_position_left.set(left);
-    setting_position_top.set(top);
-    Zeal::Game::print_chat("AssistBar position set to (%d, %d)", left, top);
+  if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "toggle")) {
+    const bool on = !setting_enabled.get();
+    setting_enabled.set(on);
+    if (!on) {
+      observations_.clear();
+      SyncSelection(0, GetTickCount());
+      candidate_entity = nullptr;
+    }
+    Zeal::Game::print_chat("AssistBar: %s", on ? "ON" : "OFF");
     return;
   }
-
-  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "font")) {
+  if (args.size() == 4 && Zeal::String::compare_insensitive(args[1], "position")) {
+    setting_position_left.set(atoi(args[2].c_str()));
+    setting_position_top.set(atoi(args[3].c_str()));
+    Zeal::Game::print_chat("AssistBar position: %d, %d.",
+                           setting_position_left.get(), setting_position_top.get());
+    return;
+  }
+  if (args.size() == 3 && Zeal::String::compare_insensitive(args[1], "font")) {
     const int size = atoi(args[2].c_str());
     if (!IsAvailableFontSize(size)) {
-      Zeal::Game::print_chat("AssistBar: invalid font size %d (available: 8, 9, 10, 12, 14, 16, 20, 24, 28, 32)", size);
+      Zeal::Game::print_chat("AssistBar: invalid font size %d.", size);
       return;
     }
     setting_font_size.set(size);
-    if (bitmap_font) {  // Reload with the new size on next render.
+    if (bitmap_font) {
       bitmap_font->release();
       bitmap_font.reset();
     }
-    Zeal::Game::print_chat("AssistBar font size set to %d", size);
+    Zeal::Game::print_chat("AssistBar font size: %d.", setting_font_size.get());
     return;
   }
-
-  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "mode")) {
-    bool assist = Zeal::String::compare_insensitive(args[2], "assist");
-    bool defend = !assist && Zeal::String::compare_insensitive(args[2], "defend");
-    if (assist || defend) {
-      setting_mode.set(defend ? 1 : 0);
-      Zeal::Game::print_chat("AssistBar mode: %s", defend ? "defend (who hit my target)" : "assist (target of my target)");
-    } else {
-      Zeal::Game::print_chat("Invalid mode, use assist or defend");
+  if (args.size() == 3 && Zeal::String::compare_insensitive(args[1], "mode")) {
+    if (Zeal::String::compare_insensitive(args[2], "assist")) setting_mode.set(0);
+    else if (Zeal::String::compare_insensitive(args[2], "defend")) setting_mode.set(1);
+    else {
+      Zeal::Game::print_chat("Usage: /assistbar mode assist | defend");
+      return;
     }
+    Zeal::Game::print_chat("AssistBar mode: %s.", setting_mode.get() == 0 ? "assist" : "defend");
     return;
   }
-
-  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "window")) {
-    const int ms = std::max(1000, std::min(60000, atoi(args[2].c_str())));
-    setting_window_ms.set(ms);
-    Zeal::Game::print_chat("AssistBar freshness window set to %d ms", ms);
+  if (args.size() == 3 && Zeal::String::compare_insensitive(args[1], "window")) {
+    setting_window_ms.set(std::clamp(atoi(args[2].c_str()), 1000, 60000));
+    Zeal::Game::print_chat("AssistBar evidence window: %d ms.", setting_window_ms.get());
     return;
   }
-
-  #if 0 // Temporarily disable until lmb drag conflict with mouselook is sorted out.
-  if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "clickable")) {
-    const bool on = Zeal::String::compare_insensitive(args[2], "on");
-    setting_clickable.set(on);
-    Zeal::Game::print_chat("AssistBar clickable: %s", on ? "ON" : "OFF");
-    return;
-  }
-  #endif
-
+  // Keep the original refresh on/off and millisecond control. While hybrid
+  // runs, a changed interval affects the next quiet-time fallback immediately;
+  // we remember the desired ordinary refresh state without enabling its poller.
   if (args.size() >= 3 && Zeal::String::compare_insensitive(args[1], "refresh")) {
-    const bool on = Zeal::String::compare_insensitive(args[2], "on");
-    setting_auto_refresh.set(on);
-    if (on) {
-      int interval = setting_refresh_interval_ms.get();
-      if (args.size() >= 4) interval = atoi(args[3].c_str());
-      interval = std::max(5000, std::min(60000, interval));
-      setting_refresh_interval_ms.set(interval);
-      Zeal::Game::print_chat("AssistBar auto-refresh ON every %d ms (sends a /assist request each poll)", interval);
-    } else {
-      Zeal::Game::print_chat("AssistBar auto-refresh OFF");
+    const bool hybrid_active = setting_hybrid_fallback.get();
+    if (args.size() == 3 && Zeal::String::compare_insensitive(args[2], "off")) {
+      if (hybrid_active) refresh_before_hybrid_ = false;
+      else setting_auto_refresh.set(false);
+      Zeal::Game::print_chat(hybrid_active
+          ? "AssistBar normal refresh: OFF after hybrid (hybrid still active at %d ms)."
+          : "AssistBar refresh: OFF (delay retained at %d ms).",
+          setting_refresh_interval_ms.get());
+      return;
     }
+    if (Zeal::String::compare_insensitive(args[2], "on") && (args.size() == 3 || args.size() == 4)) {
+      if (args.size() == 4)
+        setting_refresh_interval_ms.set(std::clamp(atoi(args[3].c_str()), 500, 60000));
+      if (hybrid_active) refresh_before_hybrid_ = true;
+      else setting_auto_refresh.set(true);
+      Zeal::Game::print_chat(hybrid_active
+          ? "AssistBar hybrid delay: %d ms (normal refresh saved as ON for when hybrid is OFF)."
+          : "AssistBar refresh: ON (%d ms).",
+          setting_refresh_interval_ms.get());
+      return;
+    }
+    // Support the /assistbar refresh <ms> shorthand from previous test builds.
+    // This only changes the interval; it does not change refresh on/off.
+    if (args.size() == 3 && !Zeal::String::compare_insensitive(args[2], "off")) {
+      const char* value = args[2].c_str();
+      char* end = nullptr;
+      const long ms = std::strtol(value, &end, 10);
+      if (end != value && *end == '\0') {
+        setting_refresh_interval_ms.set(static_cast<int>(std::clamp(ms, 500L, 60000L)));
+        Zeal::Game::print_chat("AssistBar delay: %d ms.", setting_refresh_interval_ms.get());
+        return;
+      }
+    }
+    Zeal::Game::print_chat("Usage: /assistbar refresh on <ms> | off | <ms>");
     return;
   }
-
-  // Undocumented (lightly hidden) power-user / developer only verbose mode. Too much spam for typical user.
-  if (Zeal::String::compare_insensitive(args[1], "verbose")) {
-    setting_verbose.toggle();
-    Zeal::Game::print_chat("AssistBar verbose logging: %s", setting_verbose.get() ? "ON" : "OFF");
-    return;
-  }
-
-  if (Zeal::String::compare_insensitive(args[1], "refresh-now")) {
-    FireAssistRequest(false);  // Behaves exactly like typing /assist.
-    Zeal::Game::print_chat("AssistBar: sent assist request for current target");
-    return;
-  }
-
-  Zeal::Game::print_chat("Unknown command, type /assistbar with no args for usage");
+  Zeal::Game::print_chat("AssistBar: unknown option. Type /assistbar for commands.");
 }
