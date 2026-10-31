@@ -2,7 +2,7 @@ name: Build Zeal - Target of Target Only
 
 on:
   workflow_dispatch:
-
+  push:
 jobs:
   build:
     runs-on: windows-2022
