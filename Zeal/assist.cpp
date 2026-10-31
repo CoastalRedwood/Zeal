@@ -1,5 +1,6 @@
 #include "assist.h"
 
+#include "assist_target.h"
 #include "callbacks.h"
 #include "commands.h"
 #include "game_functions.h"
@@ -23,6 +24,10 @@ Assist::Assist(ZealService *zeal) {
 Assist::~Assist() {}
 
 bool Assist::handle_assist_command(const std::vector<std::string> &args) {
+  auto zeal = ZealService::get_instance();
+  if (zeal && zeal->assist_target && zeal->assist_target->DeferTypedAssist(args))
+    return true;
+
   if (!setting_use_zeal_assist_on.get() && !setting_detect_assist_failure.get())
     return false;  // Disabled, use /normal assist.
 
