@@ -85,7 +85,12 @@ std::vector<std::string> split(const std::string &str, const std::string &delim)
 
 bool tryParse(const std::string &str, int *result, bool quiet) {
   try {
-    *result = std::stoi(str);
+    std::size_t idx = 0;
+    *result = std::stoi(str, &idx);
+    if (idx != str.length()) {
+      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str);
+      return false;
+    }
     return true;
   } catch (const std::invalid_argument &e) {
     if (!quiet) Zeal::Game::print_chat("Invalid Argument %s", e.what());
@@ -100,7 +105,12 @@ bool tryParse(const std::string &str, int *result, bool quiet) {
 
 bool tryParse(const std::string &str, float *result, bool quiet) {
   try {
-    *result = std::stof(str);
+    std::size_t idx = 0;
+    *result = std::stof(str, &idx);
+    if (idx != str.length()) {
+      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str);
+      return false;
+    }
     return true;
   } catch (const std::invalid_argument &e) {
     if (!quiet) Zeal::Game::print_chat("Invalid Argument %s", e.what());
