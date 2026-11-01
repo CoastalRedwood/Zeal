@@ -274,11 +274,19 @@ ___
   - **Description:** controls map enable, size, labels, zoom, and markers
 
 - `/melody`
-  - **Arguments:** `song gem #'s (maximum of 5)`, `resume`
+  - **Arguments:** `song gem #s or bard song click items (maximum of 5)`, `resume`
   - **Aliases:** `/mel`
-  - **Example:** `/melody 1 4 2 3`
+  - **Example:** `/melody 1 4 2 3` - Cycles through spell gems 1, 4, 2, 3.
+  - **Example:** `/melody 1 2 2.3 3` - The third step of the cycle clicks the item in bag 2, slot 3 (`/useitem` numbering).
+  - **Example:** `/melody 1 2 3 0.10 4` - Clicks the item in slot 10 (Ranged, bag = 0 for equipped + `/useitem` numbering).
+  - **Example:** `/melody 1 2 Breath 3` - Clicks the first item clicky whose name starts with `Breath`.
   - **Example:** `/melody resume` - Resumes an interrupted melody at the interrupted song index.
-  - **Description:** plays songs in order until interrupted in any fashion.
+  - **Description:** plays songs in order until interrupted in any fashion. Items with bard song effects
+    are played by the same path as a queued `/useitem` and are selected by using either the inventory
+    location specified by `bag.slot` or by a case sensitive name match.  The `bag.slot` uses bag == 0
+    for the 0-29 equipment locations (ie, `0.10` for the ranged slot) or bag 1-8 for the inventory packs.
+    The name match finds the first clickable item that starts with the search phrase. Use underscores for
+    spaces in item names (`Composers_Chestplate`).
 
 - `/mouseover`
   - **Arguments:** `on`, `off`, `width [pixels]`, `height [pixels]`, `shiftscroll [always|smart]`

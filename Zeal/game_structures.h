@@ -1548,11 +1548,12 @@ struct SPELL {
         char_info, this, caster_level, effect_index, buff);
   }
 
-  bool IsBardSong() {
+  // Returns true if the spell matches for the BardCastBard() client check.
+  bool IsBardSong() const {
     return ClassLevel[Zeal::GameEnums::ClassTypes::Bard] != 0 && ClassLevel[Zeal::GameEnums::ClassTypes::Bard] != 0xff;
   }
 
-  bool IsInstrumentModdableSpellEffect(BYTE effect) {
+  bool IsInstrumentModdableSpellEffect(BYTE effect) const {
     if (!IsBardSong()) return false;
     switch (effect) {
       case 0:    // SE_CurrentHP
