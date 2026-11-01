@@ -194,7 +194,7 @@ void Melody::resume() {
 void Melody::end(bool do_print, bool full_stop) {
   if (is_active) {
     // songs is left alone and and current_index is rewound (if needed) to before the interrupted song.
-    if (casting_melody_spell_id != kInvalidSpellId) {
+    if ((casting_melody_spell_id != kInvalidSpellId) || (use_item_ack_state != UseItemState::Idle)) {
       current_index--;
       if (current_index < 0) {  // Handle wraparound.
         current_index = songs.size() - 1;

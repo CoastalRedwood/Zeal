@@ -6,18 +6,18 @@
 
 #include "game_structures.h"
 
-// One step of a melody: a song gem, or an item to click (an instant bard clicky such as Breath of
-// Harmony, or any clicky). `key` is the token as typed ("i22", "i2.3", "iBreath"), for messages.
+// One step of a melody: a song gem or an item with a bard click effect
 struct MelodyStep {
   int gem = -1;           // 0-based spell gem, or -1 for an item step.
   int item_slot_id = -1;  // Global inventory slot id for an item step, or -1.
-  std::string key;
+  std::string key;        // Token as typed ("2", "0.10", "2.3", "Breath") for print messages.
 
   bool is_gem() const { return gem >= 0; }  // Returns true if this step points to a gem slot.
 
   bool is_item() const { return item_slot_id >= 0; }  // Returns true if this step points to an item slot_id.
 
-  bool is_item_valid(bool do_print = false) const;  // Returns true if a valid bard clicky is currently in the item slot_id.
+  bool is_item_valid(
+      bool do_print = false) const;  // Returns true if a valid bard clicky is currently in the item slot_id.
 
   bool is_valid(bool do_print = false) const { return is_gem() || is_item_valid(do_print); }
 
@@ -30,8 +30,8 @@ class Melody {
   void resume();  // continues a stopped melody where it was interrupted (if valid)
   void end(bool do_print = false, bool full_stop = true);
   void handle_stop_cast_callback(BYTE reason, WORD spell_id);
-  void handle_report_successful_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target, WORD type, short spell_id,
-             short damage, char out_text);
+  void handle_report_successful_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target,
+                                    WORD type, short spell_id, short damage, char out_text);
   void handle_deactivate_ui();
   bool use_item(int item_index);  // Returns true if melody queued /useitem(item_index).
   Melody(class ZealService *pHookWrapper);
