@@ -303,6 +303,7 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
       {"staminabars", &setting_stamina_bars},
       {"tickbar", &setting_tick_bar},
       {"castbars", &setting_cast_bars},
+      {"castbarsplayers", &setting_cast_bars_players},
       {"zealfont", &setting_zeal_fonts},
       {"dropshadow", &setting_drop_shadow},
       {"extendedshownames", &setting_extended_shownames},
@@ -341,7 +342,8 @@ void NamePlate::parse_args(const std::vector<std::string> &args) {
   Zeal::Game::print_chat("Usage: /nameplate option where option is one of");
   Zeal::Game::print_chat("tint:  colors, concolors, targetcolor, targetblink, attackonly, charselect");
   Zeal::Game::print_chat("text:  hideself, x, hideraidpets, showpetownername, targetmarker, targethealth, inlineguild");
-  Zeal::Game::print_chat("font:  zealfont, dropshadow, healthbars, manabars, staminabars, tickbar, castbars");
+  Zeal::Game::print_chat(
+      "font:  zealfont, dropshadow, healthbars, manabars, staminabars, tickbar, castbars, castbarsplayers");
   Zeal::Game::print_chat("misc:  extendedshownames");
   Zeal::Game::print_chat("shadows: /nameplate shadowfactor <float> (0.005 to 0.1 range)");
 }
@@ -438,7 +440,7 @@ static int get_stamina_percent(const Zeal::GameStructures::Entity *entity) {
   return -1;  // TODO: Support entities besides self.
 }
 
-// Tracks NPC casts from the server's begin cast messages, which the client only uses for chat.
+// Tracks other spawns' casts from the server's begin cast messages, which the client only uses for chat.
 void NamePlate::handle_cast_packet(UINT opcode, const char *buffer, UINT len) {
   auto display = Zeal::Game::get_display();
   auto self = Zeal::Game::get_self();
@@ -447,7 +449,7 @@ void NamePlate::handle_cast_packet(UINT opcode, const char *buffer, UINT len) {
   if (opcode == Zeal::Packets::BeginCast && len >= sizeof(Zeal::Packets::BeginCast_Struct)) {
     const auto *cast = reinterpret_cast<const Zeal::Packets::BeginCast_Struct *>(buffer);
     if (self && cast->caster_id == self->SpawnId) return;  // Self uses the client's own timing.
-    if (cast->cast_time > 1)  // NPC instant casts are sent as 1 ms.
+    if (cast->cast_time > 1)  // Instant casts are sent as 0 or 1 ms.
       cast_info_map[cast->caster_id] = {cast->spell_id, display->GameTimeMs, cast->cast_time};
     else
       cast_info_map.erase(cast->caster_id);
@@ -461,7 +463,7 @@ void NamePlate::handle_cast_packet(UINT opcode, const char *buffer, UINT len) {
   }
 }
 
-// Returns -1 if there is no cast to display. Other players are skipped since the server only
+// Returns -1 if there is no cast to display. Other players are optional since the server only
 // sends their base cast time and the focus and AA reductions are not known to this client.
 int NamePlate::get_cast_percent(const Zeal::GameStructures::Entity *entity) {
   auto display = Zeal::Game::get_display();
@@ -478,7 +480,8 @@ int NamePlate::get_cast_percent(const Zeal::GameStructures::Entity *entity) {
     auto it = cast_info_map.find(entity->SpawnId);
     if (it == cast_info_map.end() || it->second.start_ms + it->second.duration_ms != actor->CastingTimeout)
       cast_info_map[entity->SpawnId] = {actor->CastingSpellId, now, actor->CastingTimeout - now};  // New cast.
-  } else if (entity->Type != Zeal::GameEnums::NPC) {
+  } else if (entity->Type != Zeal::GameEnums::NPC &&
+             !(entity->Type == Zeal::GameEnums::Player && setting_cast_bars_players.get())) {
     return -1;
   }
 

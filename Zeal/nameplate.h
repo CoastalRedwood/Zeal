@@ -103,6 +103,7 @@ class NamePlate {
   ZealSetting<bool> setting_stamina_bars = {false, "Zeal", "NameplateStaminaBars", false};
   ZealSetting<bool> setting_tick_bar = {false, "Zeal", "NameplateTickBar", false};
   ZealSetting<bool> setting_cast_bars = {false, "Zeal", "NameplateCastBars", false};
+  ZealSetting<bool> setting_cast_bars_players = {false, "Zeal", "NameplateCastBarsPlayers", false};
   ZealSetting<bool> setting_zeal_fonts = {false, "Zeal", "NamePlateZealFonts", false, [this](bool val) { clean_ui(); }};
   ZealSetting<bool> setting_drop_shadow = {false, "Zeal", "NamePlateDropShadow", false,
                                            [this](bool val) { clean_ui(); }};
@@ -132,7 +133,7 @@ class NamePlate {
   struct CastInfo {
     WORD spell_id;
     DWORD start_ms;     // Display GameTimeMs at the start of the cast.
-    DWORD duration_ms;  // Self: actual cast time. NPCs: base cast time from the server.
+    DWORD duration_ms;  // Self: actual cast time. Others: base cast time from the server.
   };
 
   struct RenderInfo {

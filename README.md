@@ -293,7 +293,7 @@ ___
 
 - `/nameplate`
   - **Arguments:** `colors`, `concolors`, `targetcolor`, `charselect`, `hideself`, `x`, `hideraidpets`, `showpetownername`, `targetmarker`, `targethealth`, `inlineguild`
-  - **Arguments:** `targetblink`, `attackonly`, `healthbars`, `manabars`, `tickbar`, `castbars`, `zealfont`, `dropshadow`, `extendedshownames`
+  - **Arguments:** `targetblink`, `attackonly`, `healthbars`, `manabars`, `tickbar`, `castbars`, `castbarsplayers`, `zealfont`, `dropshadow`, `extendedshownames`
   - **Description:** toggles nameplate modes for adjusting colors (tints), text, and font as well as enabling hp and mana bars
 
 - `/optchat`
@@ -953,7 +953,9 @@ The Zeal Nameplate options tab is the primary interface, but the redundant comma
     with a cast time reduction (e.g. a level 51+ hybrid class casting a detrimental spell) finishes
     early and the bar clears when the spell lands. An interrupted or fizzled cast is only reported
     in chat, so its bar runs until the base cast time ends.
-  - Other players do not get a bar: their reductions are not known to the client, so it would be wrong.
+* `/nameplate castbarsplayers` - Also shows cast bars for other players (requires `castbars`)
+  - Player bars use the base cast time too, but player focus effects and AAs are not known to the
+    client, so a reduced cast finishes before the bar does. The bar clears when the spell lands.
 * `/nameplate extendedshownames` - Toggles availability of /Shownames 5, /Shownames 6, and /Shownames 7
 
 #### Changing the Color of Nameplates
