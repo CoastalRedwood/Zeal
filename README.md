@@ -303,14 +303,14 @@ ___
 
 - `/outputfile`
   - **Aliases:** `/output`, `/out`
-  - **Arguments:** `inventory | spellbook | quarmy | popflags | raidlist` `[optional_filename]`, `format [0 | 1]`, `hidepopflags`
+  - **Arguments:** `inventory | spellbook | quarmy | popflags | raidlist` `[optional_filename]`, `format [0 | 1]`, `hidepopflags`, `popflagsoncamp`
   - **Example:** `/outputfile inventory my_inventory`
   - **Description:**
     - `inventory` outputs information about your equipment, inventory bag slots, held item, and bank slots to a file.
     - `spellbook` outputs a list of all spell ids current scribed in your spellbook.
     - `popflags` sends `#popflags` and `#popflags 1` to `5` and saves the lines the server answers with to
       `<name>-PoPFlags.txt` about 3 seconds later (nothing is written if the server does not answer). The reply
-      also shows in chat. Also done by the "Export data on /camp" option.
+      also shows in chat. Also done by the "Export data on /camp" option if `popflagsoncamp` is on.
     - `hidepopflags` toggles hiding the reply's own lines in chat (default off).
     - `raidlist` outputs a raid 'tick' with a list of players in the raid.
     - `format` sets the format of the export files (0 = default, 1 = new style with host tag)

@@ -7,9 +7,9 @@
 #include "callbacks.h"
 #include "commands.h"
 #include "game_functions.h"
-#include "miniz.h"
 #include "game_structures.h"
 #include "hook_wrapper.h"
+#include "miniz.h"
 #include "string_util.h"
 #include "zeal.h"
 
@@ -360,14 +360,11 @@ void OutputFile::export_quarmy(const std::vector<std::string> &args) {
   // Section 4: Tradeskills (SkillID and current value; 255 = untrained).
   oss << "SkillID" << t << "Value" << std::endl;
   constexpr Zeal::GameEnums::SkillType kTradeskills[] = {
-      Zeal::GameEnums::SkillFishing,       Zeal::GameEnums::SkillMakePoison,
-      Zeal::GameEnums::SkillTinkering,     Zeal::GameEnums::SkillResearch,
-      Zeal::GameEnums::SkillAlchemy,       Zeal::GameEnums::SkillBaking,
-      Zeal::GameEnums::SkillTailoring,     Zeal::GameEnums::SkillBlacksmithing,
-      Zeal::GameEnums::SkillFletching,     Zeal::GameEnums::SkillBrewing,
-      Zeal::GameEnums::SkillJewelryMaking, Zeal::GameEnums::SkillPottery};
-  for (auto skill : kTradeskills)
-    oss << static_cast<int>(skill) << t << self->CharInfo->Skills[skill] << std::endl;
+      Zeal::GameEnums::SkillFishing,   Zeal::GameEnums::SkillMakePoison,    Zeal::GameEnums::SkillTinkering,
+      Zeal::GameEnums::SkillResearch,  Zeal::GameEnums::SkillAlchemy,       Zeal::GameEnums::SkillBaking,
+      Zeal::GameEnums::SkillTailoring, Zeal::GameEnums::SkillBlacksmithing, Zeal::GameEnums::SkillFletching,
+      Zeal::GameEnums::SkillBrewing,   Zeal::GameEnums::SkillJewelryMaking, Zeal::GameEnums::SkillPottery};
+  for (auto skill : kTradeskills) oss << static_cast<int>(skill) << t << self->CharInfo->Skills[skill] << std::endl;
 
   // Section 5: CRC32 checksum for tamper detection.
   std::string content = oss.str();
@@ -553,7 +550,8 @@ static void __fastcall GameCamp(void *this_game, int unused_edx) {
     ZealService::get_instance()->outputfile->export_spellbook();
     ZealService::get_instance()->outputfile->export_quarmy();
     // Only ask the server when the camp is likely to go ahead (same peek as the auto-sit above).
-    if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive())
+    if (Zeal::Game::is_in_game() && !Zeal::Game::GameInternal::IsNoSlashWndActive() &&
+        ZealService::get_instance()->outputfile->setting_popflags_on_camp.get())
       ZealService::get_instance()->outputfile->export_popflags();
   }
   ZealService::get_instance()->hooks->hook_map["GameCamp"]->original(GameCamp)(this_game, unused_edx);
@@ -600,9 +598,15 @@ OutputFile::OutputFile(ZealService *zeal) {
                                  setting_popflags_hide.get() ? "on" : "off");
           return true;
         }
+        if (args.size() == 2 && Zeal::String::compare_insensitive(args[1], "popflagsoncamp")) {
+          setting_popflags_on_camp.toggle();
+          Zeal::Game::print_chat("Including the #popflags reply with the camp export is %s",
+                                 setting_popflags_on_camp.get() ? "on" : "off");
+          return true;
+        }
         Zeal::Game::print_chat(
             "usage: /outputfile [inventory | spellbook | quarmy | popflags | raidlist] [optional filename]");
-        Zeal::Game::print_chat("usage: /outputfile format [0 | 1], /outputfile hidepopflags");
+        Zeal::Game::print_chat("usage: /outputfile format [0 | 1], /outputfile [ hidepopflags | popflagsoncamp ]");
         return true;
       });
   zeal->callbacks->AddOutputText(

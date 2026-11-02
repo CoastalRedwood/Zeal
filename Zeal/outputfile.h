@@ -16,7 +16,8 @@ class OutputFile {
 
   ZealSetting<bool> setting_export_on_camp = {false, "Zeal", "ExportOnCamp", false};
   ZealSetting<int> setting_export_format = {0, "Zeal", "ExportFormat", false};
-  ZealSetting<bool> setting_popflags_hide = {false, "Zeal", "PopFlagsHide", false};  // Hide the reply in chat.
+  ZealSetting<bool> setting_popflags_hide = {false, "Zeal", "PopFlagsHide", false};       // Hide the reply in chat.
+  ZealSetting<bool> setting_popflags_on_camp = {false, "Zeal", "PopFlagsOnCamp", false};  // Include with export.
 
  private:
   void export_raidlist(std::vector<std::string> &args);
