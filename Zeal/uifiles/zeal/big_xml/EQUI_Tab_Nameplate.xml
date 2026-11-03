@@ -778,8 +778,8 @@
     <ScreenID>Zeal_NameplateCastBarsPlayers</ScreenID>
     <RelativePosition>true</RelativePosition>
     <Location>
-      <X>370</X>
-      <Y>672</Y>
+      <X>720</X>
+      <Y>628</Y>
     </Location>
     <Size>
       <CX>300</CX>
