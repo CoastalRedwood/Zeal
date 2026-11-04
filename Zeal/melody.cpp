@@ -43,7 +43,7 @@ constexpr unsigned int MELODY_WAIT_USE_ITEM_TIMEOUT = 500;  // Wait time after u
 constexpr unsigned int USE_ITEM_QUEUE_TIMEOUT =
     3650;  // Max duration a useitem will stay queued for before giving up (mostly to prevent ultra-stale clicks).
 
-enum UseItemState : int { Idle = 0, CastRequested, CastStarted };
+enum UseItemState : int { Idle = 0, CastRequested, SongRequested, CastStarted };
 
 // Parses the token argument to configure the melody step object.
 MelodyStep::MelodyStep(const std::string &token) {
@@ -311,7 +311,8 @@ void Melody::tick() {
     // reset retry_count if the song cast window has been visible for > 1 second.
     if ((casting_visible_timestamp - start_of_cast_timestamp) > 1000) retry_count = 0;
     return;
-  } else if (use_item_ack_state == UseItemState::CastRequested) {  // Block until server acknowledges.
+  } else if (use_item_ack_state == UseItemState::CastRequested || use_item_ack_state == UseItemState::SongRequested) {
+    // Wait until server acknowledges the use item cast request with an OP_BeginCast packet.
     if ((current_timestamp - start_of_cast_timestamp) < 1000) return;
     Zeal::Game::print_chat("Melody use item start sync ack failure");
   }
@@ -343,7 +344,7 @@ void Melody::tick() {
   // These are similar to normal clickies however they really are bard song casts (so
   // the cast is interruptible) and the OP_ManaChange message is not sent
   // so we implemented two workarounds:
-  //   (a) handle_report_successful_hit() callback to manually set the gem  number to 0xff
+  //   (a) handle_report_successful_hit() callback to manually set the gem number to 0xff
   //   (b) adding a fallback MELODY_WAIT_USE_ITEM_TIMEOUT that is set long enough
   // that the server will be finished and ready for the next melody start of cast.
   // (4) Item clickies with bard songs with zero cast times (e.g. Breath of Harmony)
@@ -406,18 +407,27 @@ void Melody::tick() {
 bool Melody::activate_use_item() {
   if (use_item_index < 0) return false;
 
-  stop_current_cast();  // Terminate bard song (if active) in order to cast.
+  if (Zeal::Game::GameInternal::IsPlayerABardAndSingingASong())
+    stop_current_song_quietly();  // Use the custom stop to reduce log spam.
+  else
+    stop_current_cast();  // Not expected to be needed but just in case.
+
   Zeal::GameStructures::GAMEITEMINFO *used_item = nullptr;
   ULONGLONG current_timestamp = GetTickCount64();
   bool success = (use_item_timeout >= current_timestamp) && Zeal::Game::use_item(use_item_index, false, &used_item);
-  use_item_index = -1;
   if (success) {
-    use_item_ack_state = UseItemState::CastRequested;
-    if (used_item && used_item->Common.CastTime == 0 && Zeal::Game::get_game()->IsOkToTransact())
-      use_item_ack_state = UseItemState::Idle;      // Instant bard clicky. Can't use request/ack format.
+    if (used_item && used_item->Common.CastTime <= 0) {  // Blazing vambraces == -1 vs 0 for most instants.
+      use_item_ack_state = UseItemState::Idle;           // Instant clicky. No need for req/ack handshaking.
+    } else {
+      const auto *spell_mgr = Zeal::Game::get_spell_mgr();
+      const auto *spell = spell_mgr && used_item ? spell_mgr->Spells[used_item->Common.SpellIdEx] : nullptr;
+      bool isBardSong = (spell && spell->IsBardSong());
+      use_item_ack_state = isBardSong ? UseItemState::SongRequested : UseItemState::CastRequested;
+    }
     start_of_cast_timestamp = current_timestamp;    // Used in timeout check.
     casting_visible_timestamp = current_timestamp;  // Insta-clickies may not update.
   }
+  use_item_index = -1;
   return success;
 }
 
@@ -501,11 +511,27 @@ bool Melody::handle_opcode(int opcode) {
   const int OP_BeginCast = 0x40a9;      // Sent in responce to a CastSpell().
   const int OP_ManaChange = 0x417f;     // Sent after normal clickiese or song end.
   const int OP_MemorizeSpell = 0x4182;  // Sent after normal bard song finishes casting.
+  const int OP_InterruptCast = 0x4235;
+
   if (opcode == OP_ManaChange || opcode == OP_MemorizeSpell) {
-    use_item_ack_state = UseItemState::Idle;  // Needed for insta clicky to clear wait for begin cast.
-  } else if (opcode == OP_BeginCast && use_item_ack_state == UseItemState::CastRequested) {
-    use_item_ack_state = UseItemState::CastStarted;  // Needed for pending cast start of clickies.
+    // The server sends OP_MemorizeSpell when bard songs finish casting.
+    // Normal clickies generate OP_ManaChange when the cast finishes while bard song clickies
+    // do not generate these packets so we instead rely on the handle_report_successful_hit() to
+    // recognize casting is complete. Additionally there is a race condition that happens with
+    // heavily loaded zones where the OP_BeginCast from the clicky is sent before either one
+    // of those packets arrives (client casting timer may run fast?). To avoid that race the code
+    // ignore these packets within 500 ms of the start of a bard song clicky. Post-500 ms is just
+    // for general glitch recovery.
+    if (use_item_ack_state != UseItemState::SongRequested || (GetTickCount64() - start_of_cast_timestamp > 500)) {
+      use_item_ack_state = UseItemState::Idle;  // Casting has finished (also acts a general reset).
+    }
+  } else if (opcode == OP_BeginCast) {
+    // CastRequested covers the gap from the client sending the item cast request to the server until
+    // the server send back this packet which makes the casting bar visible.
+    if (use_item_ack_state == UseItemState::CastRequested || use_item_ack_state == UseItemState::SongRequested)
+      use_item_ack_state = UseItemState::CastStarted;
   }
+
   return false;
 }
 
