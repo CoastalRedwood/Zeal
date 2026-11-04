@@ -102,6 +102,8 @@ class NamePlate {
   ZealSetting<bool> setting_mana_bars = {false, "Zeal", "NameplateManaBars", false};
   ZealSetting<bool> setting_stamina_bars = {false, "Zeal", "NameplateStaminaBars", false};
   ZealSetting<bool> setting_tick_bar = {false, "Zeal", "NameplateTickBar", false};
+  ZealSetting<bool> setting_cast_bars = {false, "Zeal", "NameplateCastBars", false};
+  ZealSetting<bool> setting_cast_bars_players = {false, "Zeal", "NameplateCastBarsPlayers", false};
   ZealSetting<bool> setting_zeal_fonts = {false, "Zeal", "NamePlateZealFonts", false, [this](bool val) { clean_ui(); }};
   ZealSetting<bool> setting_drop_shadow = {false, "Zeal", "NamePlateDropShadow", false,
                                            [this](bool val) { clean_ui(); }};
@@ -128,6 +130,12 @@ class NamePlate {
     DWORD tag_color;
   };
 
+  struct CastInfo {
+    WORD spell_id;
+    DWORD start_ms;     // Display GameTimeMs at the start of the cast.
+    DWORD duration_ms;  // Self: actual cast time. Others: base cast time from the server.
+  };
+
   struct RenderInfo {
     NamePlateInfo *info;
     float distance;
@@ -145,6 +153,8 @@ class NamePlate {
   bool is_group_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_raid_member(const Zeal::GameStructures::Entity &entity) const;
   bool is_hp_updated(const Zeal::GameStructures::Entity *entity) const;
+  void handle_cast_packet(UINT opcode, const char *buffer, UINT len);
+  int get_cast_percent(const Zeal::GameStructures::Entity *entity);
   void handle_tag_command(const std::vector<std::string> &args);
   bool handle_tag_target(const std::string &target_text);
   bool handle_zeal_spam_filter(short &channel, std::string &msg);
@@ -167,6 +177,7 @@ class NamePlate {
   std::unique_ptr<SpriteFont> sprite_font;
   std::unique_ptr<class TagArrows> tag_arrows;
   std::unordered_map<struct Zeal::GameStructures::Entity *, NamePlateInfo> nameplate_info_map;
+  std::unordered_map<WORD, CastInfo> cast_info_map;  // Active casts keyed by spawn id.
   std::function<void()> update_options_ui_callback;
   std::function<unsigned int(int)> get_color_callback;
   int tag_channel_number = -1;

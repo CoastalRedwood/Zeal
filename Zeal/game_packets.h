@@ -8,6 +8,8 @@ enum opcodes {
   PlayerProfile = 0x4036,
   ZoneSpawns = 0x415f,
   DeathDamage = 0x404A,
+  BeginCast = 0x40a9,
+  Action = 0x4046,
   Damage = 0x4058,
   ConsentResponse = 0x40D5,
   PrintNonMeleeDamage = 0x4236,
@@ -55,6 +57,32 @@ struct CorpseDrag_Struct {
   /*064*/ char DraggerName[64];
   /*128*/ UINT8 Unknown128[24];
   /*152*/
+};
+
+struct BeginCast_Struct {
+  /*000*/ UINT16 caster_id;
+  /*002*/ UINT16 spell_id;
+  /*004*/ UINT16 cast_time;  // Base cast time in ms (the client applies any reductions for itself).
+  /*006*/ UINT16 unknown006;
+};
+
+struct Action_Struct {
+  /*000*/ UINT16 target;
+  /*002*/ UINT16 source;
+  /*004*/ UINT16 level;
+  /*006*/ UINT16 target_level;
+  /*008*/ INT32 instrument_mod;
+  /*00C*/ float force;
+  /*010*/ float sequence;
+  /*014*/ float pushup_angle;
+  /*018*/ UINT8 type;  // 231 for spells.
+  /*019*/ UINT8 unknown019;
+  /*01A*/ UINT16 spell_id_unused;
+  /*01C*/ INT16 tap_amount;
+  /*01E*/ UINT16 spell;
+  /*020*/ UINT8 unknown020;
+  /*021*/ UINT8 buff_unknown;
+  /*022*/ UINT16 unknown022;
 };
 
 struct Damage_Struct {
