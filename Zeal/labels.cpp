@@ -118,6 +118,33 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
       *override_color = false;
       return true;
     }
+    case 87: {  // Distance to the target. Blank beyond 250 units, the same limit as the pipe's target_loc.
+      auto *self = Zeal::Game::get_self();
+      auto *target = Zeal::Game::get_target();
+      double distance = (self && target && target != self) ? target->Position.Dist(self->Position) : -1;
+      if (distance < 0 || distance >= 250) {
+        default_empty(str, override_color, color);
+        return true;
+      }
+      Zeal::Game::CXStr_PrintString(str, "%.0f", distance);
+      *override_color = false;
+      return true;
+    }
+    case 88:    // Target level.
+    case 89: {  // Target class, short form (WAR, CLR, ...).
+      // Blank for corpses, and for /anonymous or /roleplay players, whose level and class /who hides.
+      auto *target = Zeal::Game::get_target();
+      if (!target || target->Type > 1 || (target->Type == 0 && target->AnonymousState)) {
+        default_empty(str, override_color, color);
+        return true;
+      }
+      if (type == 88)
+        Zeal::Game::CXStr_PrintString(str, "%d", target->Level);
+      else
+        Zeal::Game::CXStr_PrintString(str, "%s", Zeal::Game::class_name_short(target->Class).c_str());
+      *override_color = false;
+      return true;
+    }
     case 124: {
       if (Zeal::Game::get_char_info()) Zeal::Game::CXStr_PrintString(str, "%d", Zeal::Game::get_char_info()->mana());
       *override_color = false;

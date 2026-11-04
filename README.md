@@ -828,6 +828,9 @@ ___
   - `84` Count of all inventory slots
   - `85` Count of filled inventory slots
   - `86` AA Exp Per Hour Percent
+  - `87` Distance to target (blank when there is no target or it is 250 or more units away)
+  - `88` Target level (blank for corpses and /anonymous or /roleplay players)
+  - `89` Target class, short form such as `WAR` (blank for corpses and /anonymous or /roleplay players)
   - `124` Current Mana
   - `125` Max Mana
   - `134` Spell being casted
