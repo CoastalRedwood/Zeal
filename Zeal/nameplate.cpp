@@ -499,7 +499,7 @@ void NamePlate::render_ui() {
     if (entity == self && setting_tick_bar.get()) {
       const char tickbar[4] = {'\n', BitmapFontBase::kTickBarValue, 0};  // Draw without a background.
       full_text += tickbar;
-      sprite_font->set_tick_percent( ZealService::get_instance()->tick->GetTickPercent());
+      sprite_font->set_tick_percent(ZealService::get_instance()->tick->GetTickPercent());
     }
 
     auto nameplate_color = info.color | 0xff000000;
@@ -1411,8 +1411,10 @@ bool NamePlate::handle_zeal_spam_filter(short &channel, std::string &msg) {
   // And do another very simple and quick initial check to bail out early.
   if (msg[start_index] != 'Z') return false;
 
+  if (msg.back() == '\'') end_index -= 1;  // Remove the final ' to avoid parsing spawn id failure.
+  size_t count = end_index - start_index + 1;
   // Then do a full check that it is a valid message (but allow missing spawn for out of zone).
-  std::string contents = msg.substr(start_index, end_index - 1);
+  std::string contents = msg.substr(start_index, count);
   if (!handle_tag_message(contents.c_str(), false, true)) return false;
 
   // Future option: Clean up the messages (strip/translate prefix, merge target name).
