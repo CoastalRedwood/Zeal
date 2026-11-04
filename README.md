@@ -983,6 +983,23 @@ A `spell` message (type 9) is sent for each spell action the client receives, so
 - `/pipespells` picks what is sent: `off` (default), `detrimental` (spells flagged detrimental only),
   or `all`. It's off until a user turns it on.
 
+#### Consider events
+A `consider` message (type 10) is sent when the server answers a consider of an NPC (`/consider`, the
+consider key or `/leftclickcon`). The faction standing toward the player is only known to the client
+through these replies, and the chat text is the only other place it shows up.
+
+```json
+{ "spawn_id": 1234, "name": "a gnoll pup", "faction": 9 }
+```
+
+- `spawn_id` - the spawn id of the NPC that was considered, matching `target_id`
+- `name` - as for the target descriptors
+- `faction` - 1 ally, 2 warmly, 3 kindly, 4 amiable, 5 indifferent, 6 apprehensive, 7 dubious,
+  8 threatening, 9 scowls
+
+The standing is the server's answer at that moment, so it reflects the player's current illusion,
+invisibility, faction buffs and whether the NPC is already engaged. No message is sent for players.
+
 ---
 ### Tick Timer
 

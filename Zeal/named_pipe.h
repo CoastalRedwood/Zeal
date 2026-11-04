@@ -10,7 +10,7 @@
 #include "json.hpp"
 #include "zeal_settings.h"
 
-enum struct pipe_data_type { log, label, gauge, player, custom, raid, group, death, item, spell };
+enum struct pipe_data_type { log, label, gauge, player, custom, raid, group, death, item, spell, consider };
 
 struct pipe_data {
   pipe_data_type type;
@@ -47,6 +47,7 @@ class NamedPipe {
   void write_death(const Zeal::Packets::Death_Struct &death);
   void write_spell_action(const Zeal::Packets::Action_Struct &action);
   void update_pipe_spells(const std::string &mode);
+  void write_consider(const Zeal::Packets::Consider_Struct &consider);
   void add_new_pipe_handle(const HANDLE &handle);
   void update_pipe_handles();
   ZealSetting<int> pipe_delay = {100, "Zeal", "PipeDelay", false};

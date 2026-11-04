@@ -27,6 +27,7 @@ enum opcodes {
   RaidUpdate = 0x4260,
   ItemLinkResponse = 0x4264,
   TargetHoTT = 0x426C,
+  Consider = 0x4137,
 };
 
 struct Animation_Struct {
@@ -111,6 +112,18 @@ struct Death_Struct {
   /*016*/ UINT8 is_PC;
   /*017*/ UINT8 unknown015[3];
   /*020*/
+};
+
+struct Consider_Struct {
+  /*000*/ UINT16 playerid;
+  /*002*/ UINT16 targetid;
+  /*004*/ UINT32 faction;  // Con standing as sent to this client (see NamedPipe::write_consider).
+  /*008*/ UINT32 level;    // Level con color code, not the target's level.
+  /*012*/ INT32 cur_hp;    // Unused.
+  /*016*/ INT32 max_hp;    // Unused.
+  /*020*/ UINT8 pvpcon;
+  /*021*/ UINT8 unknown021[3];
+  /*024*/
 };
 
 struct EntityId_Struct {
