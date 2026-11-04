@@ -471,6 +471,22 @@ void NamedPipe::write(const char *format, ...) {
   write(std::string(buffer));
 }
 
+void NamedPipe::write_death(const Zeal::Packets::Death_Struct &death) {
+  nlohmann::json death_data = nlohmann::json::object();
+  death_data["spawn_id"] = death.spawn_id;
+  const auto *ent = Zeal::Game::get_entity_by_id(static_cast<short>(death.spawn_id));
+  if (ent) {
+    death_data["name"] = std::string(Zeal::Game::trim_name(ent->Name));
+    death_data["type"] = ent->Type;  // EntityTypes
+    death_data["level"] = ent->Level;
+  }
+  // killer_id is 0 when the server reports no killer (e.g. a damage over time tick).
+  death_data["killer_id"] = death.killer_id;
+  const auto *killer = death.killer_id ? Zeal::Game::get_entity_by_id(static_cast<short>(death.killer_id)) : nullptr;
+  if (killer) death_data["killer_name"] = std::string(Zeal::Game::trim_name(killer->Name));
+  write(death_data.dump(), pipe_data_type::death);
+}
+
 void NamedPipe::update_delay(unsigned new_delay) {
   pipe_delay.set(new_delay);
   Zeal::Game::print_chat("pipe delay is now set to %i", pipe_delay.get());
@@ -527,6 +543,16 @@ NamedPipe::NamedPipe(ZealService *zeal) {
     return true;  // return true to stop the game from processing any further on this command,
                   // false if you want to just add features to an existing cmd
   });
+  // Death events. The server sends OP_Death to every client in the zone, but a "has been slain" chat
+  // message only shows up for some of those deaths, so a log reader misses most kills in a large raid.
+  // Handled before the client processes the packet so that the entities still carry their live names.
+  zeal->callbacks->AddPacket(
+      [this](UINT opcode, char *buffer, UINT len) {
+        if (opcode == Zeal::Packets::DeathDamage && len >= sizeof(Zeal::Packets::Death_Struct) && is_connected())
+          write_death(*reinterpret_cast<Zeal::Packets::Death_Struct *>(buffer));
+        return false;  // continue processing
+      },
+      callback_type::WorldMessage);
   // zeal->hooks->Add("logtextfile", 0x5240dc, log_hook, hook_type_detour); //receiving this via print chat so we can
   // get color indexes
   name += std::to_string(GetCurrentProcessId());
