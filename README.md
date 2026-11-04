@@ -885,6 +885,11 @@ this, since it identifies a live entity rather than a database row.
 - `target_name` - trimmed name, matching what eqtype 28 shows by default
 - `target_type` - 0 player, 1 NPC, 2 NPC corpse, 3 player corpse
 - `target_level`, `target_class`, `target_race` - the client's spawn descriptors
+- `target_texture`, `target_gender`, `target_size` - how the target is rendered: body texture,
+  gender and model size (height scale). Two spawns with the same name, level, class and race
+  can still be separate database rows that differ only in these.
+- `target_equipment` - array of 9 values: the rendered material of the head, chest, arms, wrist,
+  hands, legs and feet slots, then the primary and secondary item types.
 - `target_loc` - the target's current position, same `{x, y, z}` shape as `location`.
   Only included while the target is within 250 units of the player; omitted otherwise
 
