@@ -319,6 +319,11 @@ void ItemDisplay::add_to_cache(const Zeal::GameStructures::GAMEITEMINFO *item) {
   if (item && item->Type == 0) item_cache[item->ID] = *item;
 }
 
+void ItemDisplay::handle_set_item(const Zeal::GameStructures::GAMEITEMINFO *item) {
+  if (!item) return;
+  for (const auto &callback : set_item_callbacks) callback(item);
+}
+
 const Zeal::GameStructures::GAMEITEMINFO *ItemDisplay::get_cached_item(int item_id) const {
   auto it = item_cache.find(item_id);
   if (it != item_cache.end()) return &(it->second);
@@ -672,8 +677,10 @@ void __fastcall SetItem(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, Zeal::Gam
                         bool show) {
   ZealService::get_instance()->hooks->hook_map["SetItem"]->original(SetItem)(wnd, unused, item, show);
 
-  if (ZealService::get_instance() && ZealService::get_instance()->item_displays)
+  if (ZealService::get_instance() && ZealService::get_instance()->item_displays) {
     ZealService::get_instance()->item_displays->add_to_cache(item);
+    ZealService::get_instance()->item_displays->handle_set_item(item);
+  }
 
   // The callers of SetItem always call Activate() on it immediately after which includes
   // a call to update the window text, so we just need to update the DisplayText here.
