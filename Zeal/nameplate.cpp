@@ -449,7 +449,7 @@ void NamePlate::handle_cast_packet(UINT opcode, const char *buffer, UINT len) {
   if (opcode == Zeal::Packets::BeginCast && len >= sizeof(Zeal::Packets::BeginCast_Struct)) {
     const auto *cast = reinterpret_cast<const Zeal::Packets::BeginCast_Struct *>(buffer);
     if (self && cast->caster_id == self->SpawnId) return;  // Self uses the client's own timing.
-    if (cast->cast_time > 1)  // Instant casts are sent as 0 or 1 ms.
+    if (cast->cast_time > 1)                               // Instant casts are sent as 0 or 1 ms.
       cast_info_map[cast->caster_id] = {cast->spell_id, display->GameTimeMs, cast->cast_time};
     else
       cast_info_map.erase(cast->caster_id);
@@ -463,11 +463,11 @@ void NamePlate::handle_cast_packet(UINT opcode, const char *buffer, UINT len) {
   }
 }
 
-// Returns -1 if there is no cast to display. Other players are optional since the server only
+// Returns -1 if should not display the cast bar at all. Other players are optional since the server only
 // sends their base cast time and the focus and AA reductions are not known to this client.
 int NamePlate::get_cast_percent(const Zeal::GameStructures::Entity *entity) {
   auto display = Zeal::Game::get_display();
-  if (!entity || !display) return -1;
+  if (!entity || !display) return 0;
   DWORD now = display->GameTimeMs;
 
   if (entity == Zeal::Game::get_self()) {
@@ -475,7 +475,7 @@ int NamePlate::get_cast_percent(const Zeal::GameStructures::Entity *entity) {
     const auto *actor = entity->ActorInfo;
     if (!actor || !Zeal::Game::Spells::IsValidSpellIndex(actor->CastingSpellId) || actor->CastingTimeout <= now) {
       cast_info_map.erase(entity->SpawnId);
-      return -1;
+      return 0;
     }
     auto it = cast_info_map.find(entity->SpawnId);
     if (it == cast_info_map.end() || it->second.start_ms + it->second.duration_ms != actor->CastingTimeout)
@@ -490,9 +490,9 @@ int NamePlate::get_cast_percent(const Zeal::GameStructures::Entity *entity) {
   DWORD elapsed = now - it->second.start_ms;
   if (it->second.duration_ms == 0 || elapsed >= it->second.duration_ms) {
     cast_info_map.erase(it);  // Interrupts and fizzles are only sent as chat, so expire on time.
-    return -1;
+    return 0;
   }
-  return static_cast<int>(elapsed * 100 / it->second.duration_ms);
+  return std::clamp(100 - static_cast<int>(elapsed * 100 / it->second.duration_ms), 0, 100);
 }
 
 // Returns bearing to target from self from -pi to +pi in the world coordinate system.
