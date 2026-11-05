@@ -23,7 +23,7 @@ static int get_target_distance() {
   auto self = Zeal::Game::get_self();
   auto target = Zeal::Game::get_target();
   if (!self || !target) return 0;
-  int distance = static_cast<int>((self->Position - Zeal::Game::get_target()->Position).Length2D());
+  int distance = static_cast<int>(self->Position.Dist2D(Zeal::Game::get_target()->Position));
   return (distance < 250) ? distance : 0;
 }
 
@@ -121,7 +121,7 @@ bool GetLabelFromEq(int type, Zeal::GameUI::CXSTR *str, bool *override_color, UL
     case 87: {  // Distance to the target. Blank beyond 250 units, the same limit as the pipe's target_loc.
       auto *self = Zeal::Game::get_self();
       auto *target = Zeal::Game::get_target();
-      double distance = (self && target && target != self) ? target->Position.Dist(self->Position) : -1;
+      double distance = (self && target && target != self) ? target->Position.Dist2D(self->Position) : -1;
       if (distance < 0 || distance >= 250) {
         default_empty(str, override_color, color);
         return true;
