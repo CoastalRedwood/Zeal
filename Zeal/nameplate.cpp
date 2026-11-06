@@ -1238,6 +1238,8 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
   if (!Zeal::String::tryParse(split[3], &spawn_id, true)) return false;
   auto entity = Zeal::Game::get_entity_by_id(spawn_id);
   if (!entity) return allow_missing_spawn;  // Used for out of zone zeal spam filtering.
+  // Spawn ids repeat across zones, so a tag sent from another zone must also match the mob's name.
+  if (split[2] != Zeal::Game::strip_name(entity->Name)) return allow_missing_spawn;
   auto it = nameplate_info_map.find(entity);
   if (it == nameplate_info_map.end()) return allow_missing_spawn;
 
