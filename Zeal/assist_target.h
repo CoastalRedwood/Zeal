@@ -2,18 +2,17 @@
 #include <Windows.h>
 
 #include <string>
-#include <unordered_map>
 
 #include "bitmap_font.h"
 #include "game_packets.h"
 #include "game_structures.h"
 #include "zeal_settings.h"
+#include "passive_target_tracker.h"
+#include "hybrid_assist_gate.h"
 
-// Displays an always-up bar showing the assist candidate for your current target:
-// - Mode 0 (assist): the entity your target most recently damaged ("target of my target").
-// - Mode 1 (defend): the entity that most recently damaged your target.
-// The legacy client does not store other entities' targets in memory, so this is derived from
-// OP_Damage events (Damage_Struct source/target spawn ids) within a configurable freshness window.
+// Hybrid Target-of-Target: passive physical combat evidence first, optionally
+// one serialized synthetic /assist when evidence is idle. Opt-in experimental
+// fallback is not a guarantee against collisions with every native assist path.
 class AssistTarget {
  public:
   explicit AssistTarget(class ZealService *zeal);
@@ -33,60 +32,50 @@ class AssistTarget {
   ZealSetting<int> setting_mode = {0, "AssistBar", "Mode"};
   // Freshness window in ms for damage events to count as the current candidate.
   ZealSetting<int> setting_window_ms = {8000, "AssistBar", "WindowMs"};
-  // Verbose logs every OP_Damage event to chat (for verifying packet delivery scope).
-  ZealSetting<bool> setting_verbose = {false, "AssistBar", "Verbose"};
-  // Opt-in continuous polling: periodically send a synthetic /assist request for an authoritative
-  // answer. Responses are swallowed so the client does not retarget you.
+  ZealSetting<bool> setting_animation_enabled = {false, "AssistBar", "AnimationTarget"};
+  // Hybrid fallback is session-only; the legacy refresh state is kept off in hybrid mode.
   ZealSetting<bool> setting_auto_refresh = {false, "AssistBar", "AutoRefresh"};
-  // Poll interval in ms (clamped to [5000, 60000]).
+  ZealSetting<bool> setting_hybrid_fallback = {false};  // Session-only; explicit opt-in every launch.
+  bool refresh_before_hybrid_ = false;    // Restore legacy refresh setting when hybrid turns off.
+  bool animation_before_hybrid_ = false;  // Restore the user's original animation option.
+  int mode_before_hybrid_ = 0;           // Restore defend mode if hybrid temporarily changed it.
+  // Quiet-time / retry interval in ms (clamped to [500, 60000]).
   ZealSetting<int> setting_refresh_interval_ms = {10000, "AssistBar", "RefreshIntervalMs"};
 
   // Internal callback use only.
   bool HandleLMouseUp(short x, short y);
 
-  // Fires a synthetic /assist (client do_assist with empty name = current target).
-  // suppress_retarget=true swallows the OP_Assist response so the client does not retarget you
-  // (used by auto-refresh polling and the AssistRefresh hotkey: bar updates, your target stays).
-  // false behaves exactly like typing /assist (the response retargets you to the assist entity).
+  // Existing Assist Refresh keybind: silent only if hybrid fallback explicitly enabled.
   void FireAssistRequest(bool suppress_retarget);
+  // Called by Zeal's normal /assist hook and Assist keybind to avoid queuing
+  // those two manual entry paths behind a synthetic request.
+  bool DeferTypedAssist(const std::vector<std::string>& args);
+  bool DeferKeybindAssist();
 
  private:
-  struct HitRecord {
-    WORD other_id = 0;      // The counterpart spawn id (victim or attacker).
-    DWORD timestamp_ms = 0;  // GetTickCount() when recorded.
-  };
-
-  void Clean();  // Resets state and releases all resources.
+  void Clean();  // Clear Spawn ID state on zoning.
+  void ReleaseDisplay();  // UI reset: do not drop an in-flight server reply.
   void ParseArgs(const std::vector<std::string> &args);
   void LoadBitmapFont();  // Loads the bitmap font for rendering.
   void CallbackRender();  // Displays the assist bar.
   void UpdateDrag();      // LMB drag & drop repositioning, polled at the end of CallbackRender.
   void HandleDamagePacket(const Zeal::Packets::Damage_Struct *dmg);
+  void HandleAnimationPacket(const Zeal::Packets::Animation_Struct *animation);
+  void SyncSelection(WORD id, DWORD now);  // Reset cached ToT on a genuine target change.
+  static bool ValidLivingEntity(WORD id);
 
   std::unique_ptr<BitmapFont> bitmap_font = nullptr;
   float stats_bar_width = 0;
   float stats_bar_height = 0;
 
-  // victim_of: attacker spawn id -> most recent victim it damaged.
-  // hit_by:    victim spawn id -> most recent attacker that damaged it.
-  std::unordered_map<WORD, HitRecord> victim_of;
-  std::unordered_map<WORD, HitRecord> hit_by;
+  PassiveTargetTracker observations_;
+  HybridAssistGate hybrid_;
+  WORD assist_response_id_ = 0;
+  WORD assist_response_source_ = 0;
+  DWORD assist_response_time_ = 0;
+  void OnAssistResponse(const Zeal::Packets::EntityId_Struct *packet);
+  void RunDeferredManualAssist();
 
-  // Authoritative candidate from the last OP_Assist response (synthetic or user-typed /assist).
-  WORD assist_response_id = 0;
-  DWORD assist_response_time = 0;  // GetTickCount() of the last response.
-
-  // Auto-refresh polling state.
-  DWORD last_poll_time = 0;
-  DWORD suppress_until_ms = 0;    // While now < this AND pending count > 0, swallow OP_Assist responses.
-  int pending_suppress_count = 0; // In-flight suppressed requests still owed a swallowed response.
-
-  // Target-change polling: an immediate suppressed request fires whenever the target changes so
-  // the ToT is authoritative within one server round-trip of each retarget (see CallbackRender).
-  WORD tracked_target_id = 0;      // Spawn id last polled for (0 = none / not self).
-  DWORD last_change_poll_time = 0; // Timestamp of the last target-change poll.
-  static constexpr DWORD kTargetChangePollCooldownMs = 2000;  // Rate limit so rapid cycling
-                                                              // (e.g. /ta) does not spam requests.
 
   // Cached from the last render for click handling (nullptr when nothing is drawn).
   Zeal::GameStructures::Entity *candidate_entity = nullptr;
