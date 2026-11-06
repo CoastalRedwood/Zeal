@@ -3,6 +3,74 @@
 Summarizes notable changes to Zeal
 
 
+## [1.5.0 - alpha0] - 2026/11/05
+
+### New features
+
+* Added support for a mouse hover tooltip window over items, spells, buffs, etc
+  - Shows the same text as alt-click and respects the Enhanced Info toggle.
+  - Attempts to estimate each line's length, and resize the window up to a maximum size.
+  - Suppresses the native blue tooltip while in use.
+  - Enabled with the `Mouseover Tooltips` checkbox in Zeal general settings
+  - Or use the `/mouseover` command with more configuration options (see repo readme)
+
+* Added `/melody` support for bard song item clicks
+  - /melody now supports bard song item clicks such as Breath of
+    Harmony, Denon's drums, Composers chest and greaves, Lute of
+    Flowing Waters, War drums, etc as one of the 5 song steps
+  - There is still the 5 song limit (gem songs and item songs)
+  - See repo readme for usage
+  - Implemented new client/server handshaking for item clickies
+
+* Nameplate updates
+  - Added another optional nameplate bar (like hp, mana, stamina) that shows
+    the game server tick. Supports /tickreverse. Self-only.
+    - `/nameplate tickbars [on|off]` or Zeal nameplate tab checkbox
+  - Added optional cast bars for NPCs, self, and players
+    - Cast times for non-self assume no cast time reductions so
+      the bar may clear early
+    - `/nameplate castbars [on|off]` or Zeal nameplate tab checkbox
+    - `/nameplate castbarsplayers [on|off` or nameplate tab checkbox
+
+* Added the following new UI EQTypes (requires UI skin updates to display)
+  - EQType 87: Target distance. Blank if no target or > 250.
+  - EQType 88: Target level
+  - EQType 89: Target class (3-letter short name)
+    - The level and class are blank for corpses, `/anon`, and `/roleplay` players
+
+* Added new `/labels showtargetdistance` command that enables appending
+  the target distance (if < 250) to the EQType 28 target name label
+
+* Added a `/raidbars autoregroup` option that caches the group
+  number when raid members leave and attempts to move them to
+  that group when they rejoin (for use with `/ari` by raid leaders)
+
+* Raidbars now render after nameplates so they are drawn on top
+
+* Added a `/uicursor [on|off]` setting that enables drawing the mouse cursor while the UI is hidden (F10)
+
+* Expanded the `/spelleffects` to new effects beyond nosprites and bard songs
+  - See repo readme for description of new global, buff, healing, and individual effect override options
+
+* Added new `/outputfile popflags` command to query the server and write the
+  current popflags output to `<name>-PopFlags.txt`
+  - `/outputfile hidepopflags` will hide the chat output
+  - `/outputfile popflagsoncamp` can enable saving with `export data on camp`
+
+* Named pipe upgrades
+  - Export target texture, gender and size, and target equipment material type
+  - Export a death event with the spawnid and killer's name
+  - Export the item id and name shown in an item display window when opened
+  - Fix incorrect pipe delay status print
+
+* Updated a few rng/mag spell categories used by right click spellset selection
+  - Protection of the Wild moved to match Warder's protection
+  - Belt and Girdle of Magi'Kot moved to Summon Armor
+  - Blade of Walnan, Fist of Ixiblat, and Blade of the Kedge moved to Summon Weapon
+
+* Patched the client to not truncate social names on reload to 8 characters (now 15-char limit)
+
+
 ## [1.4.8] - 2026/10/01
 
 ### New features
