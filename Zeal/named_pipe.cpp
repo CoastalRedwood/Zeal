@@ -224,6 +224,7 @@ bool IsPipeConnected(HANDLE hPipe) {
 
 void NamedPipe::main_loop() {
   update_pipe_handles();  // Handle thread synchronization.
+  auto_consider();
 
   if (!is_connected() || pipe_delay.get() <= 0)  // Don't waste cpu time if not connected or disabled.
     return;
@@ -593,6 +594,34 @@ void NamedPipe::write_consider(const Zeal::Packets::Consider_Struct &consider) {
   write(consider_data.dump(), pipe_data_type::consider);
 }
 
+// With /pipeconsider on, considers each new NPC target so that its faction standing reaches the pipe
+// without the player having to /consider it. The reply is kept out of chat (see handle_consider).
+void NamedPipe::auto_consider() {
+  bool enabled = pipe_consider.get() && is_connected() && Zeal::Game::is_in_game();
+  auto *target = enabled ? Zeal::Game::get_target() : nullptr;
+  int target_id = target ? target->SpawnId : 0;
+  if (target_id == last_target_id) return;
+  last_target_id = target_id;
+  if (!target || target == Zeal::Game::get_self() || target->Type != Zeal::GameEnums::EntityTypes::NPC) return;
+
+  ULONGLONG now = GetTickCount64();
+  std::erase_if(auto_considers, [now](const auto &request) { return now - request.second > kAutoConsiderTimeoutMs; });
+  auto_considers[target_id] = now;
+  Zeal::Game::do_consider(target, " ");
+}
+
+// Returns true when the reply answers a consider sent by auto_consider(), in which case the client does
+// not process it, so the consider message isn't printed to chat. Replies to the player's own considers
+// are left alone.
+bool NamedPipe::handle_consider(const Zeal::Packets::Consider_Struct &consider) {
+  if (is_connected()) write_consider(consider);
+  auto request = auto_considers.find(consider.targetid);
+  if (request == auto_considers.end()) return false;
+  bool ours = GetTickCount64() - request->second <= kAutoConsiderTimeoutMs;
+  auto_considers.erase(request);
+  return ours;
+}
+
 void NamedPipe::update_delay(unsigned new_delay) {
   pipe_delay.set(new_delay);
   Zeal::Game::print_chat("pipe delay is now set to %i", pipe_delay.get());
@@ -672,13 +701,26 @@ NamedPipe::NamedPipe(ZealService *zeal) {
         return false;  // continue processing
       },
       callback_type::WorldMessage);
+  zeal->commands_hook->Add("/pipeconsider", {}, "toggle considering each new NPC target for the pipe, without chat",
+                           [this](std::vector<std::string> &args) {
+                             if (args.size() > 1) {
+                               if (args[1] == "on") {
+                                 pipe_consider.set(true);
+                               } else if (args[1] == "off") {
+                                 pipe_consider.set(false);
+                               }
+                             } else {
+                               pipe_consider.set(!pipe_consider.get());
+                             }
+                             Zeal::Game::print_chat("pipe consider is now %s", pipe_consider.get() ? "on" : "off");
+                             return true;
+                           });
   // Consider replies. The server only sends the faction standing in reply to a consider, and it reflects
   // the player's state at that moment (illusions, invisibility, faction buffs, being engaged).
   zeal->callbacks->AddPacket(
       [this](UINT opcode, char *buffer, UINT len) {
-        if (opcode == Zeal::Packets::Consider && len >= sizeof(Zeal::Packets::Consider_Struct) && is_connected())
-          write_consider(*reinterpret_cast<Zeal::Packets::Consider_Struct *>(buffer));
-        return false;  // continue processing
+        if (opcode != Zeal::Packets::Consider || len < sizeof(Zeal::Packets::Consider_Struct)) return false;
+        return handle_consider(*reinterpret_cast<Zeal::Packets::Consider_Struct *>(buffer));
       },
       callback_type::WorldMessage);
   // zeal->hooks->Add("logtextfile", 0x5240dc, log_hook, hook_type_detour); //receiving this via print chat so we can
