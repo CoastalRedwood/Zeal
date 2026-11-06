@@ -352,7 +352,16 @@ void NamedPipe::main_loop() {
         if (distance_sq < 250.f * 250.f) player_data["target_loc"] = toJson(target->Position);
       }
       const auto *actor_info = Zeal::Game::get_self()->ActorInfo;
-      if (actor_info && actor_info->PetID > 0) player_data["pet_id"] = actor_info->PetID;
+      if (actor_info && actor_info->PetID > 0) {
+        player_data["pet_id"] = actor_info->PetID;
+        // No distance cap here (unlike target_loc): this is the player's own pet, and Zeal's map already draws it
+        // at any distance.
+        const auto *pet = Zeal::Game::get_entity_by_id(actor_info->PetID);
+        if (pet) {
+          player_data["pet_loc"] = toJson(pet->Position);
+          player_data["pet_heading"] = pet->Heading;
+        }
+      }
       // nlohmann::json data = { {"zone", Zeal::Game::get_self()->ZoneId}, {"location",
       // Zeal::Game::get_self()->Position.toJson() }, {"heading", Zeal::Game::get_self()->Heading}, {"autoattack",
       // (bool)(*(BYTE*)0x7f6ffe)} };
