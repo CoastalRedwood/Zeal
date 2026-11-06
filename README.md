@@ -876,6 +876,14 @@ stream describes a target or pet with only a name and an HP per-mille value.
 
 `target_id` and `pet_id` are omitted entirely when there is no target or no pet.
 
+The `player` message also carries your pet's position, so a map consumer can draw it without you
+targeting it:
+- `pet_loc` - the pet's current position, same `{x, y, z}` shape as `location`
+- `pet_heading` - the pet's current heading, same units as `heading`
+
+Both are omitted when there is no pet or its entity can't be found. Unlike `target_loc` there is
+no distance limit, since it is your own pet.
+
 #### Target descriptors
 The `player` message also describes the current target, so that a consumer can
 tell apart two spawns that share a name but are backed by different server
