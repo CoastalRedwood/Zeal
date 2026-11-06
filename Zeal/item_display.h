@@ -27,6 +27,7 @@ class ItemDisplay {
   }
   void handle_set_item(const Zeal::GameStructures::GAMEITEMINFO *item);
   ZealSetting<bool> setting_enhanced_spell_info = {true, "Zeal", "EnhancedSpellInfo", false};
+  ZealSetting<bool> setting_show_spell_id = {false, "Zeal", "ShowSpellId", false};
   ZealSetting<bool> setting_mouseover_tooltips = {false, "Zeal", "MouseoverTooltips", false};
   // 0 = no override; the tooltip window's native/default size is the max.
   ZealSetting<int> setting_mouseover_max_width = {0, "Zeal", "MouseoverMaxWidth", false};
