@@ -230,6 +230,7 @@ Zeal::GameStructures::Entity *get_entity_list();
 Zeal::GameStructures::Entity *get_self();
 Zeal::GameStructures::Entity *get_pet();
 Zeal::GameStructures::SPELLMGR *get_spell_mgr();
+const Zeal::GameStructures::SPELL* get_spell_from_id(int id);
 int get_spell_level(int spell_id);
 const char *get_spell_name(int spell_id);
 void dump_spell_info(int spell_id);

@@ -30,8 +30,7 @@ class Melody {
   void resume();  // continues a stopped melody where it was interrupted (if valid)
   void end(bool do_print = false, bool full_stop = true);
   void handle_stop_cast_callback(BYTE reason, WORD spell_id);
-  void handle_report_successful_hit(Zeal::GameStructures::Entity *source, Zeal::GameStructures::Entity *target,
-                                    WORD type, short spell_id, short damage, char out_text);
+
   void handle_deactivate_ui();
   bool use_item(int item_index);  // Returns true if melody queued /useitem(item_index).
   Melody(class ZealService *pHookWrapper);
@@ -42,11 +41,12 @@ class Melody {
   int get_next_gem_index();
   bool is_gem_ready(int gem_index);
   void stop_current_cast();
-  bool handle_opcode(int opcode);
+  bool handle_opcode(int opcode, char *buffer, UINT len);
   bool activate_use_item();
   void dump() const;
 
   bool is_active = false;                          // Set when melody is actively running.
+  bool is_verbose = false;                         // Emits extra chat spam messages (debug).
   int current_index = 0;                           // Active step index. -1 if not started yet.
   std::vector<MelodyStep> songs;                   // The rotation: gem steps and item steps.
   int retry_count = 0;                             // Tracks unsuccessful song casts.
