@@ -8,6 +8,7 @@
 #include <regex>
 
 #include "callbacks.h"
+#include "commands.h"
 #include "game_addresses.h"
 #include "game_functions.h"
 #include "hook_wrapper.h"
@@ -728,8 +729,17 @@ static std::string get_target_type_string(int target_type) {
   return std::string("Target: ") + std::string(type);
 }
 
+// Optional last line with the spell id, which buff blockers and other id-based tools need.
+static void AppendSpellId(Zeal::GameUI::ItemDisplayWnd *wnd, int spell_id) {
+  if (ZealService::get_instance()->item_displays->setting_show_spell_id.get() && wnd->DisplayText.Data)
+    wnd->DisplayText.Append(std::format("Spell ID: {}<BR>", spell_id));
+}
+
 void UpdateSetSpellText(Zeal::GameUI::ItemDisplayWnd *wnd, int spell_id, bool buff) {
-  if (UpdateSetSpellTextEnhanced(wnd, spell_id, buff)) return;
+  if (UpdateSetSpellTextEnhanced(wnd, spell_id, buff)) {
+    AppendSpellId(wnd, spell_id);
+    return;
+  }
 
   auto *spell_mgr = Zeal::Game::get_spell_mgr();
   if (!spell_mgr || spell_id < 1 || spell_id >= GAME_NUM_SPELLS || wnd->DisplayText.Data == nullptr) return;
@@ -750,6 +760,7 @@ void UpdateSetSpellText(Zeal::GameUI::ItemDisplayWnd *wnd, int spell_id, bool bu
   if (sp_data->Location > 0 && sp_data->Location < 3)
     wnd->DisplayText.Append(std::string("Location: ") +
                             std::string((sp_data->Location == 1) ? "Outdoors" : "Dungeons") + stml_line_break);
+  AppendSpellId(wnd, spell_id);
 }
 
 void __fastcall SetSpell(Zeal::GameUI::ItemDisplayWnd *wnd, int unused, int spell_id, bool show, int unknown) {
@@ -882,6 +893,20 @@ ItemDisplay::ItemDisplay(ZealService *zeal) {
   zeal->callbacks->AddGeneric([this]() { InitUI(); }, callback_type::InitUI);
   zeal->callbacks->AddGeneric([this]() { CleanUI(); }, callback_type::CleanUI);
   zeal->callbacks->AddGeneric([this]() { DeactivateUI(); }, callback_type::DeactivateUI);
+  zeal->commands_hook->Add("/spellid", {}, "Toggles (or sets on / off) the spell id line in spell info windows.",
+                           [this](std::vector<std::string> &args) {
+                             if (args.size() == 1)
+                               setting_show_spell_id.toggle();
+                             else if (args.size() == 2 && (args[1] == "on" || args[1] == "off"))
+                               setting_show_spell_id.set(args[1] == "on");
+                             else {
+                               Zeal::Game::print_chat("Usage: /spellid [on|off]");
+                               return true;
+                             }
+                             Zeal::Game::print_chat("Spell ID in spell info: %s",
+                                                    setting_show_spell_id.get() ? "on" : "off");
+                             return true;
+                           });
   zeal->callbacks->AddGeneric(
       [this]() {
         if (!windows.empty()) {
