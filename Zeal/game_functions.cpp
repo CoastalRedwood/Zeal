@@ -2245,7 +2245,7 @@ Zeal::GameStructures::GAMEITEMINFO *get_inventory_item_from_global_slot_id(int s
   int bag_index = (slot_id - GAME_CONTAINER_SLOTS_START) % GAME_NUM_CONTAINER_SLOTS;
 
   auto bag = char_info->InventoryPackItem[bag_slot];
-  if (!bag) {
+  if (!bag || bag->Type != 1) {
     if (print_error) Zeal::Game::print_chat(USERCOLOR_SPELL_FAILURE, "You don't have a bag in Slot %i", bag_slot + 1);
     return nullptr;
   }
