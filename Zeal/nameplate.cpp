@@ -1481,9 +1481,11 @@ bool NamePlate::check_for_tag_channel_message(const char *message, int color_ind
   if (start_index == std::string::npos || end_index < start_index + 10 || msg[end_index] != '\'') return false;
 
   // And do another very simple and quick initial check to bail out early.
-  if (msg[start_index + 1] != 'Z') return false;
-
-  std::string contents = msg.substr(start_index + 1, end_index - 1);
+  start_index += 1;  // Strip leading and trailing '.
+  end_index -= 1;
+  if (msg[start_index] != 'Z') return false;
+  size_t count = end_index - start_index + 1;
+  std::string contents = msg.substr(start_index, count);
   if (!handle_tag_message(contents.c_str())) return false;
 
   return setting_tag_suppress.get();
