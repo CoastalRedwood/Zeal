@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <ctime>
+#include <fstream>
 #include <string>
 
 #include "callbacks.h"
@@ -279,6 +281,7 @@ NamePlate::NamePlate(ZealService *zeal) {
         return false;  // continue processing
       },
       callback_type::WorldMessage);
+  zeal->callbacks->AddGeneric([this]() { sync_saved_tags(); }, callback_type::MainLoop);
 }
 
 NamePlate::~NamePlate() {}
@@ -540,7 +543,8 @@ void NamePlate::render_ui() {
 
     // Support optional tag text and healthbar for zeal font mode only.
     bool is_corpse = entity->Type >= Zeal::GameEnums::NPCCorpse;
-    bool add_text_tag = !is_corpse && !info.tag_text.empty();
+    bool show_tag = !is_corpse || info.corpse_tag;
+    bool add_text_tag = show_tag && !info.tag_text.empty();
     std::string full_text = add_text_tag ? info.tag_text + info.text : info.text;
     if (setting_health_bars.get() && is_hp_updated(entity)) {
       const char healthbar[4] = {'\n', BitmapFontBase::kStatsBarBackground, BitmapFontBase::kHealthBarValue, 0};
@@ -578,7 +582,7 @@ void NamePlate::render_ui() {
     if (!full_text.empty()) sprite_font->queue_string(full_text.c_str(), position, true, nameplate_color);
 
     // If an explicit tag color was set, use that color otherwise use the nameplate color.
-    if (!is_corpse && info.tag_color != TagArrowColor::Off) {
+    if (show_tag && info.tag_color != TagArrowColor::Off) {
       auto tag_color = (info.tag_color == TagArrowColor::Nameplate) ? nameplate_color : info.tag_color;
       TagArrows::Shape shape = (tag_color == TagArrowColor::Paw)        ? TagArrows::Shape::Paw
                                : (tag_color == TagArrowColor::StopSign) ? TagArrows::Shape::Octagon
@@ -721,7 +725,8 @@ bool NamePlate::handle_SetNameSpriteTint(Zeal::GameStructures::Entity *entity) {
   bool is_target = (entity == Zeal::Game::get_target());
   bool is_corpse = (entity->Type >= Zeal::GameEnums::NPCCorpse);
   auto it = zeal_fonts ? nameplate_info_map.find(entity) : nameplate_info_map.end();
-  if (!is_target && !is_corpse && it != nameplate_info_map.end() && !it->second.tag_text.empty() &&
+  if (!is_target && it != nameplate_info_map.end() && (!is_corpse || it->second.corpse_tag) &&
+      !it->second.tag_text.empty() &&
       (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate) &&
       !setting_tag_disable_tagged_color.get())
     color_index = ColorIndex::Tagged;
@@ -948,16 +953,135 @@ void NamePlate::clear_tags() {
     pair.second.tag_text = "";
     pair.second.tag_color = TagArrowColor::Off;
   }
+  if (!saved_tags.empty()) {
+    saved_tags.clear();
+    saved_tags_dirty = true;
+  }
+}
+
+static constexpr int kSavedTagMaxAgeMinutes = 3 * 60;  // Long enough for a raid, short of a repop.
+static constexpr ULONGLONG kSavedTagSyncIntervalMs = 1000;
+
+static int get_minutes_since_epoch() { return static_cast<int>(std::time(nullptr) / 60); }
+
+// Called from the main loop. Saves live tags, restores them onto nameplates that were just created
+// (after zoning or a character switch) and rewrites the character's file when the tags changed.
+void NamePlate::sync_saved_tags() {
+  if (!setting_tag_persist.get() || !setting_tag_enable.get() || !Zeal::Game::is_in_game()) return;
+
+  const ULONGLONG now_ms = GetTickCount64();
+  if (now_ms < saved_tags_next_sync) return;
+  saved_tags_next_sync = now_ms + kSavedTagSyncIntervalMs;
+
+  const auto *self = Zeal::Game::get_self();
+  const auto *char_info = Zeal::Game::get_char_info();
+  if (!self || !char_info) return;
+
+  if (saved_tags_character != char_info->Name) {  // Login or character switch.
+    saved_tags_character = char_info->Name;
+    saved_tags_filename = Zeal::Game::get_game_path() / std::filesystem::path(saved_tags_character + "_tags.txt");
+    load_saved_tags();
+  }
+
+  const int minute = get_minutes_since_epoch();
+  for (auto *entity = Zeal::Game::get_entity_list(); entity; entity = entity->Next) {
+    auto it = nameplate_info_map.find(entity);
+    if (it == nameplate_info_map.end() || !entity->SpawnId) continue;
+
+    NamePlateInfo &info = it->second;
+    const bool tagged = !info.tag_text.empty() || info.tag_color != TagArrowColor::Off;
+    if (!tagged && saved_tags.empty()) {
+      info.tag_synced = true;
+      continue;
+    }
+
+    // Spawn ids are only unique within a zone and a player gets a new one on each zone-in.
+    const std::string name = Zeal::Game::strip_name(entity->Name);
+    const std::string key =
+        (entity->Type == Zeal::GameEnums::Player) ? name : std::format("{}:{}", self->ZoneId, entity->SpawnId);
+    auto saved = saved_tags.find(key);
+
+    if (entity->Type >= Zeal::GameEnums::NPCCorpse) {  // A kill ends the tag.
+      if (saved != saved_tags.end()) {
+        saved_tags.erase(saved);
+        saved_tags_dirty = true;
+      }
+      continue;
+    }
+
+    if (tagged) {
+      std::string text = info.tag_text;
+      if (!text.empty() && text.back() == '\n') text.pop_back();
+      if (saved == saved_tags.end() || saved->second.name != name || saved->second.text != text ||
+          saved->second.color != info.tag_color) {
+        saved_tags[key] = {name, text, info.tag_color, minute};
+        saved_tags_dirty = true;
+      } else {
+        saved->second.minute = minute;
+      }
+    } else if (saved != saved_tags.end()) {
+      if (info.tag_synced || saved->second.name != name) {  // Cleared while in view, or another mob has the id.
+        saved_tags.erase(saved);
+        saved_tags_dirty = true;
+      } else {  // A new nameplate for a saved tag: restore it.
+        info.tag_text = saved->second.text.empty() ? "" : saved->second.text + "\n";
+        info.tag_color = saved->second.color;
+        saved->second.minute = minute;
+      }
+    }
+    info.tag_synced = true;
+  }
+
+  auto expired = [minute](const auto &entry) { return minute - entry.second.minute > kSavedTagMaxAgeMinutes; };
+  if (std::erase_if(saved_tags, expired)) saved_tags_dirty = true;
+  if (saved_tags_dirty) write_saved_tags();
+}
+
+// File format, one tab separated tag per line: key, minute, color, text, name. Entries already held in memory
+// (from a previous character this session) are kept when they are newer.
+void NamePlate::load_saved_tags() {
+  std::ifstream file(saved_tags_filename);
+  const int minute = get_minutes_since_epoch();
+  std::string line;
+  while (std::getline(file, line)) {
+    auto fields = Zeal::String::split_text(line, "\t");
+    int saved_minute = 0;
+    int color = 0;
+    if (fields.size() != 5 || !Zeal::String::tryParse(fields[1], &saved_minute, true) ||
+        !Zeal::String::tryParse(fields[2], &color, true) || minute - saved_minute > kSavedTagMaxAgeMinutes)
+      continue;
+
+    auto it = saved_tags.find(fields[0]);
+    if (it == saved_tags.end() || it->second.minute < saved_minute)
+      saved_tags[fields[0]] = {fields[4], fields[3], static_cast<DWORD>(color), saved_minute};
+  }
+}
+
+void NamePlate::write_saved_tags() {
+  saved_tags_dirty = false;
+  std::ofstream file(saved_tags_filename);
+  if (!file.is_open()) {
+    Zeal::Game::print_chat("Error: Failed to save tags to %s_tags.txt", saved_tags_character.c_str());
+    return;
+  }
+  for (const auto &[key, tag] : saved_tags)
+    file << key << '\t' << tag.minute << '\t' << static_cast<int>(tag.color) << '\t' << tag.text << '\t' << tag.name
+         << '\n';
 }
 
 static constexpr int kMaxTagTextLength = 32;
+
+// NPCs and both kinds of corpses take tag text; players only take an explicit shape.
+static bool takes_tag_text(const Zeal::GameStructures::Entity *entity) {
+  return entity->Type == Zeal::GameEnums::EntityTypes::NPC || entity->Type == Zeal::GameEnums::EntityTypes::NPCCorpse ||
+         entity->Type == Zeal::GameEnums::EntityTypes::PlayerCorpse;
+}
 
 // This may not be 100% correct in terms of visible nameplates but should be fairly good.
 static bool is_taggable_target(const Zeal::GameStructures::Entity *target) {
   if (!target) return false;
 
-  if (target->Type != Zeal::GameEnums::EntityTypes::Player && target->Type != Zeal::GameEnums::EntityTypes::NPC)
-    return false;
+  if (target->Type != Zeal::GameEnums::EntityTypes::Player && !takes_tag_text(target)) return false;
 
   if (!target->ActorInfo || !target->ActorInfo->ViewActor_ || !target->ActorInfo->DagHeadPoint) return false;
 
@@ -1067,6 +1191,12 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
     return;
   }
 
+  if (args.size() >= 2 && args[1] == "persist") {
+    if (args.size() > 2) setting_tag_persist.set(args[2] == "on");
+    Zeal::Game::print_chat("Tag persistence: %s", setting_tag_persist.get() ? "on" : "off");
+    return;
+  }
+
   if (args.size() == 3 && args[1] == "channel") {
     broadcast_tag_set_channel(args[2]);
     return;
@@ -1146,7 +1276,7 @@ void NamePlate::handle_tag_command(const std::vector<std::string> &args) {
   }
 
   Zeal::Game::print_chat("Usage: /tag <on | off | clear>");
-  Zeal::Game::print_chat("Usage: /tag <tooltip | filter | suppress | prettyprint> <on | off>");
+  Zeal::Game::print_chat("Usage: /tag <tooltip | filter | suppress | prettyprint | persist> <on | off>");
   Zeal::Game::print_chat("Usage: /tag target <text_to_match>");
   Zeal::Game::print_chat("Usage: /tag <gsay | rsay | rsgs | chat | local> <message | clear | channel>");
   Zeal::Game::print_chat("Usage: <message> prefixes: '+' to append, '^R^' or '*R:' for color arrow (R, O, Y, G, B, W)");
@@ -1245,6 +1375,13 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
 
   if (!apply) return true;
 
+  // The first tag on a corpse replaces the tag the mob had before it died (kept hidden until now).
+  if (entity->Type >= Zeal::GameEnums::NPCCorpse && takes_tag_text(entity) && !it->second.corpse_tag) {
+    it->second.tag_text = "";
+    it->second.tag_color = TagArrowColor::Off;
+    it->second.corpse_tag = true;
+  }
+
   // Convert any characters that are not visible ASCII to ?.
   std::string tag_text = split[1];
   for (char &c : tag_text)
@@ -1268,12 +1405,12 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
   if (erase) it->second.tag_text = "";
 
   // The tag arrow is either enabled explicitly with a specific color (which must be disabled explicitly)
-  // or enabled by default on a NPC if there is any tag text (can suppress with ^-^).
+  // or enabled by default on a NPC or corpse if there is any tag text (can suppress with ^-^).
   if (tag_text.size() > 2 && tag_text[0] == '^') {
     it->second.tag_color = GetTagArrowColor(tag_text[1]);
     tag_text = tag_text.substr(2);
   } else if (it->second.tag_color == TagArrowColor::Off || it->second.tag_color == TagArrowColor::Nameplate) {
-    bool disable_arrow = !setting_tag_default_arrow.get() || entity->Type != Zeal::GameEnums::NPC ||
+    bool disable_arrow = !setting_tag_default_arrow.get() || !takes_tag_text(entity) ||
                          (tag_text.empty() && it->second.tag_text.empty());
     it->second.tag_color = disable_arrow ? TagArrowColor::Off : TagArrowColor::Nameplate;
   }
@@ -1288,8 +1425,8 @@ bool NamePlate::handle_tag_message(const char *message, bool apply, bool allow_m
   tag_text = Zeal::String::trim_and_reduce_spaces(tag_text);  // Cleanup leading/trailing/multiple internal spaces.
 
   // If empty now it was a prefix only command which were handled above (append  / flush are no-ops).
-  // We also only allow text tag content on NPCs's.
-  if (tag_text.empty() || entity->Type != Zeal::GameEnums::NPC) return true;
+  // We also only allow text tag content on NPCs and corpses.
+  if (tag_text.empty() || !takes_tag_text(entity)) return true;
 
   if (flush_others_append || flush_others_no_append)
     for (auto &entry : nameplate_info_map) RemoveTagTextField(tag_text, entry.second.tag_text, entry.second.tag_color);
