@@ -51,7 +51,7 @@ void ExperienceCalc::update(int level, int exp) {
   float duration_secs = static_cast<float>((GetTickCount64() - exp_queue.front().timestamp)) / 1000.f;
   duration_secs = std::clamp(duration_secs, 10.f, 2 * 60 * 60.f);  // Clamp between 10 sec to 2 hours.
   float exp_per_hour = delta_exp / duration_secs * 60 * 60;
-  exp_per_hour_pct = std::clamp(exp_per_hour * 100.f, 0.f, 600.f);  // Clamp 0 to 600%.
+  exp_per_hour_pct = std::clamp(exp_per_hour * 100.f, 0.f, 999.f);  // Clamp 0 to 999%.
 }
 
 Experience::Experience(ZealService *zeal) {
@@ -164,7 +164,7 @@ int Experience::get_aa_total_points() const {
   auto self = Zeal::Game::get_self();
   auto char_info = self ? self->CharInfo : nullptr;
   int exp = char_info ? self->CharInfo->AlternateAdvancementExperience : -1;
-  if (total_points < 0 || total_points > 500 || exp < 0 || exp > ExperienceCalc::kExpPerLevel) return -1;
+  if (total_points < 0 || total_points > 1000 || exp < 0 || exp > ExperienceCalc::kExpPerLevel) return -1;
   return total_points;
 }
 
