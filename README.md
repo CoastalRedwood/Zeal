@@ -897,6 +897,20 @@ targeting it:
 Both are omitted when there is no pet or its entity can't be found. Unlike `target_loc` there is
 no distance limit, since it is your own pet.
 
+#### Raid and group appearance
+`raid` (type 5) and `group` (type 6) members that are in the zone with you carry an `appearance`
+object describing how they are rendered, so a consumer (a map or replay viewer) can draw them as
+they look in game. All of it is what anyone looking at them sees.
+
+- `race`, `gender`, `texture`, `size` - race, gender, body texture and model size (height scale)
+- `face`, `hair_style`, `hair_color`, `beard_style`, `beard_color` - face and Luclin hair and beard
+- `equipment` - array of 9 values in the same layout as `target_equipment`: the rendered material of
+  the head, chest, arms, wrist, hands, legs and feet slots, then the primary and secondary item types
+- `equipment_colors` - array of 7 values: the tint of each material slot as the client stores it,
+  `0xRRGGBB` in the low 24 bits
+
+`appearance` is omitted, like `spawn_id` and `loc`, for raid members who aren't in the zone.
+
 #### Target descriptors
 The `player` message also describes the current target, so that a consumer can
 tell apart two spawns that share a name but are backed by different server

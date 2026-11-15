@@ -149,6 +149,34 @@ static nlohmann::json toJson(const Vec3 &position) {
   return data;
 }
 
+// How a player is rendered, as anyone looking at them sees it: race, gender, model size, face,
+// hair and beard, and the worn equipment with its tints. Lets a consumer draw raid and group
+// members as they look in game rather than guessing.
+static nlohmann::json appearanceJson(const Zeal::GameStructures::Entity *entity) {
+  nlohmann::json data = nlohmann::json::object();
+  data["race"] = entity->Race;      // RACE_x
+  data["gender"] = entity->Gender;  // GENDER_x
+  data["texture"] = entity->Texture;
+  data["size"] = entity->Height;  // Model height / scale.
+  data["face"] = entity->Face;
+  data["hair_style"] = entity->HairStyle;
+  data["hair_color"] = entity->HairColor;
+  data["beard_style"] = entity->BeardStyle;
+  data["beard_color"] = entity->BeardColor;
+  // Same layout as target_equipment: 7 material slots (head, chest, arms, wrist, hands, legs, feet)
+  // followed by the primary and secondary item types.
+  nlohmann::json equipment = nlohmann::json::array();
+  for (int i = 0; i < 7; ++i) equipment.push_back(entity->EquipmentMaterialType[i]);
+  equipment.push_back(entity->EquipmentPrimaryItemType);
+  equipment.push_back(entity->EquipmentSecondaryItemType);
+  data["equipment"] = equipment;
+  // The tint of each of the 7 material slots, as the client stores it (0xRRGGBB in the low 24 bits).
+  nlohmann::json colors = nlohmann::json::array();
+  for (int i = 0; i < 7; ++i) colors.push_back(entity->EquipmentMaterialColor[i]);
+  data["equipment_colors"] = colors;
+  return data;
+}
+
 pipe_data::pipe_data(pipe_data_type _type, std::string _data) {
   data = _data;
   if (Zeal::Game::is_in_game() && Zeal::Game::get_self())
@@ -217,6 +245,7 @@ void NamedPipe::main_loop() {
           raid_data["spawn_id"] = entity->SpawnId;
           raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
+          raid_data["appearance"] = appearanceJson(entity);
           if (pipe_verbose.get()) {
             raid_data["hp_current"] = entity->HpCurrent;
             raid_data["hp_max"] = entity->HpMax;
@@ -251,6 +280,7 @@ void NamedPipe::main_loop() {
           group_data["spawn_id"] = member->SpawnId;
           group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
+          group_data["appearance"] = appearanceJson(member);
           if (pipe_verbose.get()) {
             group_data["hp_current"] = member->HpCurrent;
             group_data["hp_max"] = member->HpMax;
