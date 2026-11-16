@@ -497,6 +497,43 @@ void NamedPipe::write_death(const Zeal::Packets::Death_Struct &death) {
   write(death_data.dump(), pipe_data_type::death);
 }
 
+// Sent for each spell action packet (type 231). The server sends one to the caster, the target and the
+// clients near the target for every cast attempt, resists included, and a second one with the success flag
+// only to the caster and the target. The chat log's spell landed messages carry no spawn ids, so this is what
+// lets a consumer tell apart two spawns with the same name.
+void NamedPipe::write_spell_action(const Zeal::Packets::Action_Struct &action) {
+  const int mode = pipe_spells.get();
+  if (mode <= 0) return;
+  const auto *spell = Zeal::Game::get_spell_from_id(action.spell);
+  if (!spell) return;
+  if (mode == 1 && spell->SpellType != 0) return;  // Detrimental only.
+
+  nlohmann::json spell_data = nlohmann::json::object();
+  spell_data["spell_id"] = action.spell;
+  spell_data["source_id"] = action.source;
+  spell_data["target_id"] = action.target;
+  spell_data["success"] = action.buff_unknown == 0x04;
+  const auto *source = Zeal::Game::get_entity_by_id(static_cast<short>(action.source));
+  if (source) spell_data["source_name"] = std::string(Zeal::Game::trim_name(source->Name));
+  const auto *target = Zeal::Game::get_entity_by_id(static_cast<short>(action.target));
+  if (target) spell_data["target_name"] = std::string(Zeal::Game::trim_name(target->Name));
+  write(spell_data.dump(), pipe_data_type::spell);
+}
+
+void NamedPipe::update_pipe_spells(const std::string &mode) {
+  if (mode == "off")
+    pipe_spells.set(0);
+  else if (mode == "detrimental")
+    pipe_spells.set(1);
+  else if (mode == "all")
+    pipe_spells.set(2);
+  else if (!mode.empty())
+    Zeal::Game::print_chat("usage: /pipespells [all | detrimental | off]");
+  static const char *names[] = {"off", "detrimental", "all"};
+  const int value = pipe_spells.get();
+  Zeal::Game::print_chat("pipe spells is now %s", (value >= 0 && value <= 2) ? names[value] : "off");
+}
+
 // Sent when an item display window is filled (an item link was clicked, or an item was inspected
 // from an inventory, bank, loot or merchant slot).
 void NamedPipe::write_item(int item_id, const std::string &name) {
@@ -556,6 +593,11 @@ NamedPipe::NamedPipe(ZealService *zeal) {
                              Zeal::Game::print_chat("pipe verbose is now %s", pipe_verbose.get() ? "on" : "off");
                              return true;
                            });
+  zeal->commands_hook->Add("/pipespells", {}, "sets which spell actions go over the pipe: all, detrimental or off",
+                           [this](std::vector<std::string> &args) {
+                             update_pipe_spells(args.size() > 1 ? args[1] : "");
+                             return true;
+                           });
   zeal->commands_hook->Add("/pipe", {}, "outputs text to a pipe", [this](std::vector<std::string> &args) {
     std::string full_str = ArgsToString(args, " ");
     Zeal::Game::DoPercentConvert(full_str);
@@ -571,6 +613,11 @@ NamedPipe::NamedPipe(ZealService *zeal) {
       [this](UINT opcode, char *buffer, UINT len) {
         if (opcode == Zeal::Packets::DeathDamage && len >= sizeof(Zeal::Packets::Death_Struct) && is_connected())
           write_death(*reinterpret_cast<Zeal::Packets::Death_Struct *>(buffer));
+        // Spell actions, for tying a spell landed chat message to the spawn it landed on (type 231 is a spell).
+        if (opcode == Zeal::Packets::Action && len >= sizeof(Zeal::Packets::Action_Struct) && is_connected()) {
+          const auto *action = reinterpret_cast<const Zeal::Packets::Action_Struct *>(buffer);
+          if (action->type == 231) write_spell_action(*action);
+        }
         return false;  // continue processing
       },
       callback_type::WorldMessage);
