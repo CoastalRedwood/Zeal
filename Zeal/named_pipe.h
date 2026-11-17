@@ -51,7 +51,7 @@ class NamedPipe {
   void update_pipe_handles();
   ZealSetting<int> pipe_delay = {100, "Zeal", "PipeDelay", false};
   ZealSetting<bool> pipe_verbose = {false, "Zeal", "PipeVerbose", false};
-  ZealSetting<int> pipe_spells = {2, "Zeal", "PipeSpells", false};  // 0 off, 1 detrimental only, 2 all.
+  ZealSetting<int> pipe_spells = {0, "Zeal", "PipeSpells", false};  // 0 off, 1 detrimental only, 2 all.
   bool end_thread = false;
   std::string name = "\\\\.\\pipe\\zeal_";
   std::vector<HANDLE> pipe_handles;

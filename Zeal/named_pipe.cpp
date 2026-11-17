@@ -521,17 +521,21 @@ void NamedPipe::write_spell_action(const Zeal::Packets::Action_Struct &action) {
 }
 
 void NamedPipe::update_pipe_spells(const std::string &mode) {
+  static const char *names[] = {"off", "detrimental", "all"};
+  bool changed = true;
   if (mode == "off")
     pipe_spells.set(0);
   else if (mode == "detrimental")
     pipe_spells.set(1);
   else if (mode == "all")
     pipe_spells.set(2);
-  else if (!mode.empty())
-    Zeal::Game::print_chat("usage: /pipespells [all | detrimental | off]");
-  static const char *names[] = {"off", "detrimental", "all"};
+  else {
+    changed = false;
+    if (!mode.empty()) Zeal::Game::print_chat("usage: /pipespells [all | detrimental | off]");
+  }
   const int value = pipe_spells.get();
-  Zeal::Game::print_chat("pipe spells is now %s", (value >= 0 && value <= 2) ? names[value] : "off");
+  const char *name = (value >= 0 && value <= 2) ? names[value] : "off";
+  Zeal::Game::print_chat("pipe spells %s %s", changed ? "is now" : "is", name);
 }
 
 // Sent when an item display window is filled (an item link was clicked, or an item was inspected

@@ -346,7 +346,7 @@ ___
 - `/pipespells`
   - **Arguments:** `all`, `detrimental`, `off`
   - **Example:** `/pipespells detrimental`
-  - **Description:** sets which spell actions are sent over the named pipe (default `all`). With no
+  - **Description:** sets which spell actions are sent over the named pipe (default `off`). With no
     argument it prints the current setting.
 
 - `/playerclickthru`
@@ -959,8 +959,8 @@ A `spell` message (type 9) is sent for each spell action the client receives, so
   including resists, then a second one with `success` set only to the caster and the target. A
   bystander therefore only sees `success: false` messages.
 - `source_name`, `target_name` - trimmed names, omitted if the client does not know the spawn
-- `/pipespells` picks what is sent: `all` (default), `detrimental` (spells flagged detrimental only),
-  or `off`.
+- `/pipespells` picks what is sent: `off` (default), `detrimental` (spells flagged detrimental only),
+  or `all`. It's off until a user turns it on.
 
 ---
 ### Tick Timer
