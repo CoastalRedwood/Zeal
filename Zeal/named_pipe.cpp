@@ -605,8 +605,12 @@ void NamedPipe::auto_consider() {
   if (!target || target == Zeal::Game::get_self() || target->Type != Zeal::GameEnums::EntityTypes::NPC) return;
 
   ULONGLONG now = GetTickCount64();
-  std::erase_if(auto_considers, [now](const auto &request) { return now - request.second > kAutoConsiderTimeoutMs; });
-  auto_considers[target_id] = now;
+  for (auto it = auto_considers.begin(); it != auto_considers.end();) {
+    auto &times = it->second;
+    while (!times.empty() && now - times.front() > kAutoConsiderTimeoutMs) times.pop_front();
+    it = times.empty() ? auto_considers.erase(it) : std::next(it);
+  }
+  auto_considers[target_id].push_back(now);  // Queued, so targeting A, B, A before replies keeps both of A's.
   Zeal::Game::do_consider(target, " ");
 }
 
@@ -615,10 +619,17 @@ void NamedPipe::auto_consider() {
 // are left alone.
 bool NamedPipe::handle_consider(const Zeal::Packets::Consider_Struct &consider) {
   if (is_connected()) write_consider(consider);
+  // Replies carry nothing that says who asked, so each reply for a spawn uses up its oldest pending
+  // request. A manual consider racing an automatic one may swap which of the two (identical) replies
+  // is kept out of chat, but exactly one still prints per consider the player made.
   auto request = auto_considers.find(consider.targetid);
   if (request == auto_considers.end()) return false;
-  bool ours = GetTickCount64() - request->second <= kAutoConsiderTimeoutMs;
-  auto_considers.erase(request);
+  auto &times = request->second;
+  ULONGLONG now = GetTickCount64();
+  while (!times.empty() && now - times.front() > kAutoConsiderTimeoutMs) times.pop_front();
+  bool ours = !times.empty();
+  if (ours) times.pop_front();
+  if (times.empty()) auto_considers.erase(request);
   return ours;
 }
 

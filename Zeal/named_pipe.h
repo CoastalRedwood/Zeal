@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 
+#include <deque>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -60,7 +61,8 @@ class NamedPipe {
   ZealSetting<int> pipe_spells = {0, "Zeal", "PipeSpells", false};  // 0 off, 1 detrimental only, 2 all.
   ZealSetting<bool> pipe_consider = {false, "Zeal", "PipeConsider", false};
   int last_target_id = 0;                              // Spawn id of the target at the last auto_consider() check.
-  std::unordered_map<int, ULONGLONG> auto_considers;  // Spawn id -> request time of considers sent by auto_consider().
+  // Spawn id -> request times, oldest first, of the considers auto_consider() sent and hasn't seen a reply to.
+  std::unordered_map<int, std::deque<ULONGLONG>> auto_considers;
   bool end_thread = false;
   std::string name = "\\\\.\\pipe\\zeal_";
   std::vector<HANDLE> pipe_handles;
