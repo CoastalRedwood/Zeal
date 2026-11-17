@@ -245,8 +245,8 @@ void NamedPipe::main_loop() {
           raid_data["spawn_id"] = entity->SpawnId;
           raid_data["loc"] = toJson(entity->Position);
           raid_data["heading"] = entity->Heading;
-          raid_data["appearance"] = appearanceJson(entity);
           if (pipe_verbose.get()) {
+            raid_data["appearance"] = appearanceJson(entity);
             raid_data["hp_current"] = entity->HpCurrent;
             raid_data["hp_max"] = entity->HpMax;
             raid_data["zone_id"] = entity->ZoneId;
@@ -280,8 +280,8 @@ void NamedPipe::main_loop() {
           group_data["spawn_id"] = member->SpawnId;
           group_data["loc"] = toJson(member->Position);
           group_data["heading"] = member->Heading;
-          group_data["appearance"] = appearanceJson(member);
           if (pipe_verbose.get()) {
+            group_data["appearance"] = appearanceJson(member);
             group_data["hp_current"] = member->HpCurrent;
             group_data["hp_max"] = member->HpMax;
             group_data["class"] = member->Class;
