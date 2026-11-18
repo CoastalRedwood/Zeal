@@ -3,7 +3,7 @@
 Summarizes notable changes to Zeal
 
 
-## [1.5.0 - alpha0] - 2026/11/05
+## [1.5.0] - 2026/11/18
 
 ### New features
 
@@ -21,6 +21,7 @@ Summarizes notable changes to Zeal
   - There is still the 5 song limit (gem songs and item songs)
   - See repo readme for usage
   - Implemented new client/server handshaking for item clickies
+  - Added a check to ensure the bag type is valid before accessing for clickies
 
 * Nameplate updates
   - Added another optional nameplate bar (like hp, mana, stamina) that shows
@@ -31,6 +32,15 @@ Summarizes notable changes to Zeal
       the bar may clear early
     - `/nameplate castbars [on|off]` or Zeal nameplate tab checkbox
     - `/nameplate castbarsplayers [on|off` or nameplate tab checkbox
+  - Added /tag persist [on|off] to enable optional tag persistence across game sessions (saves every 3 mins)
+  - Added NPC/PC corpse tagging support (tags added pre-corpse are wiped at death)
+  - Added a name check in addition to spawn ids to filter out spawn id collisions when a player is in another zone
+
+* Added new /spellid [on|off] that adds a "Spell ID: " line to spell info windows
+
+* Increase exp/hour caps from 600% to 999% and max AA sanity check to 1000 total points
+  - The previous sanity check was 500 which has been reached by some PoP players
+    blocking AA exp/hour updates
 
 * Added the following new UI EQTypes (requires UI skin updates to display)
   - EQType 87: Target distance. Blank if no target or > 250.
@@ -61,6 +71,7 @@ Summarizes notable changes to Zeal
   - Export target texture, gender and size, and target equipment material type
   - Export a death event with the spawnid and killer's name
   - Export the item id and name shown in an item display window when opened
+  - Export the position of the player's pet
   - Fix incorrect pipe delay status print
 
 * Updated a few rng/mag spell categories used by right click spellset selection
@@ -69,6 +80,8 @@ Summarizes notable changes to Zeal
   - Blade of Walnan, Fist of Ixiblat, and Blade of the Kedge moved to Summon Weapon
 
 * Patched the client to not truncate social names on reload to 8 characters (now 15-char limit)
+
+* Fixed `/mystats` to properly cap worn item ATK at 250 even when avatar isn't active
 
 
 ## [1.4.8] - 2026/10/01
