@@ -3486,8 +3486,8 @@ static int get_offense(const Zeal::GameEnums::SkillType skill, bool verbose = fa
   if (char_info->is_spell_affecting_pc(0x982)) {
     spell_atk -= 100;
     item_atk += 100;
-    item_atk = min(250, item_atk);  //  RuleI(Character, ItemATKCap), client == 250.
   }
+  item_atk = min(250, item_atk);  //  RuleI(Character, ItemATKCap), client == 250.
 
   int offense = skill_value + spell_atk + item_atk + stat_bonus;
 
