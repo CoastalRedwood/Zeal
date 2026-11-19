@@ -648,6 +648,7 @@ NamedPipe::NamedPipe(ZealService *zeal) {
   zeal->tick->AddTickCallback([this]() { chat_msg(TICK_MESSAGE, 0); });
   zeal->chat_hook->add_print_chat_callback([this](const char *data, int color_index) { chat_msg(data, color_index); });
   zeal->callbacks->AddGeneric([this]() { main_loop(); });
+  zeal->callbacks->AddGeneric([this]() { auto_considers.clear(); }, callback_type::EnterZone);
   zeal->item_displays->add_set_item_callback([this](const Zeal::GameStructures::GAMEITEMINFO *item) {
     write_item(item->ID, std::string(item->Name, strnlen(item->Name, sizeof(item->Name))));
   });

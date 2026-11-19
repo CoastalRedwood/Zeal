@@ -44,7 +44,9 @@ class NamedPipe {
   bool is_connected() const { return pipe_handles.size() != 0; }
 
  private:
-  static constexpr ULONGLONG kAutoConsiderTimeoutMs = 3000;  // How long to wait for the reply to an auto consider.
+  // How long an auto consider's reply is still expected (and kept out of chat). Generous so a lagged
+  // reply stays quiet; zoning drops any that are still pending.
+  static constexpr ULONGLONG kAutoConsiderTimeoutMs = 30000;
 
   void write_item(int item_id, const std::string &name);
   void write_death(const Zeal::Packets::Death_Struct &death);
