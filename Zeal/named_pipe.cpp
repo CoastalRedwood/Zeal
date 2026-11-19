@@ -596,6 +596,8 @@ void NamedPipe::write_consider(const Zeal::Packets::Consider_Struct &consider) {
 
 // With /pipeconsider on, considers each new NPC target so that its faction standing reaches the pipe
 // without the player having to /consider it. The reply is kept out of chat (see handle_consider).
+// At most one automatic consider per spawn is in flight: re-targeting a spawn whose reply is still
+// pending (quick A, B, A switching, or the target briefly reading as none) doesn't send another.
 void NamedPipe::auto_consider() {
   bool enabled = pipe_consider.get() && is_connected() && Zeal::Game::is_in_game();
   auto *target = enabled ? Zeal::Game::get_target() : nullptr;
@@ -605,31 +607,22 @@ void NamedPipe::auto_consider() {
   if (!target || target == Zeal::Game::get_self() || target->Type != Zeal::GameEnums::EntityTypes::NPC) return;
 
   ULONGLONG now = GetTickCount64();
-  for (auto it = auto_considers.begin(); it != auto_considers.end();) {
-    auto &times = it->second;
-    while (!times.empty() && now - times.front() > kAutoConsiderTimeoutMs) times.pop_front();
-    it = times.empty() ? auto_considers.erase(it) : std::next(it);
-  }
-  auto_considers[target_id].push_back(now);  // Queued, so targeting A, B, A before replies keeps both of A's.
+  std::erase_if(auto_considers, [now](const auto &request) { return now - request.second > kAutoConsiderTimeoutMs; });
+  if (auto_considers.count(target_id)) return;  // Still waiting on the reply to the last one.
+  auto_considers[target_id] = now;
   Zeal::Game::do_consider(target, " ");
 }
 
 // Returns true when the reply answers a consider sent by auto_consider(), in which case the client does
 // not process it, so the consider message isn't printed to chat. Replies to the player's own considers
-// are left alone.
+// are left alone. Replies carry nothing that says who asked, so a manual consider racing an automatic
+// one may swap which of the two (identical) replies is kept out of chat, but exactly one still prints.
 bool NamedPipe::handle_consider(const Zeal::Packets::Consider_Struct &consider) {
   if (is_connected()) write_consider(consider);
-  // Replies carry nothing that says who asked, so each reply for a spawn uses up its oldest pending
-  // request. A manual consider racing an automatic one may swap which of the two (identical) replies
-  // is kept out of chat, but exactly one still prints per consider the player made.
   auto request = auto_considers.find(consider.targetid);
   if (request == auto_considers.end()) return false;
-  auto &times = request->second;
-  ULONGLONG now = GetTickCount64();
-  while (!times.empty() && now - times.front() > kAutoConsiderTimeoutMs) times.pop_front();
-  bool ours = !times.empty();
-  if (ours) times.pop_front();
-  if (times.empty()) auto_considers.erase(request);
+  bool ours = GetTickCount64() - request->second <= kAutoConsiderTimeoutMs;
+  auto_considers.erase(request);
   return ours;
 }
 
