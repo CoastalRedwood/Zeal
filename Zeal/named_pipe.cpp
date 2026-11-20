@@ -350,6 +350,13 @@ void NamedPipe::main_loop() {
                             (target->Position.y - self->Position.y) * (target->Position.y - self->Position.y) +
                             (target->Position.z - self->Position.z) * (target->Position.z - self->Position.z);
         if (distance_sq < 250.f * 250.f) player_data["target_loc"] = toJson(target->Position);
+        // Where this NPC was when the client first created it (see spawn_locs): its spawn point unless it
+        // had already moved by then. Unlike target_loc this is not a live position, so it has no distance cap.
+        if (target->Type == Zeal::GameEnums::EntityTypes::NPC) {
+          auto spawn_loc = spawn_locs.find(target->SpawnId);
+          if (spawn_loc != spawn_locs.end() && spawn_loc->second.entity == target)
+            player_data["target_spawn_loc"] = toJson(spawn_loc->second.position);
+        }
       }
       const auto *actor_info = Zeal::Game::get_self()->ActorInfo;
       if (actor_info && actor_info->PetID > 0) {
@@ -505,6 +512,15 @@ void NamedPipe::write_item(int item_id, const std::string &name) {
   write(item_data.dump(), pipe_data_type::item);
 }
 
+// Records the position of each NPC created since the last frame (see spawn_locs).
+void NamedPipe::record_spawn_locs() {
+  for (auto *ent : spawn_loc_pending) {
+    if (ent->Type == Zeal::GameEnums::EntityTypes::NPC && ent->SpawnId != 0)
+      spawn_locs[ent->SpawnId] = {ent, ent->Position};
+  }
+  spawn_loc_pending.clear();
+}
+
 void NamedPipe::update_delay(unsigned new_delay) {
   pipe_delay.set(new_delay);
   Zeal::Game::print_chat("pipe delay is now set to %i", pipe_delay.get());
@@ -527,6 +543,21 @@ NamedPipe::NamedPipe(ZealService *zeal) {
   zeal->tick->AddTickCallback([this]() { chat_msg(TICK_MESSAGE, 0); });
   zeal->chat_hook->add_print_chat_callback([this](const char *data, int color_index) { chat_msg(data, color_index); });
   zeal->callbacks->AddGeneric([this]() { main_loop(); });
+  // Spawn locations are recorded whether or not a pipe client is connected, so a consumer that connects
+  // after zoning in still gets them.
+  zeal->callbacks->AddGeneric([this]() { record_spawn_locs(); });
+  zeal->callbacks->AddEntity([this](Zeal::GameStructures::Entity *ent) { spawn_loc_pending.insert(ent); },
+                             callback_type::EntitySpawn);
+  // The despawn entity's fields aren't reliable (see EntityManager::Remove), so this only drops it by pointer.
+  // A stale spawn_locs record is harmless: it no longer matches the live entity for its id.
+  zeal->callbacks->AddEntity([this](Zeal::GameStructures::Entity *ent) { spawn_loc_pending.erase(ent); },
+                             callback_type::EntityDespawn);
+  zeal->callbacks->AddGeneric(
+      [this]() {
+        spawn_loc_pending.clear();
+        spawn_locs.clear();
+      },
+      callback_type::EnterZone);
   zeal->item_displays->add_set_item_callback([this](const Zeal::GameStructures::GAMEITEMINFO *item) {
     write_item(item->ID, std::string(item->Name, strnlen(item->Name, sizeof(item->Name))));
   });

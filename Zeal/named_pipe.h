@@ -4,11 +4,18 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "game_packets.h"
 #include "json.hpp"
+#include "vectors.h"
 #include "zeal_settings.h"
+
+namespace Zeal::GameStructures {
+struct Entity;
+}
 
 enum struct pipe_data_type { log, label, gauge, player, custom, raid, group, death, item };
 
@@ -46,9 +53,21 @@ class NamedPipe {
   void write_item(int item_id, const std::string &name);
   void write_death(const Zeal::Packets::Death_Struct &death);
   void add_new_pipe_handle(const HANDLE &handle);
+  void record_spawn_locs();
   void update_pipe_handles();
   ZealSetting<int> pipe_delay = {100, "Zeal", "PipeDelay", false};
   ZealSetting<bool> pipe_verbose = {false, "Zeal", "PipeVerbose", false};
+  // Where each NPC was when the client created it (on zoning in, or when it spawned), by spawn id. For a
+  // mob that hasn't moved yet that is its spawn point, which a consumer can use to tell same-name spawns
+  // apart after they've been pulled away. Entities created since the last frame wait in the pending set,
+  // since their position is filled in after the entity is constructed. Each record keeps the entity it was
+  // taken from and is only used while that is still the entity with that spawn id (ids get reused).
+  struct SpawnLoc {
+    const Zeal::GameStructures::Entity *entity;
+    Vec3 position;
+  };
+  std::unordered_set<Zeal::GameStructures::Entity *> spawn_loc_pending;
+  std::unordered_map<int, SpawnLoc> spawn_locs;
   bool end_thread = false;
   std::string name = "\\\\.\\pipe\\zeal_";
   std::vector<HANDLE> pipe_handles;
