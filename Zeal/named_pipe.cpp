@@ -542,16 +542,21 @@ void NamedPipe::update_pipe_handles() {
 NamedPipe::NamedPipe(ZealService *zeal) {
   zeal->tick->AddTickCallback([this]() { chat_msg(TICK_MESSAGE, 0); });
   zeal->chat_hook->add_print_chat_callback([this](const char *data, int color_index) { chat_msg(data, color_index); });
-  zeal->callbacks->AddGeneric([this]() { main_loop(); });
   // Spawn locations are recorded whether or not a pipe client is connected, so a consumer that connects
-  // after zoning in still gets them.
+  // after zoning in still gets them. Recorded before main_loop() so a target created last frame has its record.
   zeal->callbacks->AddGeneric([this]() { record_spawn_locs(); });
+  zeal->callbacks->AddGeneric([this]() { main_loop(); });
   zeal->callbacks->AddEntity([this](Zeal::GameStructures::Entity *ent) { spawn_loc_pending.insert(ent); },
                              callback_type::EntitySpawn);
-  // The despawn entity's fields aren't reliable (see EntityManager::Remove), so this only drops it by pointer.
-  // A stale spawn_locs record is harmless: it no longer matches the live entity for its id.
-  zeal->callbacks->AddEntity([this](Zeal::GameStructures::Entity *ent) { spawn_loc_pending.erase(ent); },
-                             callback_type::EntityDespawn);
+  // The despawn entity's fields aren't reliable (see EntityManager::Remove), so its records are found by
+  // pointer. Dropping them keeps a new entity that reuses both the address and the spawn id from inheriting
+  // the old one's location.
+  zeal->callbacks->AddEntity(
+      [this](Zeal::GameStructures::Entity *ent) {
+        spawn_loc_pending.erase(ent);
+        std::erase_if(spawn_locs, [ent](const auto &record) { return record.second.entity == ent; });
+      },
+      callback_type::EntityDespawn);
   zeal->callbacks->AddGeneric(
       [this]() {
         spawn_loc_pending.clear();
