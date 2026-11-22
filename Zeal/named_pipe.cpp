@@ -550,19 +550,15 @@ NamedPipe::NamedPipe(ZealService *zeal) {
                              callback_type::EntitySpawn);
   // The despawn entity's fields aren't reliable (see EntityManager::Remove), so its records are found by
   // pointer. Dropping them keeps a new entity that reuses both the address and the spawn id from inheriting
-  // the old one's location.
+  // the old one's location. This also empties the records on zoning, since every entity is destroyed then.
+  // They used to be cleared on EnterZone as well, but in game no NPC already in the zone at zone-in had a
+  // record afterwards (only later respawns did): the new zone's NPCs are created before that callback runs.
   zeal->callbacks->AddEntity(
       [this](Zeal::GameStructures::Entity *ent) {
         spawn_loc_pending.erase(ent);
         std::erase_if(spawn_locs, [ent](const auto &record) { return record.second.entity == ent; });
       },
       callback_type::EntityDespawn);
-  zeal->callbacks->AddGeneric(
-      [this]() {
-        spawn_loc_pending.clear();
-        spawn_locs.clear();
-      },
-      callback_type::EnterZone);
   zeal->item_displays->add_set_item_callback([this](const Zeal::GameStructures::GAMEITEMINFO *item) {
     write_item(item->ID, std::string(item->Name, strnlen(item->Name, sizeof(item->Name))));
   });
