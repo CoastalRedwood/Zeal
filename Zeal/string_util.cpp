@@ -88,7 +88,7 @@ bool tryParse(const std::string &str, int *result, bool quiet) {
     std::size_t idx = 0;
     *result = std::stoi(str, &idx);
     if (idx != str.length()) {
-      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str);
+      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str.c_str());
       return false;
     }
     return true;
@@ -108,7 +108,7 @@ bool tryParse(const std::string &str, float *result, bool quiet) {
     std::size_t idx = 0;
     *result = std::stof(str, &idx);
     if (idx != str.length()) {
-      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str);
+      if (!quiet) Zeal::Game::print_chat("Invalid trailing characters %s", str.c_str());
       return false;
     }
     return true;
