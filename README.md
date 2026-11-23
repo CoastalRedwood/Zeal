@@ -298,7 +298,9 @@ ___
 - `/mystats`
   - **Arguments:** `none`, `info`, `<item_link>`
   - **Example:** `/mystats <item_link>` Prints out your current offensive stats if you were holding that item.
-  - **Description:** prints out current stats values (mitigation, avoidance, offense, etc)
+  - **Description:** prints out current stats values (mitigation, avoidance, offense, etc). On servers that send
+    PoP-style item mod2 stats (shielding, spell shield, stun resist, strikethrough, avoidance, accuracy, combat
+    effects, damage shield), it also prints their totals across your equipped items.
 
 - `/nameplate`
   - **Arguments:** `colors`, `concolors`, `targetcolor`, `charselect`, `hideself`, `x`, `hideraidpets`, `showpetownername`, `targetmarker`, `targethealth`, `inlineguild`

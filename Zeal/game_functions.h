@@ -326,6 +326,18 @@ int get_avoidance(bool include_combat_agility = false);
 int get_mitigation(bool include_cap = false);
 int get_mitigation_softcap();
 int get_display_AC();
+
+// PoP-style item mod2 stat totals over equipped items (all zero on servers that don't send them).
+struct Mod2Totals {
+  int strikethrough = 0, stun_resist = 0, combat_effects = 0, accuracy = 0;
+  int avoidance = 0, spell_shield = 0, shielding = 0, damage_shield = 0;
+  bool any() const {
+    return strikethrough || stun_resist || combat_effects || accuracy || avoidance || spell_shield || shielding ||
+           damage_shield;
+  }
+};
+Mod2Totals get_mod2_totals();
+void print_mod2_stats(short color);  // Prints nothing on servers that don't send mod2 stats.
 Zeal::GameEnums::SkillType get_weapon_skill(const Zeal::GameStructures::GAMEITEMINFO *weapon);
 int get_hand_to_hand_delay();
 void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEMINFO *weapon = nullptr,
