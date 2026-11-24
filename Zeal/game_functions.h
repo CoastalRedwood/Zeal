@@ -239,7 +239,7 @@ Zeal::GameStructures::ViewActor *get_view_actor();
 Zeal::GameStructures::CameraInfo *get_camera();
 Zeal::GameStructures::Entity *get_entity_by_id(short id);  // Returns nullptr if invalid id.
 Zeal::GameStructures::Entity *get_entity_by_parent_id(short parent_id);
-void send_message(UINT opcode, int *buffer, UINT size, int unknown);
+void send_message(UINT opcode, char *buffer, UINT size, int unknown);
 // trim_name() and strip_name() both generate temporary modified string copies in global buffers that will get
 // re-used, so the result should be consumed immediately (copy to std::string or compare immediately).
 const char *trim_name(const char *name);   // Cleans but leaves suffixes. Use for name's corpse123 => name's corpse.

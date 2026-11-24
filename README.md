@@ -93,12 +93,16 @@ ___
                    `font <size>`: Sets the font size (8,9,10,12,14,16,20,24,28,32) \
                    `mode <assist | defend>`: Shows target of my target (assist) or who hit my target (defend) \
                    `window <ms>`: Sets time window (in milliseconds) of combat damage history used for targeting information \
-                   `refresh <on | off> [interval_ms]`: Enables/disables a silent auto-poll using /assist of your target
+                   `refresh <on | off> [interval_ms]`: Enables/disables a silent auto-poll using /assist of your target \
+                                                       Setting interval_ms == 0 performs a single poll when switching targets
   - **Example:** `/assistbar position 1000 100` Sets (x, y) = (left, top) = (1000, 100).
   - **Example:** `/assistbar refresh on 5000` Enables a silent /assist poll every 5 seconds.
   - **Description:** Shows the "assist candidate" for your current target (name & health bar) at a configurable
-          on screen position. Uses either damage inference (assist = target of target = who my target last damaged and
-          defend = who last damaged my target), the results of a manual /assist poll, or by an optional auto-poll interval.
+          on screen position. This is tracked using a combination of /assist responses (either normal manual or the optional
+          silent auto-refresh results), damage inference (assist = target of target = who my target last damaged and
+          defend = who last damaged my target), animation inference (mob executes a melee animation at a player), or the
+          the proposed Quarm-specific TargetHoTT update packet. The update sources do have rule-based range limits with
+          Range:DamageMessages = 75, Range:Anims = 135, and ASSIST_RANGE = 250. The ToT color changes at distances > 135.
 
 - `/autobank`
   - **Aliases:** `/autoba`, `/ab`

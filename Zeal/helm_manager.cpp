@@ -494,7 +494,7 @@ void HelmManager::RefreshHelmCallback(bool local_only) {
           wc.wear_slot_id = kMaterialSlotHead;
           wc.material = material;
           wc.color.Color = color;
-          Zeal::Game::send_message(Zeal::Packets::WearChange, (int *)&wc, sizeof(Zeal::Packets::WearChange_Struct), 0);
+          Zeal::Game::send_message(Zeal::Packets::WearChange, (char *)&wc, sizeof(Zeal::Packets::WearChange_Struct), 0);
         } else if (HELM_MANAGER_LOG_DEBUG) {
           Zeal::Game::print_chat(
               "[HelmManager] [UpdateHelm] Skipping sending WearCchange, we already are in sync with server.");

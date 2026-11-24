@@ -716,8 +716,8 @@ const char *strip_name(const char *name)  // aka stripName in client
   return Zeal::Game::get_game()->stripName(name);
 }
 
-void send_message(UINT opcode, int *buffer, UINT size, int unknown) {
-  reinterpret_cast<void(__cdecl *)(int *connection, UINT opcode, int *buffer, UINT size, int unknown)>(0x54e51a)(
+void send_message(UINT opcode, char *buffer, UINT size, int unknown) {
+  reinterpret_cast<void(__cdecl *)(int *connection, UINT opcode, char *buffer, UINT size, int unknown)>(0x54e51a)(
       (int *)0x7952fc, opcode, buffer, size, unknown);
 }
 
