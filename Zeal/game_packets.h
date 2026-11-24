@@ -26,6 +26,7 @@ enum opcodes {
   RequestClientZoneChange = 0x414d,
   RaidUpdate = 0x4260,
   ItemLinkResponse = 0x4264,
+  TargetHoTT = 0x426C,
 };
 
 struct Animation_Struct {
@@ -193,6 +194,14 @@ struct ConsentResponse_Struct {
   char ownername[64];
   UINT8 permission;
   char zonename[32];
+};
+
+// OP_TargetHoTT: source_id's target is now target_id (0 = no target)
+struct TargetHoTT_Struct
+{
+	/*000*/	WORD source_id;  // Mob whose target changed (the client's target)
+	/*002*/	WORD target_id;  // That mob's new target
+	/*004*/
 };
 
 }  // namespace Packets

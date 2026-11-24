@@ -433,7 +433,7 @@ void ZealService::AddCommands() {
             memset(&tmp, 0, sizeof(tmp));
             strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
             strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
-            Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrag, (int *)&tmp, sizeof(tmp), 0);
+            Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrag, (char *)&tmp, sizeof(tmp), 0);
           } else if (nearest)
             Zeal::Game::print_chat("No corpse found nearby to drag.");
           else
@@ -453,7 +453,7 @@ void ZealService::AddCommands() {
                            memset(&tmp, 0, sizeof(tmp));
                            strcpy_s(tmp.CorpseName, 30, Zeal::Game::get_target()->Name);
                            strcpy_s(tmp.DraggerName, 30, Zeal::Game::get_self()->Name);
-                           Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, (int *)&tmp, sizeof(tmp), 0);
+                           Zeal::Game::send_message(Zeal::Packets::opcodes::CorpseDrop, (char *)&tmp, sizeof(tmp), 0);
                          } else
                            Zeal::Game::print_chat("Need to target a corpse to /drop (or use /drop all)");
                          return true;  // return true to stop the game from processing any further on this command,
@@ -476,7 +476,7 @@ void ZealService::AddCommands() {
                              memset(&tmp, 0, sizeof(tmp));
                              tmp.from_id = Zeal::Game::get_self()->SpawnId;
                              tmp.to_id = Zeal::Game::get_target()->SpawnId;
-                             Zeal::Game::send_message(Zeal::Packets::opcodes::RequestTrade, (int *)&tmp, sizeof(tmp),
+                             Zeal::Game::send_message(Zeal::Packets::opcodes::RequestTrade, (char *)&tmp, sizeof(tmp),
                                                       0);
                            }
                          }
@@ -1062,8 +1062,7 @@ void ZealService::AddBinds() {
   });
   binds_hook->add_bind(252, "Assist Refresh", "AssistRefresh", key_category::Target, [this](int key_down) {
     if (key_down && !Zeal::Game::GameInternal::UI_ChatInputCheck())
-      // Suppressed: updates the AssistBar ToT without switching your target.
-      assist_target->FireAssistRequest(true);
+      assist_target->TriggerAssistRequest();  // Triggers internal AssistTarget refresh.
   });
 
   binds_hook->add_bind(255, "Auto Inventory", "AutoInventory", key_category::Commands | key_category::Macros,

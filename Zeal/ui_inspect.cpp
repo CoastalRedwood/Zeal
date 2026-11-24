@@ -20,7 +20,7 @@ static int __fastcall InspectItemClickDown(Zeal::GameUI::InvSlotWnd *pWnd, int u
       Zeal::Packets::ItemViewRequest_Struct tmp;
       memset(&tmp, 0, sizeof(tmp));
       tmp.item_id = id;
-      Zeal::Game::send_message(Zeal::Packets::opcodes::ItemLinkResponse, (int *)&tmp, sizeof(tmp), 0);
+      Zeal::Game::send_message(Zeal::Packets::opcodes::ItemLinkResponse, (char *)&tmp, sizeof(tmp), 0);
     } else
       Zeal::Game::print_chat("Unable to find id for item: %s", pWnd->invSlot->Item->Name);
   }
