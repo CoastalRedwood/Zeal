@@ -3071,9 +3071,13 @@ int get_avoidance(bool include_combat_agility) {
 
   if (!include_combat_agility) return avoidance;
 
+  // The server adds item mod2 Avoidance flat (after the drunk derating) for combat only, not to displayed AC.
+  // Zero on servers that don't send mod2 stats.
+  int mod2_avoidance = get_mod2_totals().avoidance;
+
   auto self = char_info->SpawnInfo;
   auto actor_info = self ? self->ActorInfo : nullptr;
-  if (!actor_info) return avoidance;
+  if (!actor_info) return avoidance + mod2_avoidance;
 
   // The server is summing CombatAgility, PhysicalEnhancement, and LightningReflexes as effect 172.
   BYTE combat_agility = actor_info->AAAbilities[0x22];  // Combat Agility AA skill = 0x22.
@@ -3088,7 +3092,7 @@ int get_avoidance(bool include_combat_agility) {
   // apply that here before adding.
   int drunk_factor = char_info->Drunkness / 2;
   if (drunk_factor > 20) extra_avoidance = extra_avoidance * (110 - drunk_factor) / 100;
-  return avoidance + extra_avoidance;
+  return avoidance + extra_avoidance + mod2_avoidance;
 }
 
 // Mitigation has era dependence.
@@ -3224,6 +3228,43 @@ int get_mitigation(bool include_cap) {
 int get_display_AC() {
   // Equivalent to game Main::CalcDefense() at 0x004712bc and is just here for reference.
   return (get_avoidance() + get_mitigation()) * 1000 / 847;
+}
+
+// Sums the PoP-style mod2 stats over the equipped items (excluding ammo, like the server). These come
+// from spare item struct bytes that only mod2-enabled servers (Project Quarm) fill in; other servers
+// leave them zero. Values are raw sums: the server applies its own (rule-based) caps, which normal
+// gear doesn't reach.
+Mod2Totals get_mod2_totals() {
+  Mod2Totals t;
+  auto char_info = get_char_info();
+  if (!char_info) return t;
+
+  for (int slot = 0; slot < GAME_NUM_INVENTORY_SLOTS; ++slot) {
+    if (slot == Zeal::GameEnums::EquipSlot::Ammo) continue;
+    auto item = char_info->InventoryItem[slot];
+    if (!item || item->Type != 0) continue;  // Common items only.
+    t.strikethrough += item->Common.StrikeThrough;
+    t.stun_resist += item->Common.StunResist;
+    t.combat_effects += item->Common.CombatEffects;
+    t.accuracy += item->Common.Accuracy;
+    t.avoidance += item->Common.Avoidance;
+    t.spell_shield += item->Common.SpellShield;
+    t.shielding += item->Common.Shielding;
+    t.damage_shield += item->Common.DamageShield;
+  }
+  return t;
+}
+
+// Prints the mod2 totals, or nothing if they are all zero (servers without mod2).
+void print_mod2_stats(short color) {
+  Mod2Totals t = get_mod2_totals();
+  if (!t.any()) return;
+
+  print_chat(color, "---- Item mod2 stats (before server caps) ----");
+  print_chat(color, "Shielding: %d%%  Spell Shield: %d%%  Stun Resist: %d%%  Strikethrough: %d%%", t.shielding,
+             t.spell_shield, t.stun_resist, t.strikethrough);
+  print_chat(color, "Avoidance: %d  Accuracy: %d  Combat Effects: %d  Damage Shield: %d", t.avoidance, t.accuracy,
+             t.combat_effects, t.damage_shield);
 }
 
 // Returns the level vs recommended level derating factor (typically negative "bonus").
@@ -3630,7 +3671,9 @@ void print_melee_attack_stats(bool primary, const Zeal::GameStructures::GAMEITEM
   Zeal::GameEnums::SkillType skill = get_weapon_skill(weapon);
   int to_hit = char_info->compute_to_hit(skill);
   int offense = get_offense(skill, true, color);  // Print out offense.
-  Zeal::Game::print_chat(color, "To Hit: %d", to_hit);
+  // The server adds item mod2 Accuracy flat to the combat To Hit (zero on servers without mod2). The
+  // Display ATK below keeps the client's own to_hit so it still matches the inventory window.
+  Zeal::Game::print_chat(color, "To Hit: %d", to_hit + get_mod2_totals().accuracy);
   float dmg_multiplier_max = get_damage_multiplier(offense, skill, true);
   float dmg_multiplier_ave = get_damage_multiplier(offense, skill, false);
   float min_damage = bonus_damage + base_damage * 0.1f * 1;

@@ -614,7 +614,17 @@ typedef struct _GAMEITEMCOMMONINFO {
     /* 0x0124 */ int CastTime;  // Cast time of clicky item in miliseconds
   };
 
-  /* 0x0128 */ BYTE Unknown0128[12];
+  // PoP-style "mod2" stats. Unused by eqgame.exe; servers that support mod2 (Project Quarm) send them
+  // here, and servers that don't leave them zero.
+  /* 0x0128 */ INT8 StrikeThrough;  // percent
+  /* 0x0129 */ INT8 StunResist;     // percent
+  /* 0x012A */ INT8 CombatEffects;
+  /* 0x012B */ INT8 Accuracy;
+  /* 0x012C */ INT8 Avoidance;
+  /* 0x012D */ INT8 SpellShield;   // percent
+  /* 0x012E */ INT8 Shielding;     // percent
+  /* 0x012F */ INT8 DamageShield;
+  /* 0x0130 */ BYTE Unknown0130[4];
   /* 0x0134 */ INT32 RecastTime;  // Recast time of clicky in milliseconds.
   /* 0x0138 */ WORD SkillModType;
   /* 0x013A */ INT16 SkillModValue;

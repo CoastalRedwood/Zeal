@@ -686,7 +686,7 @@ void ZealService::AddCommands() {
                      "Note: The spell_ac value is an internal calc from the database. Sites like pqdi already include "
                      "the /4.");
           print_chat(CHANNEL_MYSTATS, "Avoidance: modifies probability of taking zero damage");
-          print_chat(CHANNEL_MYSTATS, "Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct)");
+          print_chat(CHANNEL_MYSTATS, "Avoidance ~= (defense_skill*400/225 + 36 + (min(200,agi)-75)*2/15)*(1+AA_pct) + item_mod2_avoidance");
           print_chat(CHANNEL_MYSTATS, "To Hit: sets probability of hitting based on to hit vs avoidance");
           print_chat(CHANNEL_MYSTATS, "To Hit ~= 7 + offense_skill + weap_skill + bonuses (item, spell, AA)");
           print_chat(CHANNEL_MYSTATS, "Offense: impacts both mitigation factor and damage multiplier");
@@ -737,6 +737,7 @@ void ZealService::AddCommands() {
                      Zeal::Game::get_avoidance(true));  // Includes combat_agility.
           Zeal::Game::print_melee_attack_stats(true, nullptr, CHANNEL_MYSTATS);
           Zeal::Game::print_melee_attack_stats(false, nullptr, CHANNEL_MYSTATS);
+          Zeal::Game::print_mod2_stats(CHANNEL_MYSTATS);
         } else
           print_chat(CHANNEL_MYSTATS, "Usage: /mystats, /mystats info, /mystats <item_id>, /mystats <item_link>");
 
