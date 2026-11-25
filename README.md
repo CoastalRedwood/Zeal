@@ -350,6 +350,12 @@ ___
   - **Description:** toggles on/off extra output raid and group member info fields (hp, zone and
     the `appearance` object)
 
+- `/pipespells`
+  - **Arguments:** `all`, `detrimental`, `off`
+  - **Example:** `/pipespells detrimental`
+  - **Description:** sets which spell actions are sent over the named pipe (default `off`). With no
+    argument it prints the current setting.
+
 - `/playerclickthru`
   - **Arguments:** `on`, `off`
   - **Description:** Disables (on) left click targeting of other players (excludes self).
@@ -961,6 +967,21 @@ what the window itself shows, so a consumer can look the item up in its own data
 ```json
 { "item_id": 13073, "name": "Bone Chips" }
 ```
+
+#### Spell actions
+A `spell` message (type 9) is sent for each spell action the client receives, so a consumer can tie a
+"spell landed" chat message, which names the target but carries no spawn id, to the spawn it landed on.
+
+```json
+{ "spell_id": 1588, "source_id": 567, "source_name": "Soandso", "target_id": 1234, "target_name": "a gnoll pup", "success": true }
+```
+
+- The server sends one message to the caster, the target and nearby clients for every cast attempt,
+  including resists, then a second one with `success` set only to the caster and the target. A
+  bystander therefore only sees `success: false` messages.
+- `source_name`, `target_name` - trimmed names, omitted if the client does not know the spawn
+- `/pipespells` picks what is sent: `off` (default), `detrimental` (spells flagged detrimental only),
+  or `all`. It's off until a user turns it on.
 
 ---
 ### Tick Timer
