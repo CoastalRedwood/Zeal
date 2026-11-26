@@ -4,13 +4,14 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "game_packets.h"
 #include "json.hpp"
 #include "zeal_settings.h"
 
-enum struct pipe_data_type { log, label, gauge, player, custom, raid, group, death, item, spell };
+enum struct pipe_data_type { log, label, gauge, player, custom, raid, group, death, item, spell, consider };
 
 struct pipe_data {
   pipe_data_type type;
@@ -43,15 +44,26 @@ class NamedPipe {
   bool is_connected() const { return pipe_handles.size() != 0; }
 
  private:
+  // How long an auto consider's reply is still expected (and kept out of chat). Generous so a lagged
+  // reply stays quiet; zoning drops any that are still pending.
+  static constexpr ULONGLONG kAutoConsiderTimeoutMs = 30000;
+
   void write_item(int item_id, const std::string &name);
   void write_death(const Zeal::Packets::Death_Struct &death);
   void write_spell_action(const Zeal::Packets::Action_Struct &action);
   void update_pipe_spells(const std::string &mode);
+  void write_consider(const Zeal::Packets::Consider_Struct &consider);
+  void auto_consider();
+  bool handle_consider(const Zeal::Packets::Consider_Struct &consider);
   void add_new_pipe_handle(const HANDLE &handle);
   void update_pipe_handles();
   ZealSetting<int> pipe_delay = {100, "Zeal", "PipeDelay", false};
   ZealSetting<bool> pipe_verbose = {false, "Zeal", "PipeVerbose", false};
   ZealSetting<int> pipe_spells = {0, "Zeal", "PipeSpells", false};  // 0 off, 1 detrimental only, 2 all.
+  ZealSetting<bool> pipe_consider = {false, "Zeal", "PipeConsider", false};
+  int last_target_id = 0;                              // Spawn id of the target at the last auto_consider() check.
+  // Spawn id -> request time of the consider auto_consider() sent and hasn't seen a reply to (one per spawn).
+  std::unordered_map<int, ULONGLONG> auto_considers;
   bool end_thread = false;
   std::string name = "\\\\.\\pipe\\zeal_";
   std::vector<HANDLE> pipe_handles;
