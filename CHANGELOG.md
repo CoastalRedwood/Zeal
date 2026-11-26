@@ -2,6 +2,50 @@
 
 Summarizes notable changes to Zeal
 
+## [1.5.2] - 2026/11/25
+
+### New features
+
+* Updated Target of Target (`/assistbar`)
+  - Modified the assist_target (`/assistbar`) code to snoop on
+    outgoing packets to more reliably track the state of OP_Assist
+    request and responses
+  - Improved the deferral of manual requests so they reliably occur
+    and suffer only negligible delay due to an auto-refresh collision
+  - Added support for passive tracking of animation packet info to
+    supplement the damage packet tracking
+  - Added support for the proposed Quarm specific TargetHoTT packet
+    (opcode 0x426c) which (when implemented) should minimize the need
+    for the silent polling
+  - No longer draws ToTT or HitBy when there isn't a target name
+  - Colors the text if the mob is out of anim packet update range (135)
+
+* Updated `/mystats` to show mod2 stats as part of combat lines
+  - Supports Quarm specific POP-style mod2 item stats in spare item struct bytes
+  - Other servers (non-Quarm) set these to zero so no effect
+  - Add a mod2 totals section to /mystats (equipped items, ammo skipped,
+    raw sums before server caps). Printed only when non-zero.
+  - Add mod2 Avoidance to "Avoidance (with AAs)" and mod2 Accuracy to
+    "To Hit", flat after the drunk derating, matching the server.
+    AC (display) and Display ATK are unchanged.
+
+* Named pipe updates
+  - Send raid and group appearance (race, gender, worn equip, etc) in `/pipeverbose` mode
+
+  - Add new command `/pipespells all|detrimental|off` which sets the mode
+    of piping out spell actions (defaults to off)
+    - Adds a spell message (type 9) for each spell action packet, carrying the
+      spell id, source and target spawn ids and names, and the success flag.
+
+* Added `/pipeconsider` option that automatically triggers a consider request
+  any time the target changes with the responses swallowed to not clutter the chat
+  - Routes the consider reply packet to the Pipe with spawn id and name for
+    easier NPC matching
+  - Output values run from from 1 (ally) to 9 (scowls).
+
+
+## [1.5.1] - 2026/11/22
+ * Two-line code change to fix a potential crash in the TryParse error chat output
 
 ## [1.5.0] - 2026/11/18
 
